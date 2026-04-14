@@ -16,15 +16,22 @@
       <h2>Selecciona una categoría</h2>
       <div id="category-buttons"></div>
       <button id="continue-btn" class="btn btn-secondary hidden">Continuar desde donde estaba</button>
+      <footer id="home-footer">
+        <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo">
+      </footer>
     </div>
 
     <div id="quiz-view" class="hidden">
-      <div id="progress-container">
-        <div id="progress-bar"></div>
+      <div id="progress-row">
+        <div id="progress-info">
+          <span id="category-badge"></span>
+          <span id="progress-text">1/6</span>
+        </div>
+        <div id="progress-bar-container">
+          <div id="progress-bar"></div>
+        </div>
+        <button id="home-btn" class="btn btn-small">Home</button>
       </div>
-      <p id="progress-text">Pregunta 1 de 10</p>
-
-      <div id="category-badge"></div>
 
       <div id="quiz-container">
         <div id="audio-container" class="hidden"></div>

@@ -64,12 +64,34 @@ function getElement(id) {
   return document.getElementById(id);
 }
 
+function getAudioTitle(exerciseIndex) {
+  if (currentCategory === 'LISTENING' && quizData.LISTENING[exerciseIndex]) {
+    return quizData.LISTENING[exerciseIndex].title || 'Listening';
+  }
+  return currentCategory;
+}
+
 function updateProgressBar() {
+  const question = shuffledQuestions[currentQuestionIndex];
   const total = allQuestions.length;
   const current = currentQuestionIndex + 1;
   const percentage = (current / total) * 100;
+  
   getElement('progress-bar').style.width = percentage + '%';
-  getElement('progress-text').textContent = `Pregunta ${current} de ${total}`;
+  
+  if (currentCategory === 'LISTENING' && question.audio) {
+    const exerciseNum = question.exerciseIndex + 1;
+    const questionsInExercise = shuffledQuestions.filter(
+      q => q.exerciseIndex === question.exerciseIndex
+    ).length;
+    const questionInExercise = shuffledQuestions
+      .slice(0, currentQuestionIndex + 1)
+      .filter(q => q.exerciseIndex === question.exerciseIndex).length;
+    
+    getElement('progress-text').textContent = `Audio ${exerciseNum}: Part ${questionInExercise}/${questionsInExercise}`;
+  } else {
+    getElement('progress-text').textContent = `${current}/${total}`;
+  }
 }
 
 function flattenQuestions(category, data) {
@@ -586,6 +608,24 @@ function initEventListeners() {
   getElement('email-btn').addEventListener('click', sendEmail);
   getElement('restart-test-btn').addEventListener('click', restartTest);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
+  getElement('home-btn').addEventListener('click', goHome);
+}
+
+function goHome() {
+  clearProgress();
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+  answeredQuestions.clear();
+  shuffledQuestions = [];
+  currentCategory = null;
+  currentExerciseIndex = 0;
+  currentAudioSrc = null;
+  currentAudioElement = null;
+
+  getElement('quiz-view').classList.add('hidden');
+  getElement('results-container').classList.add('hidden');
+  renderCategorySelect();
 }
 
 async function init() {
