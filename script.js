@@ -93,20 +93,21 @@ function flattenQuestions(category, data) {
 
 async function loadAllData() {
   try {
-    const [grammar, reading, listening, writing, speaking] = await Promise.all([
-      fetch('data/grammar.json').then(r => r.json()).catch(() => []),
-      fetch('data/reading.json').then(r => r.json()).catch(() => []),
-      fetch('data/listening.json').then(r => r.json()).catch(() => []),
-      fetch('data/writing.json').then(r => r.json()).catch(() => []),
-      fetch('data/speaking.json').then(r => r.json()).catch(() => [])
+    const results = await Promise.all([
+      fetch('data/grammar.json').then(r => { if (!r.ok) throw new Error('grammar.json'); return r.json(); }),
+      fetch('data/reading.json').then(r => { if (!r.ok) throw new Error('reading.json'); return r.json(); }),
+      fetch('data/listening.json').then(r => { if (!r.ok) throw new Error('listening.json'); return r.json(); }),
+      fetch('data/writing.json').then(r => { if (!r.ok) throw new Error('writing.json'); return r.json(); }),
+      fetch('data/speaking.json').then(r => { if (!r.ok) throw new Error('speaking.json'); return r.json(); })
     ]);
 
-    quizData.GRAMMAR = grammar;
-    quizData.READING = reading;
-    quizData.LISTENING = listening;
-    quizData.WRITING = writing;
-    quizData.SPEAKING = speaking;
+    quizData.GRAMMAR = results[0];
+    quizData.READING = results[1];
+    quizData.LISTENING = results[2];
+    quizData.WRITING = results[3];
+    quizData.SPEAKING = results[4];
 
+    console.log('Datos cargados:', quizData);
     return true;
   } catch (error) {
     console.error('Error loading data:', error);
@@ -142,13 +143,17 @@ function renderCategorySelect() {
     const data = quizData[cat.key];
     const count = cat.key === 'GRAMMAR' ? data.length : flattenQuestions(cat.key, data).length;
 
-    if (count > 0) {
-      const btn = document.createElement('button');
-      btn.className = 'category-btn';
-      btn.innerHTML = `<strong>${cat.key}</strong><span>${cat.name} - ${count} preguntas</span>`;
-      btn.addEventListener('click', () => startFromCategory(cat.key));
-      container.appendChild(btn);
+    const btn = document.createElement('button');
+    btn.className = 'category-btn';
+    btn.innerHTML = `<strong>${cat.key}</strong><span>${cat.name} - ${count} preguntas</span>`;
+    if (count === 0) {
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
     }
+    btn.addEventListener('click', () => startFromCategory(cat.key));
+    container.appendChild(btn);
+    
+    console.log(`Categoría ${cat.key}: ${count} preguntas`);
   });
 
   const savedProgress = loadProgress();
@@ -273,7 +278,7 @@ function renderGuide(guide) {
 
   getElement('question-text').innerHTML = '';
   getElement('options-container').innerHTML = html;
-  getElement('feedback-container').style.display = 'none';
+  getElement('feedback-container').classList.add('hidden');
   
   updateProgressBar();
 }
@@ -303,11 +308,11 @@ function loadQuestion() {
   getElement('category-badge').textContent = question.category;
 
   getElement('audio-container').innerHTML = '';
-  getElement('audio-container').style.display = 'none';
+  getElement('audio-container').classList.add('hidden');
   getElement('transcription-toggle').innerHTML = '';
-  getElement('transcription-toggle').style.display = 'none';
+  getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').style.display = 'none';
+  getElement('reading-text').classList.add('hidden');
 
   if (question.isGuide) {
     renderGuide(question);
@@ -363,8 +368,8 @@ function loadQuestion() {
     optionsContainer.appendChild(optionDiv);
   });
 
-  getElement('feedback-container').style.display = 'none';
-  getElement('check-btn').style.display = 'inline-block';
+  getElement('feedback-container').classList.add('hidden');
+  getElement('check-btn').classList.remove('hidden');
   getElement('next-btn').classList.add('hidden');
   getElement('restart-btn').classList.add('hidden');
 
@@ -421,9 +426,10 @@ function checkAnswer() {
   }
 
   feedback.style.display = 'block';
+  feedback.classList.remove('hidden');
   answeredQuestions.add(currentQuestionIndex);
 
-  getElement('check-btn').style.display = 'none';
+  getElement('check-btn').classList.add('hidden');
   getElement('next-btn').classList.remove('hidden');
   getElement('restart-btn').classList.remove('hidden');
 
@@ -580,20 +586,21 @@ function initEventListeners() {
 }
 
 async function init() {
+  console.log('Iniciando script...');
   initEventListeners();
 
   const loaded = await loadAllData();
 
-  if (loaded) {
-    renderCategorySelect();
-  } else {
+  console.log('Datos cargados, mostrando categorías...');
+  renderCategorySelect();
+  
+  if (!loaded) {
     document.getElementById('category-select').innerHTML = `
       <div style="padding: 20px; background: #fff3cd; border-radius: 12px; color: #856404; margin: 20px 0;">
-        <h3>⚠️ Error al cargar datos</h3>
-        <p>No se pudieron cargar las preguntas. Por favor, recarga la página o intenta más tarde.</p>
+        <h3>⚠️ Advertencia</h3>
+        <p>Algunos datos no se cargaron correctamente. Verifica la consola para más detalles.</p>
       </div>
     `;
-    document.getElementById('category-select').classList.remove('hidden');
   }
 }
 
