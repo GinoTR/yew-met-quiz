@@ -1,1 +1,61 @@
-[]
+[
+  {
+    "id": 1,
+    "title": "Essay Writing – Exam Information",
+    "type": "guide",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "You will be asked to complete an essay writing task as part of the exam. The essay writing section consists of two topics. Choose one by circling choice A or B on your examination paper."
+      },
+      {
+        "title": "Example Essay Topics",
+        "content": "Here are two possible essay topics like those that you might encounter on the actual exam:",
+        "examples": [
+          {
+            "label": "QUESTION A",
+            "text": "International students often suffer from feelings of homesickness during their courses of study. What possible positive and negative impacts might this have on a student's academic performance?"
+          },
+          {
+            "label": "QUESTION B",
+            "text": "In order to prepare an academic assignment, students can use resources in the library or they can utilize online media. Which one do you prefer? Please give reasons and explanations to support your point of view."
+          }
+        ]
+      },
+      {
+        "title": "Types of Questions",
+        "type": "list",
+        "items": [
+          {
+            "name": "Personal experience or opinion essay",
+            "description": "You will be given a statement and asked to write about your personal experience or give your point of view. Remember to give reasons and examples to support your assertions."
+          },
+          {
+            "name": "Imaginary situation",
+            "description": "You may be asked to write about a hypothetical situation, like being homeless. This kind of essay will require you to use conditional sentence structures."
+          },
+          {
+            "name": "Argumentative or discussion-style essays",
+            "description": "You will be asked to talk about the advantages and disadvantages of a particular composition theme. Remember to write about both sides of the argument if asked to do so."
+          },
+          {
+            "name": "Comparison and contrast essay",
+            "description": "You will be asked to write an essay comparing two things, writing about their similarities and differences. Use words like: in the same way, on the other hand, in contrast, likewise, similarly, compared to."
+          }
+        ]
+      },
+      {
+        "title": "How to Answer",
+        "content": "Choose one of the topics by circling A or B. You must choose one of the topics given. If you write about a topic that is not provided, your essay will not be marked, and you will receive a score of zero."
+      },
+      {
+        "title": "Planning Your Essay",
+        "content": "You can prepare a plan or an outline to help you organize your writing, but it will not be counted towards your final score. You will be given 30 minutes to plan, write, and check your composition."
+      },
+      {
+        "title": "Length of the Essay",
+        "content": "You are normally expected to write approximately 300 to 500 words (1-2 handwritten pages). If your essay is extremely short, you will receive a poor score. Your essay level should be at university or college level, using good essay structure, advanced grammar, and high-level sentence constructions."
+      }
+    ]
+  }
+]

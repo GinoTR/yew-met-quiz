@@ -81,7 +81,9 @@ function flattenQuestions(category, data) {
           questionIndex: qIndex,
           category: category,
           audio: exercise.audio || null,
-          text: exercise.text || null
+          text: exercise.text || null,
+          lectureText: exercise.lectureText || null,
+          instructions: exercise.instructions || null
         });
       });
     }
@@ -162,19 +164,35 @@ function startFromCategory(category) {
       ...q,
       category: category,
       exerciseIndex: i,
-      questionIndex: 0
+      questionIndex: 0,
+      isGuide: false
+    }));
+  } else if (category === 'WRITING' || category === 'SPEAKING') {
+    sourceData = quizData[category];
+    allQuestions = sourceData.map((q, i) => ({
+      ...q,
+      category: category,
+      exerciseIndex: i,
+      questionIndex: 0,
+      isGuide: true
     }));
   } else {
     sourceData = quizData[category];
     const flattened = flattenQuestions(category, sourceData);
-    allQuestions = shuffleArray(flattened);
+    allQuestions = shuffleArray(flattened).map(q => ({ ...q, isGuide: false }));
   }
 
-  shuffledQuestions = allQuestions.map((q, i) => ({
-    ...shuffleOptions(q),
-    exerciseIndex: q.exerciseIndex,
-    questionIndex: q.questionIndex
-  }));
+  shuffledQuestions = allQuestions.map((q, i) => {
+    if (q.isGuide) {
+      return { ...q, shuffledOptions: [], correctShuffledIndex: -1 };
+    }
+    return {
+      ...shuffleOptions(q),
+      exerciseIndex: q.exerciseIndex,
+      questionIndex: q.questionIndex,
+      isGuide: false
+    };
+  });
 
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
@@ -192,6 +210,81 @@ function startFromCategory(category) {
   saveProgress();
 }
 
+function renderGuide(guide) {
+  let html = '';
+
+  if (guide.title) {
+    html += `<h2 class="guide-title">${guide.title}</h2>`;
+  }
+
+  if (guide.sections) {
+    guide.sections.forEach(section => {
+      html += `<div class="guide-section">`;
+      
+      if (section.title) {
+        html += `<h3 class="guide-section-title">${section.title}</h3>`;
+      }
+
+      if (section.content) {
+        html += `<p class="guide-content">${section.content}</p>`;
+      }
+
+      if (section.examples) {
+        section.examples.forEach(example => {
+          html += `
+            <div class="guide-example">
+              <div class="guide-example-label">${example.label}</div>
+              <p class="guide-example-text">${example.text}</p>
+            </div>
+          `;
+        });
+      }
+
+      if (section.items) {
+        html += `<ul class="guide-list">`;
+        section.items.forEach(item => {
+          if (typeof item === 'string') {
+            html += `<li class="guide-list-item">${item}</li>`;
+          } else {
+            html += `
+              <li class="guide-list-item">
+                <strong>${item.name}</strong>
+                <p>${item.description}</p>
+              </li>
+            `;
+          }
+        });
+        html += `</ul>`;
+      }
+
+      html += `</div>`;
+    });
+  }
+
+  html += `
+    <div class="guide-navigation">
+      <button class="btn btn-primary" onclick="nextGuide()">
+        ${currentQuestionIndex < shuffledQuestions.length - 1 ? 'Siguiente' : 'Volver al inicio'}
+      </button>
+    </div>
+  `;
+
+  getElement('question-text').innerHTML = '';
+  getElement('options-container').innerHTML = html;
+  getElement('feedback-container').style.display = 'none';
+  
+  updateProgressBar();
+}
+
+window.nextGuide = function() {
+  currentQuestionIndex++;
+  if (currentQuestionIndex >= shuffledQuestions.length) {
+    restartTest();
+  } else {
+    loadQuestion();
+  }
+};
+
 function loadQuestion() {
   const question = shuffledQuestions[currentQuestionIndex];
 
@@ -207,23 +300,49 @@ function loadQuestion() {
 
   getElement('category-badge').textContent = question.category;
 
+  getElement('audio-container').innerHTML = '';
+  getElement('audio-container').style.display = 'none';
+  getElement('transcription-toggle').innerHTML = '';
+  getElement('transcription-toggle').style.display = 'none';
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').style.display = 'none';
+
+  if (question.isGuide) {
+    renderGuide(question);
+    getElement('controls').style.display = 'none';
+    return;
+  }
+
+  getElement('controls').style.display = 'flex';
+
   if (question.audio) {
     getElement('audio-container').innerHTML = `<audio controls src="${question.audio}"></audio>`;
     getElement('audio-container').style.display = 'block';
-  } else {
-    getElement('audio-container').innerHTML = '';
-    getElement('audio-container').style.display = 'none';
   }
 
-  if (question.text) {
+  if (question.transcription) {
+    getElement('transcription-toggle').innerHTML = `<button id="transcription-btn" data-tooltip="Transcription">T</button>`;
+    getElement('transcription-toggle').style.display = 'block';
+    getElement('transcription-btn').addEventListener('click', toggleTranscription);
+    
+    let transcriptionContent = question.transcription;
+    if (question.instruction) {
+      transcriptionContent = `<em>(${question.instruction})</em><br><br>"${question.transcription}"`;
+    }
+    getElement('transcription-text').innerHTML = transcriptionContent;
+    getElement('transcription-text').classList.add('hidden');
+    document.getElementById('transcription-btn').classList.remove('active');
+  }
+
+  if (question.lectureText) {
+    getElement('reading-text').innerHTML = `<strong>Lecture:</strong><br><br>${question.lectureText}`;
+    getElement('reading-text').style.display = 'block';
+  } else if (question.text) {
     getElement('reading-text').textContent = question.text;
     getElement('reading-text').style.display = 'block';
-  } else {
-    getElement('reading-text').textContent = '';
-    getElement('reading-text').style.display = 'none';
   }
 
-  getElement('question-text').textContent = question.question;
+  getElement('question-text').textContent = question.transcription || question.question;
 
   const optionsContainer = getElement('options-container');
   optionsContainer.innerHTML = '';
@@ -244,6 +363,19 @@ function loadQuestion() {
   selectedOptionIndex = null;
   updateProgressBar();
   saveProgress();
+}
+
+function toggleTranscription() {
+  const transcriptionText = getElement('transcription-text');
+  const transcriptionBtn = document.getElementById('transcription-btn');
+  
+  if (transcriptionText.classList.contains('hidden')) {
+    transcriptionText.classList.remove('hidden');
+    transcriptionBtn.classList.add('active');
+  } else {
+    transcriptionText.classList.add('hidden');
+    transcriptionBtn.classList.remove('active');
+  }
 }
 
 function selectOption(index, element) {
@@ -312,6 +444,8 @@ function showResults() {
   getElement('category-badge').style.display = 'none';
   getElement('audio-container').style.display = 'none';
   getElement('reading-text').style.display = 'none';
+  getElement('transcription-toggle').style.display = 'none';
+  getElement('transcription-text').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
   const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
