@@ -21,6 +21,24 @@ body {
   text-align: center;
 }
 
+@media (min-width: 1200px) {
+  .container {
+    max-width: 900px;
+  }
+  
+  #quiz-container {
+    padding: 35px;
+  }
+  
+  .writing-textarea {
+    min-height: 200px;
+  }
+  
+  .writing-textarea-large {
+    min-height: 400px;
+  }
+}
+
 header {
   margin-bottom: 30px;
 }
@@ -823,6 +841,15 @@ h1 {
 }
 
 /* Writing Section Styles */
+#writing-instructions-panel {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+#writing-instructions-panel.hidden {
+  display: none;
+}
+
 .writing-instructions {
   text-align: left;
   margin-bottom: 20px;
@@ -1029,4 +1056,23 @@ h1 {
   font-size: 0.8rem;
   color: #aaa;
   margin-top: 10px;
+}
+
+.btn-edit {
+  display: block;
+  width: 100%;
+  margin: 15px auto 0;
+  padding: 10px 20px;
+  background-color: #f0f2ff;
+  border: none;
+  border-radius: 10px;
+  color: #667eea;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+  background-color: #667eea;
+  color: #fff;
 }

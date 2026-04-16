@@ -33,12 +33,11 @@ const TASK1_CHAR_LIMIT = 750;
 const TASK2_CHAR_LIMIT = 3500;
 
 const WRITING_STEPS = {
-  INSTRUCTIONS: 0,
-  TASK1_Q1: 1,
-  TASK1_Q2: 2,
-  TASK1_Q3: 3,
-  TASK2: 4,
-  PREVIEW: 5
+  TASK1_Q1: 0,
+  TASK1_Q2: 1,
+  TASK1_Q3: 2,
+  TASK2: 3,
+  PREVIEW: 4
 };
 
 function shuffleArray(array) {
@@ -204,17 +203,11 @@ function updateProgressBar() {
 
 function updateWritingProgress() {
   const writingData = quizData.WRITING;
-  const totalQuestions = 4;
-  const task1Questions = currentWritingStep <= WRITING_STEPS.TASK1_Q3 ? currentWritingStep : 3;
   
   let progressText = '';
   let percentage = 0;
 
   switch (currentWritingStep) {
-    case WRITING_STEPS.INSTRUCTIONS:
-      progressText = 'Instrucciones';
-      percentage = 0;
-      break;
     case WRITING_STEPS.TASK1_Q1:
       progressText = 'Task 1: Q1/3';
       percentage = 10;
@@ -358,13 +351,14 @@ function beginQuiz(category) {
   if (category === 'WRITING') {
     currentWritingGroup = shuffleArray([...quizData.WRITING.groups])[0];
     writingResponses = [];
-    currentWritingStep = WRITING_STEPS.INSTRUCTIONS;
+    currentWritingStep = WRITING_STEPS.TASK1_Q1;
     currentPreviewIndex = 0;
     
     getElement('category-select').classList.add('hidden');
     getElement('quiz-view').classList.remove('hidden');
     getElement('results-container').classList.add('hidden');
     
+    setupWritingInstructions();
     logActivity('INICIO', `WRITING - Grupo: ${currentWritingGroup.id}`);
     renderWritingStep();
     return;
@@ -422,13 +416,11 @@ function renderWritingStep() {
   getElement('transcription-text').classList.add('hidden');
   getElement('reading-text').classList.add('hidden');
   getElement('feedback-container').classList.add('hidden');
+  getElement('writing-instructions-panel').classList.remove('hidden');
 
   let html = '';
 
   switch (currentWritingStep) {
-    case WRITING_STEPS.INSTRUCTIONS:
-      html = renderWritingInstructions();
-      break;
     case WRITING_STEPS.TASK1_Q1:
     case WRITING_STEPS.TASK1_Q2:
     case WRITING_STEPS.TASK1_Q3:
@@ -460,35 +452,6 @@ function renderWritingStep() {
     getElement('next-btn').textContent = 'Siguiente';
     getElement('restart-btn').classList.add('hidden');
   }
-}
-
-function renderWritingInstructions() {
-  const instructions = quizData.WRITING.instructions;
-  return `
-    <div class="writing-instructions">
-      <div class="instructions-toggle">
-        <button id="toggle-instructions" class="btn-toggle">
-          Instrucciones <span class="toggle-icon">▼</span>
-        </button>
-      </div>
-      <div id="instructions-content" class="instructions-content">
-        <p>${instructions.replace(/\n/g, '<br>')}</p>
-      </div>
-    </div>
-    <script>
-      document.getElementById('toggle-instructions').addEventListener('click', function() {
-        const content = document.getElementById('instructions-content');
-        const icon = this.querySelector('.toggle-icon');
-        if (content.classList.contains('hidden')) {
-          content.classList.remove('hidden');
-          icon.textContent = '▲';
-        } else {
-          content.classList.add('hidden');
-          icon.textContent = '▼';
-        }
-      });
-    </script>
-  `;
 }
 
 function renderWritingTask1(qIndex) {
@@ -611,6 +574,7 @@ function renderCarouselSlide() {
         </span>
         <button id="carousel-next" class="carousel-btn">▶</button>
       </div>
+      <button id="edit-response-btn" class="btn btn-edit">Editar esta respuesta</button>
       <div class="carousel-hint">Usa las flechas ← → o las teclas A/D para navegar</div>
     </div>
   `;
@@ -619,6 +583,7 @@ function renderCarouselSlide() {
 function setupCarouselEvents() {
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
+  const editBtn = document.getElementById('edit-response-btn');
   
   if (prevBtn) {
     prevBtn.addEventListener('click', () => navigateCarousel(-1));
@@ -626,8 +591,54 @@ function setupCarouselEvents() {
   if (nextBtn) {
     nextBtn.addEventListener('click', () => navigateCarousel(1));
   }
+  if (editBtn) {
+    editBtn.addEventListener('click', editCurrentResponse);
+  }
 
   document.addEventListener('keydown', handleCarouselKeydown);
+}
+
+function editCurrentResponse() {
+  document.removeEventListener('keydown', handleCarouselKeydown);
+  
+  switch (currentPreviewIndex) {
+    case 0:
+      currentWritingStep = WRITING_STEPS.TASK1_Q1;
+      break;
+    case 1:
+      currentWritingStep = WRITING_STEPS.TASK1_Q2;
+      break;
+    case 2:
+      currentWritingStep = WRITING_STEPS.TASK1_Q3;
+      break;
+    case 3:
+      currentWritingStep = WRITING_STEPS.TASK2;
+      break;
+  }
+  
+  renderWritingStep();
+}
+
+function setupWritingInstructions() {
+  const contentEl = getElement('writing-instructions-content');
+  const contentPara = contentEl.querySelector('p');
+  if (contentPara && quizData.WRITING) {
+    contentPara.innerHTML = quizData.WRITING.instructions.replace(/\n/g, '<br>');
+  }
+  
+  const toggleBtn = getElement('toggle-writing-instructions');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function() {
+      const icon = this.querySelector('.toggle-icon');
+      if (contentEl.classList.contains('hidden')) {
+        contentEl.classList.remove('hidden');
+        icon.textContent = '▲';
+      } else {
+        contentEl.classList.add('hidden');
+        icon.textContent = '▼';
+      }
+    });
+  }
 }
 
 function handleCarouselKeydown(e) {
@@ -1110,6 +1121,7 @@ function goHome() {
   getElement('email-btn').classList.remove('hidden');
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
+  getElement('writing-instructions-panel').classList.add('hidden');
   renderCategorySelect();
 }
 
