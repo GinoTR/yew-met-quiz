@@ -428,7 +428,7 @@ function renderWritingStep() {
   getElement('transcription-text').classList.add('hidden');
   getElement('reading-text').classList.add('hidden');
   getElement('feedback-container').classList.add('hidden');
-  getElement('writing-instructions-panel').classList.remove('hidden');
+  getElement('section-instructions-panel').classList.remove('hidden');
 
   let html = '';
 
