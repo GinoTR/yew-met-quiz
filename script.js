@@ -1007,13 +1007,9 @@ function restartTest() {
   clearProgress();
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
-  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
   answeredQuestions.clear();
   shuffledQuestions = [];
-  currentSection = null;
-  currentExerciseIndex = 0;
-  currentAudioSrc = null;
-  currentAudioElement = null;
   writingGroup = null;
   writingResponses = [];
   currentWritingStep = 0;
@@ -1021,7 +1017,12 @@ function restartTest() {
 
   getElement('email-btn').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
-  renderCategorySelect();
+  
+  if (currentSection) {
+    beginQuiz(currentSection);
+  } else {
+    renderCategorySelect();
+  }
 }
 
 async function continueFromSaved() {
@@ -1155,8 +1156,6 @@ function initEventListeners() {
 
 function goHome() {
   clearProgress();
-  localStorage.removeItem('metQuizUser');
-  currentUser = null;
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
   score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
@@ -1177,7 +1176,6 @@ function goHome() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
   getElement('section-instructions-panel').classList.add('hidden');
-  getElement('user-info').classList.add('hidden');
   renderCategorySelect();
 }
 

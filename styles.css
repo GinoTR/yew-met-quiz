@@ -65,6 +65,24 @@ h1 {
   margin-bottom: 15px;
 }
 
+#quiz-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+#quiz-top-bar .btn-link {
+  font-size: 0.9rem;
+}
+
+#quiz-top-bar .btn-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
+}
+
 #progress-info {
   display: flex;
   align-items: center;
@@ -636,7 +654,16 @@ h1 {
 }
 
 #category-select header {
-  margin-bottom: 25px;
+  margin-bottom: 15px;
+}
+
+#category-select h1 {
+  font-size: 1.8rem;
+}
+
+#category-select .subtitle {
+  font-size: 0.85rem;
+  margin-bottom: 20px;
 }
 
 #home-footer {
