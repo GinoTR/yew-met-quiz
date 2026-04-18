@@ -1142,9 +1142,6 @@ function initEventListeners() {
     });
   });
 }
-    });
-  });
-}
 
 function goHome() {
   clearProgress();
