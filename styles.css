@@ -73,13 +73,11 @@ h1 {
 }
 
 #category-badge {
-  padding: 4px 12px;
-  background-color: #f8f9fa;
-  border-radius: 20px;
   font-size: 0.75rem;
   color: #666;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-weight: 600;
 }
 
 #progress-text {
@@ -672,6 +670,21 @@ h1 {
   font-weight: 500;
 }
 
+.user-link {
+  cursor: pointer;
+  text-decoration: underline;
+  color: #667eea;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.user-link:hover {
+  color: #764ba2;
+}
+
 .btn-link {
   background: none;
   border: none;
@@ -902,7 +915,7 @@ h1 {
 }
 
 .writing-question-text {
-  font-size: 1.1rem;
+  font-size: 0.83rem;
   line-height: 1.6;
   color: #333;
   margin-bottom: 15px;
@@ -910,7 +923,7 @@ h1 {
 }
 
 .writing-task-prompt {
-  font-size: 0.95rem;
+  font-size: 0.71rem;
   color: #666;
   margin-bottom: 15px;
   font-style: italic;
@@ -922,7 +935,7 @@ h1 {
   padding: 15px;
   border: 2px solid #e9ecef;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 0.75rem;
   font-family: inherit;
   line-height: 1.6;
   resize: vertical;

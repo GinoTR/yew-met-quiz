@@ -1,0 +1,66 @@
+Pasos para Configurar Google (yourenglishworld.dianagranados@gmail.com)
+
+1. Google Analytics
+Ir a https://analytics.google.com/
+Iniciar sesión con yourenglishworld.dianagranados@gmail.com
+Click en "Administración" (⚙️ abajo izquierda)
+En columna "Propiedad" → "Crear propiedad"
+Tipo: GA4
+Nombre: "Your English World Quiz"
+Completar wizard
+Ir a "Flujos de datos" → "Web"
+Copiar Measurement ID (formato G-XXXXXXXXXX)
+Actualizar en index.html línea 9: G-XXXXXXXXXX → tu ID real
+
+2. Google Sheets + Apps Script
+Ir a https://sheets.google.com/
+Crear nueva hoja → nombre: "YEW Quiz - Registros"
+Primera fila → encabezados:
+Timestamp | Nombre | Email | Categoría | Acción | Detalle
+
+Ir a https://script.google.com/ → "Nuevo proyecto"
+Borrar código default, pegar este código:
+
+const SHEET_NAME = 'Sheet1';
+const NOTIFICATION_EMAIL = 'yourenglishworld.dianagranados@gmail.com';
+
+const doPost = (e) => {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    const doc = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = doc.getSheetByName(SHEET_NAME);
+    const data = JSON.parse(e.postData.contents);
+    
+    sheet.appendRow([
+      data.timestamp || new Date().toISOString(),
+      data.name || '',
+      data.email || '',
+      data.category || '',
+      data.action || '',
+      data.detail || ''
+    ]);
+
+    if (data.action === 'CONSULTA') {
+      MailApp.sendEmail(NOTIFICATION_EMAIL, 'Nueva consulta - YEW Quiz', 
+        `Nombre: ${data.name}\nEmail: ${data.email}\n\nConsulta: ${data.detail}`);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({result:'success'})).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({result:'error', error: error.message})).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+};
+
+const doGet = () => ContentService.createTextOutput(JSON.stringify({status:'ok'})).setMimeType(ContentService.MimeType.JSON);
+
+
+Click "Implementaciones" → "Nueva implementación"
+Tipo: Aplicación web
+Ejecutar como: "Yo"
+¿Quién tiene acceso?: "Cualquier persona"
+Copiar URL (formato: https://script.google.com/macros/s/XXXXX/exec)
+Actualizar en script.js línea ~30: YOUR_GOOGLE_APPS_SCRIPT_URL → URL copiada

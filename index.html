@@ -15,6 +15,27 @@
   </script>
 </head>
 <body>
+  <!-- Datalist for email autocomplete -->
+  <datalist id="email-domains">
+    <option value="@gmail.com">
+    <option value="@hotmail.com">
+    <option value="@outlook.com">
+    <option value="@yahoo.com">
+    <option value="@icloud.com">
+  </datalist>
+
+  <div class="modal-overlay hidden" id="back-modal">
+    <div class="modal">
+      <h2>¿Qué deseas hacer?</h2>
+      <p class="modal-subtitle">Selecciona una opción para continuar</p>
+      <div class="modal-buttons">
+        <button id="back-home-btn" class="btn btn-secondary">Volver al Home</button>
+        <button id="back-prev-btn" class="btn btn-primary">Pregunta Anterior</button>
+      </div>
+      <button id="back-cancel" class="btn-link" style="display:block; margin: 15px auto 0;">Cancelar</button>
+    </div>
+  </div>
+
   <div class="modal-overlay hidden" id="registration-modal">
     <div class="modal">
       <h2>Antes de comenzar</h2>
@@ -26,7 +47,7 @@
         </div>
         <div class="form-group">
           <label for="reg-email">Correo electrónico</label>
-          <input type="email" id="reg-email" required placeholder="tu@correo.com">
+          <input type="email" id="reg-email" required placeholder="tu@correo.com" list="email-domains">
         </div>
         <button type="submit" class="btn btn-primary">Comenzar</button>
       </form>
@@ -60,7 +81,7 @@
         </div>
         <div class="form-group">
           <label for="change-email">Correo electrónico</label>
-          <input type="email" id="change-email" required placeholder="tu@correo.com">
+          <input type="email" id="change-email" required placeholder="tu@correo.com" list="email-domains">
         </div>
         <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
@@ -75,15 +96,14 @@
       <header>
         <div id="header-top">
           <div id="user-info" class="hidden">
-            <span id="user-name"></span>
-            <button id="change-user-btn" class="btn-link">cambiar</button>
+            <span id="user-name" class="user-link"></span>
           </div>
           <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
         </div>
         <h1>Your English World</h1>
         <p class="subtitle">MET Practice Test</p>
       </header>
-      <h2>Selecciona una categoría</h2>
+      <h2>Selecciona una sección</h2>
       <div id="category-buttons"></div>
       <button id="continue-btn" class="btn btn-secondary hidden">Continuar desde donde estaba</button>
       <footer id="home-footer">
@@ -101,18 +121,18 @@
           <div id="progress-bar"></div>
         </div>
         <div id="quiz-header-right">
-          <span id="quiz-user-name"></span>
+          <span id="quiz-user-name" class="user-link"></span>
           <button id="help-btn-quiz" class="btn-icon" title="Ayuda">?</button>
-          <button id="home-btn" class="btn btn-small">Home</button>
+          <button id="home-btn" class="btn btn-small">🏠</button>
         </div>
       </div>
 
       <div id="quiz-container">
-        <div id="writing-instructions-panel" class="hidden">
-          <button id="toggle-writing-instructions" class="btn-toggle">
-            Instrucciones <span class="toggle-icon">▼</span>
+        <div id="section-instructions-panel" class="hidden">
+          <button id="toggle-instructions" class="btn-toggle">
+            Instructions <span class="toggle-icon">v</span>
           </button>
-          <div id="writing-instructions-content" class="instructions-content hidden">
+          <div id="instructions-content" class="instructions-content hidden">
             <p></p>
           </div>
         </div>
@@ -126,7 +146,8 @@
       </div>
 
       <div id="controls">
-        <button id="restart-btn" class="btn btn-secondary">Reiniciar Pregunta</button>
+        <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
+        <button id="restart-btn" class="btn btn-secondary">Reiniciar</button>
         <button id="check-btn" class="btn btn-primary">Comprobar</button>
         <button id="next-btn" class="btn btn-primary">Siguiente</button>
       </div>

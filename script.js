@@ -1,26 +1,22 @@
 const quizData = {
-  GRAMMAR: [],
-  READING: [],
-  LISTENING: [],
   WRITING: null,
+  LISTENING: [],
+  READING_AND_GRAMMAR: [],
   SPEAKING: []
 };
 
-let allQuestions = [];
+let questions = [];
 let currentQuestionIndex = 0;
 let selectedOptionIndex = null;
-let score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+let score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
 let answeredQuestions = new Set();
 let shuffledQuestions = [];
-let currentCategory = null;
-let currentExerciseIndex = 0;
-let currentAudioSrc = null;
-let currentAudioElement = null;
+let currentSection = null;
 
 let currentUser = null;
-let pendingCategory = null;
+let pendingSection = null;
 
-let currentWritingGroup = null;
+let writingGroup = null;
 let writingResponses = [];
 let currentWritingStep = 0;
 let currentPreviewIndex = 0;
@@ -63,7 +59,7 @@ function shuffleOptions(question) {
 function saveProgress() {
   const progress = {
     currentIndex: currentQuestionIndex,
-    currentCategory: currentCategory,
+    currentSection: currentSection,
     currentExerciseIndex: currentExerciseIndex,
     score: score,
     answeredQuestions: Array.from(answeredQuestions),
@@ -103,8 +99,9 @@ function loadUser() {
 function updateUserDisplay() {
   if (currentUser) {
     getElement('user-info').classList.remove('hidden');
-    getElement('user-name').textContent = currentUser.name;
-    getElement('quiz-user-name').textContent = currentUser.name;
+    const displayName = currentUser.name.length > 12 ? currentUser.name.substring(0, 12) + '...' : currentUser.name;
+    getElement('user-name').textContent = displayName;
+    getElement('quiz-user-name').textContent = displayName;
   } else {
     getElement('user-info').classList.add('hidden');
     getElement('quiz-user-name').textContent = '';
@@ -118,7 +115,7 @@ async function logActivity(action, detail = '') {
     timestamp: new Date().toISOString(),
     name: currentUser.name,
     email: currentUser.email,
-    category: currentCategory || '',
+    category: currentSection || '',
     action: action,
     detail: detail
   };
@@ -136,7 +133,7 @@ async function logActivity(action, detail = '') {
 }
 
 async function logWritingResponse(questionNum, task, response) {
-  if (!currentUser || !currentWritingGroup) return;
+  if (!currentUser || !writingGroup) return;
   
   const data = {
     timestamp: new Date().toISOString(),
@@ -145,7 +142,7 @@ async function logWritingResponse(questionNum, task, response) {
     category: 'WRITING',
     action: 'RESPUESTA',
     detail: JSON.stringify({
-      groupId: currentWritingGroup.id,
+      groupId: writingGroup.id,
       task: task,
       question: questionNum,
       response: response
@@ -258,18 +255,16 @@ function flattenQuestions(category, data) {
 
 async function loadAllData() {
   try {
-    const [grammar, reading, listening, writing, speaking] = await Promise.all([
-      fetch('data/grammar.json').then(r => r.json()),
-      fetch('data/reading.json').then(r => r.json()),
-      fetch('data/listening.json').then(r => r.json()),
-      fetch('data/writing.json').then(r => r.json()),
-      fetch('data/speaking.json').then(r => r.json())
+    const [writing, listening, readingAndGrammar, speaking] = await Promise.all([
+      fetch('data/writing.json').then(r => r.json()).catch(() => null),
+      fetch('data/listening.json').then(r => r.json()).catch(() => []),
+      fetch('data/reading.json').then(r => r.json()).catch(() => []),
+      fetch('data/speaking.json').then(r => r.json()).catch(() => [])
     ]);
 
-    quizData.GRAMMAR = grammar;
-    quizData.READING = reading;
-    quizData.LISTENING = listening;
     quizData.WRITING = writing;
+    quizData.LISTENING = listening;
+    quizData.READING_AND_GRAMMAR = readingAndGrammar;
     quizData.SPEAKING = speaking;
 
     return true;
@@ -287,39 +282,38 @@ function renderCategorySelect() {
   const container = getElement('category-buttons');
   container.innerHTML = '';
 
-  const categories = [
-    { key: 'GRAMMAR', name: 'Gramática' },
-    { key: 'READING', name: 'Comprensión Lectora' },
-    { key: 'LISTENING', name: 'Comprensión Auditiva' },
+  const sections = [
     { key: 'WRITING', name: 'Escritura' },
+    { key: 'LISTENING', name: 'Comprensión Auditiva' },
+    { key: 'READING_AND_GRAMMAR', name: 'Lectura y Gramática' },
     { key: 'SPEAKING', name: 'Expresión Oral' }
   ];
 
-  categories.forEach(cat => {
-    const data = quizData[cat.key];
+  sections.forEach(sec => {
+    const data = quizData[sec.key];
     let count = 0;
     let label = '';
     
-    if (cat.key === 'GRAMMAR' || cat.key === 'READING' || cat.key === 'LISTENING') {
-      count = flattenQuestions(cat.key, data).length;
-      label = `${cat.name} - ${count} preguntas`;
-    } else if (cat.key === 'WRITING' && data && data.groups) {
+    if (sec.key === 'WRITING' && data && data.groups) {
       count = data.groups.length;
-      label = `${cat.name} - ${count} ejercicios`;
-    } else if (cat.key === 'SPEAKING') {
-      label = data.length > 0 ? `${cat.name} - Guía de estudio` : `${cat.name} - Pronto disponible`;
+      label = `${sec.name} - ${count} ejercicios`;
+    } else if (data && data.length > 0) {
+      count = data.length;
+      label = `${sec.name} - ${count} preguntas`;
+    } else {
+      label = `${sec.name} - Próximamente`;
     }
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
-    btn.innerHTML = `<strong>${cat.key}</strong><span>${label}</span>`;
+    btn.innerHTML = `<strong>${sec.key.replace('_', ' ')}</strong><span>${label}</span>`;
     
-    if (count === 0 && cat.key !== 'SPEAKING') {
+    if (count === 0) {
       btn.style.opacity = '0.5';
       btn.style.pointerEvents = 'none';
     }
     
-    btn.addEventListener('click', () => startFromCategory(cat.key));
+    btn.addEventListener('click', () => startFromSection(sec.key));
     container.appendChild(btn);
   });
 
@@ -327,29 +321,29 @@ function renderCategorySelect() {
   getElement('continue-btn').classList.toggle('hidden', !savedProgress);
 }
 
-function startFromCategory(category) {
-  pendingCategory = category;
+function startFromSection(section) {
+  pendingSection = section;
   
   if (!currentUser) {
     showRegistrationModal();
     return;
   }
   
-  beginQuiz(category);
+  beginQuiz(section);
 }
 
-function beginQuiz(category) {
-  currentCategory = category;
+function beginQuiz(section) {
+  currentSection = section;
   currentExerciseIndex = 0;
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
-  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
   answeredQuestions.clear();
   currentAudioSrc = null;
   currentAudioElement = null;
 
-  if (category === 'WRITING') {
-    currentWritingGroup = shuffleArray([...quizData.WRITING.groups])[0];
+  if (section === 'WRITING') {
+    writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
     writingResponses = [];
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
     currentPreviewIndex = 0;
@@ -358,44 +352,62 @@ function beginQuiz(category) {
     getElement('quiz-view').classList.remove('hidden');
     getElement('results-container').classList.add('hidden');
     
-    setupWritingInstructions();
-    logActivity('INICIO', `WRITING - Grupo: ${currentWritingGroup.id}`);
+    setupInstructionsPanel();
+    logActivity('INICIO', `WRITING - Grupo: ${writingGroup.id}`);
     renderWritingStep();
+    updatePrevButtonVisibility();
     return;
   }
 
-  let sourceData;
-  if (category === 'GRAMMAR') {
-    sourceData = quizData.GRAMMAR;
-    allQuestions = shuffleArray([...sourceData]).map((q, i) => ({
-      ...q,
-      category: category,
-      exerciseIndex: i,
-      questionIndex: 0,
-      isGuide: false
-    }));
-  } else {
-    sourceData = quizData[category];
-    const flattened = flattenQuestions(category, sourceData);
-    allQuestions = shuffleArray(flattened).map(q => ({ ...q, isGuide: false }));
+  if (!quizData[section] || quizData[section].length === 0) {
+    alert('Esta sección aún no tiene contenido.');
+    return;
   }
 
-  shuffledQuestions = allQuestions.map((q, i) => {
-    return {
-      ...shuffleOptions(q),
-      exerciseIndex: q.exerciseIndex,
-      questionIndex: q.questionIndex,
-      isGuide: false
-    };
-  });
+  const data = quizData[section];
+  if (Array.isArray(data) && data[0] && data[0].groups) {
+    const groups = shuffleArray([...data]);
+    questions = groups.map(g => g).flat();
+  } else {
+    questions = shuffleArray([...data]);
+  }
+
+  shuffledQuestions = questions.map((q, i) => ({
+    ...shuffleOptions(q),
+    questionIndex: i
+  }));
 
   getElement('category-select').classList.add('hidden');
   getElement('quiz-view').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
 
-  logActivity('INICIO', `Categoría: ${category}`);
+  logActivity('INICIO', `Sección: ${section}`);
   loadQuestion();
+  updatePrevButtonVisibility();
   saveProgress();
+}
+
+function setupInstructionsPanel() {
+  const contentEl = getElement('instructions-content');
+  const contentPara = contentEl.querySelector('p');
+  if (contentPara && quizData.WRITING) {
+    contentPara.innerHTML = quizData.WRITING.instructions.replace(/\n/g, '<br>');
+    getElement('section-instructions-panel').classList.remove('hidden');
+  }
+  
+  const toggleBtn = getElement('toggle-instructions');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function() {
+      const icon = this.querySelector('.toggle-icon');
+      if (contentEl.classList.contains('hidden')) {
+        contentEl.classList.remove('hidden');
+        icon.textContent = '^';
+      } else {
+        contentEl.classList.add('hidden');
+        icon.textContent = 'v';
+      }
+    });
+  }
 }
 
 function renderWritingStep() {
@@ -455,7 +467,7 @@ function renderWritingStep() {
 }
 
 function renderWritingTask1(qIndex) {
-  const question = currentWritingGroup.task1[qIndex];
+  const question = writingGroup.task1[qIndex];
   const existingResponse = writingResponses[qIndex] || '';
   const charCount = existingResponse.length;
   const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
@@ -490,7 +502,7 @@ function renderWritingTask1(qIndex) {
 }
 
 function renderWritingTask2() {
-  const task2 = currentWritingGroup.task2;
+  const task2 = writingGroup.task2;
   const existingResponse = writingResponses[3] || '';
   const charCount = existingResponse.length;
   const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
@@ -531,8 +543,8 @@ function renderWritingPreview() {
 }
 
 function renderCarouselSlide() {
-  const task1 = currentWritingGroup.task1;
-  const task2 = currentWritingGroup.task2;
+  const task1 = writingGroup.task1;
+  const task2 = writingGroup.task2;
   
   const slides = [
     {
@@ -619,30 +631,18 @@ function editCurrentResponse() {
   renderWritingStep();
 }
 
-function setupWritingInstructions() {
-  const contentEl = getElement('writing-instructions-content');
-  const contentPara = contentEl.querySelector('p');
-  if (contentPara && quizData.WRITING) {
-    contentPara.innerHTML = quizData.WRITING.instructions.replace(/\n/g, '<br>');
-  }
+function updatePrevButtonVisibility() {
+  const prevBtn = getElement('prev-btn');
   
-  const toggleBtn = getElement('toggle-writing-instructions');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', function() {
-      const icon = this.querySelector('.toggle-icon');
-      if (contentEl.classList.contains('hidden')) {
-        contentEl.classList.remove('hidden');
-        icon.textContent = '▲';
-      } else {
-        contentEl.classList.add('hidden');
-        icon.textContent = '▼';
-      }
-    });
+  if (currentSection === 'WRITING') {
+    prevBtn.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
+  } else {
+    prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
   }
 }
 
 function handleCarouselKeydown(e) {
-  if (currentCategory !== 'WRITING' || currentWritingStep !== WRITING_STEPS.PREVIEW) {
+  if (currentSection !== 'WRITING' || currentWritingStep !== WRITING_STEPS.PREVIEW) {
     document.removeEventListener('keydown', handleCarouselKeydown);
     return;
   }
@@ -663,8 +663,8 @@ function navigateCarousel(direction) {
   const titleEl = document.querySelector('.carousel-title');
   
   if (slideContainer) {
-    const task1 = currentWritingGroup.task1;
-    const task2 = currentWritingGroup.task2;
+    const task1 = writingGroup.task1;
+    const task2 = writingGroup.task2;
     
     const slides = [
       { title: `Task 1: Pregunta 1 de 3`, question: task1[0].text, response: writingResponses[0] || 'Sin respuesta' },
@@ -720,7 +720,7 @@ function nextWritingStep() {
 }
 
 async function submitWritingResponses() {
-  logActivity('FIN', `WRITING - Grupo: ${currentWritingGroup.id} - Completado`);
+  logActivity('FIN', `WRITING - Grupo: ${writingGroup.id} - Completado`);
   
   for (let i = 0; i < writingResponses.length; i++) {
     await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, writingResponses[i]);
@@ -739,7 +739,7 @@ function showWritingResults() {
   breakdown.innerHTML = `
     <div class="result-category">
       <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">Grupo ${currentWritingGroup.id}</span>
+      <span class="result-category-score">Grupo ${writingGroup.id}</span>
     </div>
     <p style="color: #888; font-size: 0.9rem; margin-top: 15px;">
       Tus respuestas han sido guardadas exitosamente.
@@ -894,7 +894,7 @@ function checkAnswer() {
 }
 
 function nextQuestion() {
-  if (currentCategory === 'WRITING') {
+  if (currentSection === 'WRITING') {
     nextWritingStep();
     return;
   }
@@ -908,8 +908,27 @@ function nextQuestion() {
   }
 }
 
+function previousQuestion() {
+  if (currentSection === 'WRITING') {
+    if (currentWritingStep > 0) {
+      if (currentWritingStep === WRITING_STEPS.PREVIEW) {
+        currentWritingStep = WRITING_STEPS.TASK2;
+      } else {
+        currentWritingStep--;
+      }
+      renderWritingStep();
+    }
+    return;
+  }
+
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    loadQuestion();
+  }
+}
+
 function restartQuestion() {
-  if (currentCategory === 'WRITING') {
+  if (currentSection === 'WRITING') {
     if (currentWritingStep === WRITING_STEPS.PREVIEW) {
       submitWritingResponses();
     }
@@ -981,11 +1000,11 @@ function restartTest() {
   score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
   answeredQuestions.clear();
   shuffledQuestions = [];
-  currentCategory = null;
+  currentSection = null;
   currentExerciseIndex = 0;
   currentAudioSrc = null;
   currentAudioElement = null;
-  currentWritingGroup = null;
+  writingGroup = null;
   writingResponses = [];
   currentWritingStep = 0;
   currentPreviewIndex = 0;
@@ -998,24 +1017,24 @@ function restartTest() {
 async function continueFromSaved() {
   const saved = loadProgress();
   if (saved) {
-    currentCategory = saved.currentCategory;
+    currentSection = saved.currentSection;
     currentQuestionIndex = saved.currentIndex;
     score = saved.score;
     answeredQuestions = new Set(saved.answeredQuestions);
 
-    if (currentCategory && currentCategory !== 'WRITING') {
+    if (currentSection && currentSection !== 'WRITING') {
       let sourceData;
-      if (currentCategory === 'GRAMMAR') {
+      if (currentSection === 'GRAMMAR') {
         sourceData = quizData.GRAMMAR;
         allQuestions = [...sourceData].map((q, i) => ({
           ...q,
-          category: currentCategory,
+          category: currentSection,
           exerciseIndex: i,
           questionIndex: 0
         }));
       } else {
-        sourceData = quizData[currentCategory];
-        const flattened = flattenQuestions(currentCategory, sourceData);
+        sourceData = quizData[currentSection];
+        const flattened = flattenQuestions(currentSection, sourceData);
         allQuestions = flattened;
       }
 
@@ -1041,11 +1060,37 @@ async function continueFromSaved() {
 function initEventListeners() {
   getElement('check-btn').addEventListener('click', checkAnswer);
   getElement('next-btn').addEventListener('click', nextQuestion);
+  getElement('prev-btn').addEventListener('click', previousQuestion);
   getElement('restart-btn').addEventListener('click', restartQuestion);
   getElement('email-btn').addEventListener('click', sendEmail);
   getElement('restart-test-btn').addEventListener('click', restartTest);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
   getElement('home-btn').addEventListener('click', goHome);
+
+  document.querySelectorAll('.user-link').forEach(el => {
+    el.addEventListener('click', showChangeUserModal);
+  });
+
+  getElement('back-home-btn').addEventListener('click', () => {
+    getElement('back-modal').classList.add('hidden');
+    goHome();
+  });
+
+  getElement('back-prev-btn').addEventListener('click', () => {
+    getElement('back-modal').classList.add('hidden');
+    previousQuestion();
+  });
+
+  getElement('back-cancel').addEventListener('click', () => {
+    getElement('back-modal').classList.add('hidden');
+  });
+
+  window.addEventListener('popstate', (e) => {
+    if (getElement('quiz-view').classList.contains('hidden') === false) {
+      e.preventDefault();
+      getElement('back-modal').classList.remove('hidden');
+    }
+  });
 
   getElement('registration-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1055,9 +1100,9 @@ function initEventListeners() {
       saveUser({ name, email });
       hideRegistrationModal();
       logActivity('REGISTRO', `Nuevo usuario: ${name}`);
-      if (pendingCategory) {
-        beginQuiz(pendingCategory);
-        pendingCategory = null;
+      if (pendingSection) {
+        beginQuiz(pendingSection);
+        pendingSection = null;
       }
     }
   });
@@ -1076,8 +1121,6 @@ function initEventListeners() {
   getElement('help-btn-home').addEventListener('click', showHelpModal);
   getElement('help-btn-quiz').addEventListener('click', showHelpModal);
 
-  getElement('change-user-btn').addEventListener('click', showChangeUserModal);
-  
   getElement('change-user-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = getElement('change-name').value.trim();
@@ -1099,19 +1142,22 @@ function initEventListeners() {
     });
   });
 }
+    });
+  });
+}
 
 function goHome() {
   clearProgress();
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
-  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
   answeredQuestions.clear();
   shuffledQuestions = [];
-  currentCategory = null;
+  currentSection = null;
   currentExerciseIndex = 0;
   currentAudioSrc = null;
   currentAudioElement = null;
-  currentWritingGroup = null;
+  writingGroup = null;
   writingResponses = [];
   currentWritingStep = 0;
   currentPreviewIndex = 0;
@@ -1121,7 +1167,7 @@ function goHome() {
   getElement('email-btn').classList.remove('hidden');
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
-  getElement('writing-instructions-panel').classList.add('hidden');
+  getElement('section-instructions-panel').classList.add('hidden');
   renderCategorySelect();
 }
 
