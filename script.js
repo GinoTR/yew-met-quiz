@@ -799,8 +799,8 @@ function showWritingResults() {
       Tus respuestas han sido guardadas exitosamente.
     </p>
   `;
-
-  getElement('email-btn').classList.add('hidden');
+  
+  getElement('email-btn').classList.remove('hidden');
 }
 
 function loadQuestion() {
@@ -1053,6 +1053,7 @@ function showResults() {
 
   logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalQuestions})`);
   clearProgress();
+  getElement('email-btn').classList.remove('hidden');
 }
 
 function sendEmail() {
