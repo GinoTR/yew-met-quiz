@@ -412,9 +412,13 @@ function beginQuiz(section) {
 function setupInstructionsPanel() {
   const contentEl = getElement('instructions-content');
   const contentPara = contentEl.querySelector('p');
-  if (contentPara && quizData.WRITING) {
-    contentPara.innerHTML = quizData.WRITING.instructions.replace(/\n/g, '<br>');
+  const sectionData = quizData[currentSection];
+  
+  if (contentPara && sectionData && sectionData.instructions) {
+    contentPara.innerHTML = sectionData.instructions.replace(/\n/g, '<br>');
     getElement('section-instructions-panel').classList.remove('hidden');
+  } else {
+    getElement('section-instructions-panel').classList.add('hidden');
   }
   
   const toggleBtn = getElement('toggle-instructions');

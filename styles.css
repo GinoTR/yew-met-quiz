@@ -961,14 +961,30 @@ h1 {
   padding: 15px;
   background-color: #f8f9fa;
   border-radius: 12px;
-  border-left: 4px solid #667eea;
   line-height: 1.7;
   color: #555;
   font-size: 0.95rem;
+  text-align: left;
+  max-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.instructions-content:not(.hidden) {
+  max-height: 500px;
+  padding: 15px;
+  opacity: 1;
 }
 
 .instructions-content.hidden {
-  display: none;
+  max-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
 }
 
 .writing-question {
