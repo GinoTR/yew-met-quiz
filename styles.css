@@ -778,6 +778,10 @@ h1 {
 
 #user-name {
   color: #333;
+}
+
+#user-name:hover,
+.user-link:hover {
   text-decoration: underline;
 }
 

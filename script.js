@@ -16,8 +16,8 @@ let currentSection = null;
 let currentUser = null;
 let pendingSection = null;
 
-let writingGroup = null;
-let writingResponses = [];
+let currentGroup = null;
+let sectionResponses = [];
 let currentWritingStep = 0;
 let currentPreviewIndex = 0;
 
@@ -141,7 +141,7 @@ async function logActivity(action, detail = '') {
 }
 
 async function logWritingResponse(questionNum, task, response) {
-  if (!currentUser || !writingGroup) return;
+  if (!currentUser || !currentGroup) return;
   
   const data = {
     timestamp: new Date().toISOString(),
@@ -150,7 +150,7 @@ async function logWritingResponse(questionNum, task, response) {
     category: 'WRITING',
     action: 'RESPUESTA',
     detail: JSON.stringify({
-      groupId: writingGroup.id,
+      groupId: currentGroup.id,
       task: task,
       question: questionNum,
       response: response
@@ -365,8 +365,8 @@ function beginQuiz(section) {
       alert('La sección de Writing aún no tiene contenido.');
       return;
     }
-    writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
-    writingResponses = [];
+    currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    sectionResponses = [];
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
     currentPreviewIndex = 0;
     
@@ -375,7 +375,7 @@ function beginQuiz(section) {
     getElement('results-container').classList.add('hidden');
     
     setupInstructionsPanel();
-    logActivity('INICIO', `WRITING - Grupo: ${writingGroup.id}`);
+    logActivity('INICIO', `WRITING - Grupo: ${currentGroup.id}`);
     renderWritingStep();
     updatePrevButtonVisibility();
     return;
@@ -495,8 +495,8 @@ function renderWritingStep() {
 }
 
 function renderWritingTask1(qIndex) {
-  const question = writingGroup.task1[qIndex];
-  const existingResponse = writingResponses[qIndex] || '';
+  const question = currentGroup.task1[qIndex];
+  const existingResponse = sectionResponses[qIndex] || '';
   const charCount = existingResponse.length;
   const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
   
@@ -530,8 +530,8 @@ function renderWritingTask1(qIndex) {
 }
 
 function renderWritingTask2() {
-  const task2 = writingGroup.task2;
-  const existingResponse = writingResponses[3] || '';
+  const task2 = currentGroup.task2;
+  const existingResponse = sectionResponses[3] || '';
   const charCount = existingResponse.length;
   const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
   
@@ -571,29 +571,29 @@ function renderWritingPreview() {
 }
 
 function renderCarouselSlide() {
-  const task1 = writingGroup.task1;
-  const task2 = writingGroup.task2;
+  const task1 = currentGroup.task1;
+  const task2 = currentGroup.task2;
   
   const slides = [
     {
       title: `Task 1: Pregunta 1 de 3`,
       question: task1[0].text,
-      response: writingResponses[0] || 'Sin respuesta'
+      response: sectionResponses[0] || 'Sin respuesta'
     },
     {
       title: `Task 1: Pregunta 2 de 3`,
       question: task1[1].text,
-      response: writingResponses[1] || 'Sin respuesta'
+      response: sectionResponses[1] || 'Sin respuesta'
     },
     {
       title: `Task 1: Pregunta 3 de 3`,
       question: task1[2].text,
-      response: writingResponses[2] || 'Sin respuesta'
+      response: sectionResponses[2] || 'Sin respuesta'
     },
     {
       title: `Task 2: Ensayo`,
       question: `${task2.topic}\n\n${task2.prompt}`,
-      response: writingResponses[3] || 'Sin respuesta'
+      response: sectionResponses[3] || 'Sin respuesta'
     }
   ];
 
@@ -703,14 +703,14 @@ function updateCarouselDisplay() {
   const indicators = document.querySelectorAll('.indicator');
   
   if (slideContainer) {
-    const task1 = writingGroup.task1;
-    const task2 = writingGroup.task2;
+    const task1 = currentGroup.task1;
+    const task2 = currentGroup.task2;
     
     const slides = [
-      { title: `Task 1: Pregunta 1 de 3`, question: task1[0].text, response: writingResponses[0] || 'Sin respuesta' },
-      { title: `Task 1: Pregunta 2 de 3`, question: task1[1].text, response: writingResponses[1] || 'Sin respuesta' },
-      { title: `Task 1: Pregunta 3 de 3`, question: task1[2].text, response: writingResponses[2] || 'Sin respuesta' },
-      { title: `Task 2: Ensayo`, question: `${task2.topic}\n\n${task2.prompt}`, response: writingResponses[3] || 'Sin respuesta' }
+      { title: `Task 1: Pregunta 1 de 3`, question: task1[0].text, response: sectionResponses[0] || 'Sin respuesta' },
+      { title: `Task 1: Pregunta 2 de 3`, question: task1[1].text, response: sectionResponses[1] || 'Sin respuesta' },
+      { title: `Task 1: Pregunta 3 de 3`, question: task1[2].text, response: sectionResponses[2] || 'Sin respuesta' },
+      { title: `Task 2: Ensayo`, question: `${task2.topic}\n\n${task2.prompt}`, response: sectionResponses[3] || 'Sin respuesta' }
     ];
     
     const slide = slides[currentPreviewIndex];
@@ -733,10 +733,10 @@ function saveCurrentWritingResponse() {
   const value = textarea.value;
   
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    writingResponses[currentWritingStep] = value;
+    sectionResponses[currentWritingStep] = value;
     logWritingResponse(currentWritingStep + 1, 1, value);
   } else if (currentWritingStep === WRITING_STEPS.TASK2) {
-    writingResponses[3] = value;
+    sectionResponses[3] = value;
     logWritingResponse(1, 2, value);
   }
 }
@@ -770,10 +770,10 @@ function nextSectionStep() {
 }
 
 async function submitWritingResponses() {
-  logActivity('FIN', `WRITING - Grupo: ${writingGroup.id} - Completado`);
+  logActivity('FIN', `WRITING - Grupo: ${currentGroup.id} - Completado`);
   
-  for (let i = 0; i < writingResponses.length; i++) {
-    await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, writingResponses[i]);
+  for (let i = 0; i < sectionResponses.length; i++) {
+    await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, sectionResponses[i]);
   }
 
   showWritingResults();
@@ -789,7 +789,7 @@ function showWritingResults() {
   breakdown.innerHTML = `
     <div class="result-category">
       <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">Grupo ${writingGroup.id}</span>
+      <span class="result-category-score">Grupo ${currentGroup.id}</span>
     </div>
     <p style="color: #888; font-size: 0.9rem; margin-top: 15px; text-align: center;">
       Tus respuestas han sido guardadas exitosamente.
@@ -988,8 +988,8 @@ function restartQuestion() {
     cleanup();
     
     if (currentSection === 'WRITING') {
-      writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
-      writingResponses = [];
+      currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+      sectionResponses = [];
       currentWritingStep = WRITING_STEPS.TASK1_Q1;
       currentPreviewIndex = 0;
       renderWritingStep();
@@ -1081,8 +1081,8 @@ function restartTest() {
   score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
   answeredQuestions.clear();
   shuffledQuestions = [];
-  writingGroup = null;
-  writingResponses = [];
+  currentGroup = null;
+  sectionResponses = [];
   currentWritingStep = 0;
   currentPreviewIndex = 0;
 
@@ -1280,8 +1280,8 @@ function goHome() {
   currentExerciseIndex = 0;
   currentAudioSrc = null;
   currentAudioElement = null;
-  writingGroup = null;
-  writingResponses = [];
+  currentGroup = null;
+  sectionResponses = [];
   currentWritingStep = 0;
   currentPreviewIndex = 0;
 
