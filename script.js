@@ -789,11 +789,14 @@ function showWritingResults() {
 
   const part1Count = currentGroup?.task1?.length || 0;
   const part2Count = currentGroup?.task2 ? 1 : 0;
+  const totalParts = part1Count + part2Count;
   const answered = sectionResponses.filter(r => r && r.length > 0).length;
   const part1Answered = Math.min(answered, part1Count);
   const part2Answered = answered > part1Count ? 1 : 0;
+  const totalAnswered = part1Answered + part2Answered;
+  const percentage = totalParts > 0 ? Math.round((totalAnswered / totalParts) * 100) : 0;
 
-  getElement('score-display').textContent = '¡Test completado!';
+  getElement('score-display').textContent = `${percentage}% (${totalAnswered}/${totalParts})`;
   
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = `
@@ -1029,14 +1032,11 @@ function showResults() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
-  const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
-  const totalQuestions = shuffledQuestions.length;
-  const percentage = Math.round((totalScore / totalQuestions) * 100);
-
-  getElement('score-display').textContent = `${percentage}% (${totalScore}/${totalQuestions})`;
-
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = '';
+
+  let totalScore = 0;
+  let totalParts = 0;
 
   const order = ['WRITING', 'LISTENING', 'READING_AND_GRAMMAR', 'SPEAKING'];
   order.forEach(cat => {
@@ -1047,6 +1047,47 @@ function showResults() {
     if (cat === 'WRITING') {
       const part1Count = catData?.groups?.[0]?.task1?.length || 0;
       const part2Count = catData?.groups?.[0]?.task2 ? 1 : 0;
+      totalParts += part1Count + part2Count;
+      const answered = sectionResponses.filter(r => r && r.length > 0).length;
+      totalScore += Math.min(answered, part1Count);
+      totalScore += answered > part1Count ? 1 : 0;
+      
+      const part1Answered = Math.min(answered, part1Count);
+      const part2Answered = answered > part1Count ? 1 : 0;
+      displayScore = `${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}`;
+    } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
+      if (catData && catData.length > 0) {
+        const count = flattenQuestions(cat, catData).length;
+        totalParts += count;
+        totalScore += score[cat] || 0;
+        displayScore = `${score[cat] || 0}/${count}`;
+      }
+    } else if (cat === 'SPEAKING') {
+      const partCount = 2;
+      totalParts += partCount;
+      const answered = sectionResponses.filter(r => r && r.length > 0).length;
+      totalScore += answered;
+      displayScore = `${answered}/${partCount}`;
+    }
+
+    if (displayScore) {
+      const div = document.createElement('div');
+      div.className = 'result-category';
+      div.innerHTML = `
+        <span class="result-category-name">${catName}</span>
+        <span class="result-category-score">${displayScore}</span>
+      `;
+      breakdown.appendChild(div);
+    }
+  });
+
+  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
+  getElement('score-display').textContent = `${percentage}% (${totalScore}/${totalParts})`;
+
+  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalParts})`);
+  clearProgress();
+  getElement('email-btn').classList.remove('hidden');
+}
       const answered = sectionResponses.filter(r => r && r.length > 0).length;
       const part1Answered = Math.min(answered, part1Count);
       const part2Answered = answered > part1Count ? 1 : 0;
@@ -1073,7 +1114,7 @@ function showResults() {
     }
   });
 
-  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalQuestions})`);
+  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalParts})`);
   clearProgress();
   getElement('email-btn').classList.remove('hidden');
 }
