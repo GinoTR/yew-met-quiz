@@ -1199,6 +1199,7 @@ function initEventListeners() {
   });
   getElement('email-btn').addEventListener('click', sendEmail);
   getElement('restart-test-btn').addEventListener('click', restartTest);
+  getElement('results-home-btn').addEventListener('click', goHome);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
   getElement('home-btn').addEventListener('click', goHome);
 

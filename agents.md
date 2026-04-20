@@ -136,3 +136,56 @@ The MET exam is divided into **4 parts**:
 - SPEAKING
 
 **Note:** JSON files need restructuring to match MET format (future task).
+
+---
+
+## Results Screen
+
+### UI Structure
+
+**Logo:** `data/images/yew logo png.png` - Same size as Home (80px)
+
+**Header:** "¡Test completado!" (below logo)
+
+**Score Display:** Large blue gradient text showing percentage and fraction
+- Format: `50% (3/6)` or `100% (4/4)`
+
+**Sections (in order):**
+1. **WRITING** - Shows progress per part: `3/3 • 1/1`
+2. **LISTENING** - Correct answers: `3/21`
+3. **READING AND GRAMMAR** - Combined: `3/11`
+4. **SPEAKING** - Completeness: `1/2`
+
+**Action Buttons:**
+- Home (gray, secondary)
+- Enviar resultados por email (purple, primary) - Opens mailto
+- Reiniciar test (gray, secondary)
+
+### Calculation Logic
+
+- `totalScore` = sum of correct answers across all sections
+- `totalParts` = total questions/parts across all sections
+- `percentage` = round((totalScore / totalParts) * 100)
+
+**WRITING:** Uses `sectionResponses` array - counts non-empty answers per part
+- Part 1 (3 questions): count answered
+- Part 2 (essay): 1 if answered
+
+**LISTENING/READING_AND_GRAMMAR:** Uses `score[section]` from quiz data
+
+**SPEAKING:** Uses `sectionResponses` - counts completed parts
+
+---
+
+## Function Naming Convention
+
+Use generic names that apply to all sections:
+- `sectionResponses` (not `writingResponses`)
+- `currentGroup` (not `writingGroup`)
+- `partCount`/`partAnswered` (not `task1Count`/`task2Count`)
+- `showResults()` - handles multiple sections
+- `showWritingResults()` - handles Writing only
+
+Use section-specific names only where the functionality IS section-specific:
+- `renderWritingTask1()`, `renderWritingTask2()` - specific to Writing
+- `.writing-textarea` - specific ID/CSS class

@@ -313,6 +313,16 @@ h1 {
   animation: fadeIn 0.5s ease;
 }
 
+.results-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.results-buttons .btn {
+  width: 100%;
+}
+
 #results-container h2 {
   font-size: 1.5rem;
   font-weight: 500;
