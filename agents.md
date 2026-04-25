@@ -3,8 +3,8 @@
 ## Project Overview
 Web quiz for MET (Michigan English Test) practice for Diana's English school "Your English World".
 
-**Repository:** https://github.com/GinoTR/yew-met-quiz/
-**Live URL:** https://ginotr.github.io/yew-met-quiz/
+**Repository:** https://github.com/YourEnglishWorld/MET
+**Live URL:** https://yourenglishworld.github.io/MET
 
 **Contact Email:** yourenglishworld.dianagranados@gmail.com (Diana's English classes email)
 

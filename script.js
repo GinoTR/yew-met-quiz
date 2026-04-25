@@ -41,11 +41,17 @@ function parseHash() {
   if (!hash || hash === '/') return null;
   
   const parts = hash.split('/').filter(p => p);
-  if (parts.length < 3) return null;
+  if (parts.length < 2) return null;
   
-  const [, section, taskPart, qPart] = parts;
+  const [section, taskPart, qPart] = parts;
   const sectionKey = SECTION_NAMES[section];
   if (!sectionKey) return null;
+  
+  if (taskPart === 'preview') {
+    return { section: sectionKey, taskPart: 'preview', qNum: null, hash };
+  }
+  
+  if (parts.length < 3) return null;
   
   const qMatch = qPart.match(/q(\d+)/);
   if (!qMatch) return null;
@@ -86,7 +92,10 @@ function getAnswerFromHash(section, taskPart, qNum) {
 
 function loadFromHash() {
   const parsed = parseHash();
-  if (!parsed) return;
+  if (!parsed) {
+    renderCategorySelect();
+    return;
+  }
   
   const { section, taskPart, qNum } = parsed;
   currentSection = section;
@@ -95,11 +104,22 @@ function loadFromHash() {
   getElement('quiz-view').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
   
+  if (taskPart === 'preview') {
+    if (section === 'WRITING') {
+      currentWritingStep = WRITING_STEPS.PREVIEW;
+      setupInstructionsPanel();
+      renderWritingStep();
+    } else {
+      showResults();
+    }
+    resumeTimer();
+    return;
+  }
+  
   getElement('category-badge').textContent = section.replace('_', ' ');
   getElement('progress-text').textContent = `${qNum}/`;
   
   if (section === 'WRITING') {
-    const taskNum = taskPart === 'task1' ? qNum : 1;
     if (taskPart === 'task1' && qNum >= 1 && qNum <= 3) {
       currentWritingStep = qNum - 1;
     } else if (taskPart === 'task2') {
@@ -108,7 +128,7 @@ function loadFromHash() {
     setupInstructionsPanel();
     renderWritingStep();
   } else {
-    const currentIdx = qNum - 1;
+    currentQuestionIndex = qNum - 1;
     if (quizData[section] && quizData[section].length > 0) {
       loadQuestion();
       resumeTimer();
@@ -1231,13 +1251,16 @@ function previousQuestion() {
 
 function goToPreview() {
   pauseTimer();
+  const config = SECTION_CONFIG[currentSection];
+  if (!config) return;
+  
+  window.location.hash = `#/${config.name}/preview`;
+  
   if (currentSection === 'WRITING') {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
-    updateHash('WRITING', 'preview', 1);
   } else {
     showResults();
-    updateHash(currentSection, 'preview', currentQuestionIndex + 1);
   }
 }
 
@@ -1489,14 +1512,11 @@ function initEventListeners() {
     previousQuestion();
   });
 
-  getElement('back-cancel').addEventListener('click', () => {
-    getElement('back-modal').classList.add('hidden');
-  });
-
-  window.addEventListener('popstate', (e) => {
-    if (getElement('quiz-view').classList.contains('hidden') === false) {
-      e.preventDefault();
-      getElement('back-modal').classList.remove('hidden');
+  window.addEventListener('popstate', () => {
+    if (window.location.hash && window.location.hash.length > 1) {
+      loadFromHash();
+    } else {
+      goHome();
     }
   });
 
@@ -1611,7 +1631,13 @@ function goHome() {
   getElement('email-btn').classList.remove('hidden');
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
+  getElement('category-select').classList.remove('hidden');
   getElement('section-instructions-panel').classList.add('hidden');
+  getElement('back-modal').classList.add('hidden');
+  getElement('confirm-modal').classList.add('hidden');
+  getElement('time-modal').classList.add('hidden');
+  
+  window.history.pushState('', document.title, window.location.pathname);
   renderCategorySelect();
 }
 
