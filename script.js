@@ -913,6 +913,7 @@ function updatePrevButtonVisibility() {
   const checkBtn = getElement('check-btn');
   const nextBtn = getElement('next-btn');
   const restartBtn = getElement('restart-btn');
+  const skipBtn = getElement('skip-btn');
   
   if (currentSection === 'WRITING') {
     prevBtn.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
@@ -923,6 +924,7 @@ function updatePrevButtonVisibility() {
     checkBtn.classList.toggle('hidden', isPreview);
     nextBtn.classList.toggle('hidden', isPreview);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
+    if (skipBtn) skipBtn.classList.add('hidden');
   } else {
     prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
     
@@ -931,6 +933,10 @@ function updatePrevButtonVisibility() {
     submitBtn.classList.toggle('hidden', !isLast);
     checkBtn.classList.toggle('hidden', isLast);
     nextBtn.classList.toggle('hidden', isLast);
+    
+    if (skipBtn) {
+      skipBtn.classList.toggle('hidden', !isLast);
+    }
   }
 }
 
@@ -1282,9 +1288,9 @@ function goToPreview() {
   if (currentSection === 'WRITING') {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
-  } else {
-    showResults();
   }
+  // Para otras secciones, el hash se actualiza y el usuario ve el preview
+  // Luego puede dar "Enviar" para ir a resultados
 }
 
 function restartQuestion() {
@@ -1520,6 +1526,11 @@ function initEventListeners() {
   getElement('time-preview-btn').addEventListener('click', () => {
     stopTimer();
     hideTimeModal();
+    goToPreview();
+  });
+
+  getElement('skip-btn').addEventListener('click', () => {
+    pauseTimer();
     goToPreview();
   });
 
