@@ -950,13 +950,16 @@ function updatePrevButtonVisibility() {
     submitBtn?.classList.toggle('hidden', !isLast);
     checkBtn?.classList.toggle('hidden', isLast);
     nextBtn?.classList.toggle('hidden', isLast);
+    restartBtn?.classList.toggle('hidden', isLast);
     
     if (skipBtn) {
       skipBtn.classList.toggle('hidden', !isLast);
       if (!isLast) {
+        skipBtn.textContent = '⏭ Skip';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       } else {
+        skipBtn.textContent = 'Finalizar';
         skipBtn.classList.remove('btn-secondary');
         skipBtn.classList.add('btn-primary');
       }
