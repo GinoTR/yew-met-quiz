@@ -112,7 +112,7 @@ function loadFromHash() {
     } else {
       showResults();
     }
-    resumeTimer();
+    startTimer(section);
     return;
   }
   
@@ -131,14 +131,8 @@ function loadFromHash() {
     currentQuestionIndex = qNum - 1;
     if (quizData[section] && quizData[section].length > 0) {
       loadQuestion();
-      resumeTimer();
+      startTimer(section);
     }
-  }
-  
-  const saved = loadProgress();
-  if (saved && saved.timerEnd) {
-    timerRemaining = Math.max(0, Math.floor((saved.timerEnd - Date.now()) / 1000));
-    resumeTimer();
   }
 }
 
@@ -640,7 +634,8 @@ function beginQuiz(section) {
   loadQuestion();
   updatePrevButtonVisibility();
   startTimer(section);
-  updateHash(section, 'part1', 1);
+  const qNum = currentQuestionIndex + 1;
+  updateHash(section, `part${Math.ceil(qNum / 20)}`, qNum);
 }
 
 function setupInstructionsPanel() {
@@ -904,6 +899,10 @@ function editCurrentResponse() {
   }
   
   renderWritingStep();
+  
+  const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
+  const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
+  updateHash('WRITING', taskPart, qNum);
 }
 
 function updatePrevButtonVisibility() {
@@ -936,6 +935,13 @@ function updatePrevButtonVisibility() {
     
     if (skipBtn) {
       skipBtn.classList.toggle('hidden', !isLast);
+      if (!isLast) {
+        skipBtn.classList.remove('btn-primary');
+        skipBtn.classList.add('btn-secondary');
+      } else {
+        skipBtn.classList.remove('btn-secondary');
+        skipBtn.classList.add('btn-primary');
+      }
     }
   }
 }
@@ -1037,6 +1043,11 @@ function nextSectionStep() {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
     updateHash('WRITING', 'task2', 1);
+    return;
+  }
+  
+  if (currentWritingStep === WRITING_STEPS.PREVIEW) {
+    updatePrevButtonVisibility();
     return;
   }
 }
@@ -1289,8 +1300,7 @@ function goToPreview() {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
   }
-  // Para otras secciones, el hash se actualiza y el usuario ve el preview
-  // Luego puede dar "Enviar" para ir a resultados
+  updatePrevButtonVisibility();
 }
 
 function restartQuestion() {
@@ -1501,40 +1511,40 @@ async function continueFromSaved() {
 }
 
 function initEventListeners() {
-  getElement('check-btn').addEventListener('click', checkAnswer);
-  getElement('next-btn').addEventListener('click', nextQuestion);
-  getElement('prev-btn').addEventListener('click', previousQuestion);
-  getElement('restart-btn').addEventListener('click', () => {
+  getElement('check-btn')?.addEventListener('click', checkAnswer);
+  getElement('next-btn')?.addEventListener('click', nextQuestion);
+  getElement('prev-btn')?.addEventListener('click', previousQuestion);
+  getElement('restart-btn')?.addEventListener('click', () => {
     if (getElement('restart-btn').textContent === 'Enviar') {
       submitWritingResponses();
     } else {
       restartQuestion();
     }
   });
-  getElement('email-btn').addEventListener('click', sendEmail);
-  getElement('restart-test-btn').addEventListener('click', restartTest);
-  getElement('results-home-btn').addEventListener('click', goHome);
-  getElement('continue-btn').addEventListener('click', continueFromSaved);
-  getElement('home-btn').addEventListener('click', goHome);
+  getElement('email-btn')?.addEventListener('click', sendEmail);
+  getElement('restart-test-btn')?.addEventListener('click', restartTest);
+  getElement('results-home-btn')?.addEventListener('click', goHome);
+  getElement('continue-btn')?.addEventListener('click', continueFromSaved);
+  getElement('home-btn')?.addEventListener('click', goHome);
   
-  getElement('time-home-btn').addEventListener('click', () => {
+  getElement('time-home-btn')?.addEventListener('click', () => {
     stopTimer();
     hideTimeModal();
     goHome();
   });
   
-  getElement('time-preview-btn').addEventListener('click', () => {
+  getElement('time-preview-btn')?.addEventListener('click', () => {
     stopTimer();
     hideTimeModal();
     goToPreview();
   });
 
-  getElement('skip-btn').addEventListener('click', () => {
+  getElement('skip-btn')?.addEventListener('click', () => {
     pauseTimer();
     goToPreview();
   });
 
-  getElement('preview-btn').addEventListener('click', () => {
+  getElement('preview-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       currentWritingStep = WRITING_STEPS.TASK2;
       renderWritingStep();
@@ -1552,7 +1562,7 @@ function initEventListeners() {
     }
   });
 
-  getElement('submit-section-btn').addEventListener('click', () => {
+  getElement('submit-section-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       submitWritingResponses();
     } else {
