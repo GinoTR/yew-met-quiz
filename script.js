@@ -5,6 +5,20 @@ const quizData = {
   SPEAKING: []
 };
 
+const SECTION_CONFIG = {
+  WRITING: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing' },
+  LISTENING: { time: 35 * 60, parts: 3, items: 50, name: 'listening' },
+  READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: 'reading' },
+  SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' }
+};
+
+const SECTION_NAMES = {
+  'writing': 'WRITING',
+  'listening': 'LISTENING',
+  'reading': 'READING_AND_GRAMMAR',
+  'speaking': 'SPEAKING'
+};
+
 const SECTION_TIMES = {
   WRITING: 45 * 60,
   LISTENING: 35 * 60,
@@ -17,6 +31,98 @@ const WARNING_TIME = 5 * 60;
 let timerInterval = null;
 let timerRemaining = 0;
 let timerRunning = false;
+
+function formatHash(section, taskPart, qNum) {
+  return `#/${section}/${taskPart}/q${qNum.toString().padStart(2, '0')}`;
+}
+
+function parseHash() {
+  const hash = window.location.hash.slice(1);
+  if (!hash || hash === '/') return null;
+  
+  const parts = hash.split('/').filter(p => p);
+  if (parts.length < 3) return null;
+  
+  const [, section, taskPart, qPart] = parts;
+  const sectionKey = SECTION_NAMES[section];
+  if (!sectionKey) return null;
+  
+  const qMatch = qPart.match(/q(\d+)/);
+  if (!qMatch) return null;
+  
+  const qNum = parseInt(qMatch[1], 10);
+  return { section: sectionKey, taskPart, qNum, hash };
+}
+
+function updateHash(section, taskPart, qNum) {
+  const config = SECTION_CONFIG[section];
+  if (config) {
+    window.location.hash = formatHash(config.name, taskPart, qNum);
+  }
+}
+
+function getProgressKey(section, taskPart, qNum) {
+  const config = SECTION_CONFIG[section];
+  if (config) {
+    return `${config.name}_${taskPart}_q${qNum.toString().padStart(2, '0')}`;
+  }
+  return `${section.toLowerCase()}_${taskPart}_q${qNum}`;
+}
+
+function saveAnswerToHash(section, taskPart, qNum, answer) {
+  const key = getProgressKey(section, taskPart, qNum);
+  const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
+  saved.answers = saved.answers || {};
+  saved.answers[key] = answer;
+  saved.currentHash = window.location.hash;
+  localStorage.setItem('metQuizProgress', JSON.stringify(saved));
+}
+
+function getAnswerFromHash(section, taskPart, qNum) {
+  const key = getProgressKey(section, taskPart, qNum);
+  const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
+  return saved.answers ? saved.answers[key] : null;
+}
+
+function loadFromHash() {
+  const parsed = parseHash();
+  if (!parsed) return;
+  
+  const { section, taskPart, qNum } = parsed;
+  currentSection = section;
+  
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+  
+  getElement('category-badge').textContent = section.replace('_', ' ');
+  getElement('progress-text').textContent = `${qNum}/`;
+  
+  if (section === 'WRITING') {
+    const taskNum = taskPart === 'task1' ? qNum : 1;
+    if (taskPart === 'task1' && qNum >= 1 && qNum <= 3) {
+      currentWritingStep = qNum - 1;
+    } else if (taskPart === 'task2') {
+      currentWritingStep = 3;
+    }
+    setupInstructionsPanel();
+    renderWritingStep();
+  } else {
+    const currentIdx = qNum - 1;
+    if (quizData[section] && quizData[section].length > 0) {
+      loadQuestion();
+      resumeTimer();
+    }
+  }
+  
+  const saved = loadProgress();
+  if (saved && saved.timerEnd) {
+    timerRemaining = Math.max(0, Math.floor((saved.timerEnd - Date.now()) / 1000));
+    resumeTimer();
+  }
+}
+
+window.addEventListener('hashchange', loadFromHash);
 
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
@@ -89,10 +195,11 @@ function resumeTimer() {
 
 function saveTimerProgress() {
   if (currentSection && timerRemaining > 0) {
-    const progress = JSON.parse(localStorage.getItem('quizProgress') || '{}');
-    progress.timerEnd = Date.now() + (timerRemaining * 1000);
-    progress.section = currentSection;
-    localStorage.setItem('quizProgress', JSON.stringify(progress));
+    const saved = loadProgress() || {};
+    saved.timerEnd = Date.now() + (timerRemaining * 1000);
+    saved.section = currentSection;
+    saved.currentSection = currentSection;
+    localStorage.setItem('metQuizProgress', JSON.stringify(saved));
   }
 }
 
@@ -460,6 +567,8 @@ function beginQuiz(section) {
   currentAudioSrc = null;
   currentAudioElement = null;
 
+  const config = SECTION_CONFIG[section];
+
   if (section === 'WRITING') {
     if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
       alert('La sección de Writing aún no tiene contenido.');
@@ -479,6 +588,7 @@ function beginQuiz(section) {
     renderWritingStep();
     updatePrevButtonVisibility();
     startTimer(section);
+    updateHash('WRITING', 'task1', 1);
     return;
   }
 
@@ -507,8 +617,8 @@ function beginQuiz(section) {
   logActivity('INICIO', `Sección: ${section}`);
   loadQuestion();
   updatePrevButtonVisibility();
-  saveProgress();
   startTimer(section);
+  updateHash(section, 'part1', 1);
 }
 
 function setupInstructionsPanel() {
@@ -852,25 +962,35 @@ function nextSectionStep() {
   
   saveCurrentWritingResponse();
   
+  let taskPart = 'task1';
+  let qNum = 1;
+  
   if (currentWritingStep === WRITING_STEPS.INSTRUCTIONS) {
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    qNum = 1;
     renderWritingStep();
+    updateHash('WRITING', taskPart, qNum);
     return;
   }
 
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
     if (currentWritingStep < WRITING_STEPS.TASK1_Q3) {
       currentWritingStep++;
+      qNum = currentWritingStep + 1;
     } else {
       currentWritingStep = WRITING_STEPS.TASK2;
+      taskPart = 'task2';
+      qNum = 1;
     }
     renderWritingStep();
+    updateHash('WRITING', taskPart, qNum);
     return;
   }
 
   if (currentWritingStep === WRITING_STEPS.TASK2) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
+    updateHash('WRITING', 'task2', 1);
     return;
   }
 }
@@ -1048,6 +1168,9 @@ function checkAnswer() {
   feedback.classList.remove('hidden');
   answeredQuestions.add(currentQuestionIndex);
 
+  const qNum = currentQuestionIndex + 1;
+  saveAnswerToHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum, letters[selectedOptionIndex]);
+
   pauseTimer();
   
   getElement('check-btn').classList.add('hidden');
@@ -1064,6 +1187,7 @@ function nextQuestion() {
   }
 
   currentQuestionIndex++;
+  const qNum = currentQuestionIndex + 1;
 
   if (currentQuestionIndex >= shuffledQuestions.length) {
     pauseTimer();
@@ -1071,6 +1195,10 @@ function nextQuestion() {
   } else {
     loadQuestion();
     resumeTimer();
+    const config = SECTION_CONFIG[currentSection];
+    if (config) {
+      updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
+    }
   }
 }
 
@@ -1083,6 +1211,8 @@ function previousQuestion() {
         currentWritingStep--;
       }
       renderWritingStep();
+      const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
+      updateHash('WRITING', currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1', qNum);
     }
     return;
   }
@@ -1091,6 +1221,23 @@ function previousQuestion() {
     currentQuestionIndex--;
     loadQuestion();
     resumeTimer();
+    const qNum = currentQuestionIndex + 1;
+    const config = SECTION_CONFIG[currentSection];
+    if (config) {
+      updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
+    }
+  }
+}
+
+function goToPreview() {
+  pauseTimer();
+  if (currentSection === 'WRITING') {
+    currentWritingStep = WRITING_STEPS.PREVIEW;
+    renderWritingStep();
+    updateHash('WRITING', 'preview', 1);
+  } else {
+    showResults();
+    updateHash(currentSection, 'preview', currentQuestionIndex + 1);
   }
 }
 
@@ -1289,6 +1436,7 @@ async function continueFromSaved() {
       getElement('quiz-view').classList.remove('hidden');
 
       loadQuestion();
+      resumeTimer();
     }
   }
 }
@@ -1319,12 +1467,12 @@ function initEventListeners() {
   getElement('time-preview-btn').addEventListener('click', () => {
     stopTimer();
     hideTimeModal();
-    if (currentSection === 'WRITING') {
-      currentWritingStep = WRITING_STEPS.PREVIEW;
-      renderWritingStep();
-    } else {
-      showResults();
-    }
+    goToPreview();
+  });
+
+  getElement('skip-btn')?.addEventListener('click', () => {
+    pauseTimer();
+    goToPreview();
   });
 
   document.querySelectorAll('.user-link').forEach(el => {
@@ -1474,7 +1622,16 @@ async function init() {
 
   const loaded = await loadAllData();
 
-  renderCategorySelect();
+  if (window.location.hash && window.location.hash.length > 1 && window.location.hash !== '#/') {
+    loadFromHash();
+  } else {
+    renderCategorySelect();
+  }
+  
+  const saved = loadProgress();
+  if (saved && saved.currentSection && !window.location.hash) {
+    getElement('continue-btn')?.classList.remove('hidden');
+  }
   
   if (!loaded) {
     document.getElementById('category-select').innerHTML = `
