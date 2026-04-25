@@ -1187,15 +1187,17 @@ function loadQuestion() {
     optionsContainer.appendChild(optionDiv);
   });
 
-  getElement('feedback-container').classList.add('hidden');
-  getElement('check-btn').classList.remove('hidden');
-  getElement('next-btn').classList.add('hidden');
-  getElement('restart-btn').classList.add('hidden');
+  getElement('feedback-container')?.classList.add('hidden');
+  getElement('check-btn')?.classList.remove('hidden');
+  getElement('next-btn')?.classList.add('hidden');
+  getElement('restart-btn')?.classList.add('hidden');
+  getElement('restart-btn')?.classList.remove('hidden');
   getElement('restart-btn').textContent = 'Reiniciar Pregunta';
 
   selectedOptionIndex = null;
   updateProgressBar();
   saveProgress();
+  updatePrevButtonVisibility();
 }
 
 function toggleTranscription() {
@@ -1466,25 +1468,39 @@ Enviado desde Your English World Quiz`;
 }
 
 function restartTest() {
-  clearProgress();
-  currentQuestionIndex = 0;
-  selectedOptionIndex = null;
-  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-  answeredQuestions.clear();
-  shuffledQuestions = [];
-  currentGroup = null;
-  sectionResponses = [];
-  currentWritingStep = 0;
-  currentPreviewIndex = 0;
-
-  getElement('email-btn').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
+  getElement('confirm-modal')?.classList.remove('hidden');
   
-  if (currentSection) {
-    beginQuiz(currentSection);
-  } else {
-    renderCategorySelect();
-  }
+  const confirmOk = getElement('confirm-ok');
+  const confirmCancel = getElement('confirm-cancel');
+  
+  const handleConfirm = () => {
+    getElement('confirm-modal')?.classList.add('hidden');
+    cleanup();
+    clearProgress();
+    currentQuestionIndex = 0;
+    selectedOptionIndex = null;
+    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answeredQuestions.clear();
+    shuffledQuestions = [];
+    currentGroup = null;
+    sectionResponses = [];
+    currentWritingStep = 0;
+    currentPreviewIndex = 0;
+
+    getElement('email-btn').classList.remove('hidden');
+    getElement('results-container').classList.add('hidden');
+    
+    if (currentSection) {
+      beginQuiz(currentSection);
+    } else {
+      renderCategorySelect();
+    }
+  };
+  
+  confirmOk?.addEventListener('click', handleConfirm, { once: true });
+  confirmCancel?.addEventListener('click', () => {
+    getElement('confirm-modal')?.classList.add('hidden');
+  }, { once: true });
 }
 
 async function continueFromSaved() {
