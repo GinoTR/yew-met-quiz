@@ -741,6 +741,7 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.add('hidden');
+    getElement('section-instructions-panel').classList.add('hidden');
     setupCarouselEvents();
   } else {
     getElement('controls').classList.remove('hidden');
@@ -1655,6 +1656,7 @@ function initEventListeners() {
 
 function goHome() {
   stopTimer();
+  saveProgress();
   
   document.removeEventListener('keydown', handleCarouselKeydown);
 

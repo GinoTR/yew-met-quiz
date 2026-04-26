@@ -286,9 +286,23 @@ h1 {
 
 #controls {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.controls-center {
+  display: flex;
+  gap: 12px;
+}
+
+#prev-btn {
+  margin-right: auto;
+}
+
+#next-btn {
+  margin-left: auto;
 }
 
 .btn {
