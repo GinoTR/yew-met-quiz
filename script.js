@@ -1431,6 +1431,13 @@ function goToPreview() {
   const config = SECTION_CONFIG[currentSection];
   if (!config) return;
   
+  if (currentSection === 'WRITING') {
+    saveCurrentWritingResponse();
+    saveProgress();
+  } else {
+    saveProgress();
+  }
+  
   window.location.hash = `#/${config.name}/preview`;
   
   if (currentSection === 'WRITING') {
