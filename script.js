@@ -584,7 +584,7 @@ function renderCategorySelect() {
       count = data.length;
       const saved = loadProgress();
       const answered = (saved && saved.currentSection === sec.key && saved.answeredQuestions) 
-        ? saved.answeredQuestions.size 
+        ? saved.answeredQuestions.length 
         : 0;
       const percent = answered > 0 ? Math.round((answered / count) * 100) : 0;
       label = percent > 0 ? `${percent}%` : '';
@@ -990,7 +990,7 @@ function updatePrevButtonVisibility() {
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
       if (skipBtn) skipBtn.classList.add('hidden');
-    } else if (isLastQuestion) {
+} else if (isLastQuestion) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
@@ -1010,6 +1010,40 @@ function updatePrevButtonVisibility() {
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
+    }
+  } else if (currentSection) {
+    const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
+    const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
+    
+    if (isLast && alreadyAnswered) {
+      prevBtn?.classList.remove('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      if (skipBtn) skipBtn.classList.add('hidden');
+    } else if (isLast && !alreadyAnswered) {
+      prevBtn?.classList.remove('hidden');
+      checkBtn?.classList.remove('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.add('hidden');
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = 'Finalizar';
+      skipBtn.classList.remove('btn-secondary');
+      skipBtn.classList.add('btn-primary');
+    } else {
+      prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
+      checkBtn?.classList.remove('hidden');
+      nextBtn?.classList.remove('hidden');
+      submitBtn?.classList.add('hidden');
+      if (skipBtn) {
+        skipBtn.classList.remove('hidden');
+        skipBtn.textContent = '⏭ Skip';
+        skipBtn.classList.remove('btn-primary');
+        skipBtn.classList.add('btn-secondary');
+      }
+    }
+  }
+}
     }
   } else if (currentSection) {
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
