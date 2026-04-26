@@ -40,11 +40,11 @@
 
   <div class="modal-overlay hidden" id="confirm-modal">
     <div class="modal">
-      <h2>Are you sure?</h2>
-      <p class="modal-subtitle">Perderás tu progreso en esta sección.</p>
+      <h2>Reset Progress</h2>
+      <p class="modal-subtitle" id="confirm-text">Are you sure? This cannot be undone.</p>
       <div class="modal-buttons">
-        <button id="confirm-cancel" class="btn btn-secondary">Cancelar</button>
-        <button id="confirm-ok" class="btn btn-primary">Sí, reiniciar</button>
+        <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-ok" class="btn btn-primary">Yes, reset</button>
       </div>
     </div>
   </div>
@@ -136,7 +136,8 @@
           <div id="user-info">
             <span>Welcome </span><span id="user-name" class="user-link"></span>
           </div>
-          <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
+          <button id="reset-btn" class="btn-icon" title="Reset all progress">↺</button>
+          <button id="help-btn-home" class="btn-icon" title="Help">?</button>
         </div>
         <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
         <p class="subtitle">MET quiz</p>
@@ -149,7 +150,8 @@
       <div id="quiz-top-bar">
         <button id="home-btn" class="btn-link">Home</button>
         <span id="quiz-user-name" class="user-link"></span>
-        <button id="help-btn-quiz" class="btn-icon" title="Ayuda">?</button>
+        <button id="reset-btn" class="btn-icon" title="Reset progress">↺</button>
+        <button id="help-btn-quiz" class="btn-icon" title="Help">?</button>
       </div>
       <div id="progress-row">
         <div id="progress-info">

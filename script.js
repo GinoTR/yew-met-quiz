@@ -308,6 +308,44 @@ function clearProgress() {
   localStorage.removeItem('metQuizProgress');
 }
 
+function resetProgress(section) {
+  const modal = getElement('confirm-modal');
+  const modalText = getElement('confirm-text');
+  const modalOk = getElement('confirm-ok');
+  const modalCancel = getElement('confirm-cancel');
+  
+  if (section) {
+    modalText.textContent = `Reset progress for ${section}? This cannot be undone.`;
+  } else {
+    modalText.textContent = 'Reset all progress? This cannot be undone.';
+  }
+  
+  modal.classList.remove('hidden');
+  
+  const handleOk = () => {
+    modal.classList.add('hidden');
+    clearProgress();
+    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answeredQuestions.clear();
+    sectionResponses = [];
+    currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    currentQuestionIndex = 0;
+    
+    if (section) {
+      beginQuiz(section);
+    } else {
+      renderCategorySelect();
+    }
+  };
+  
+  const handleCancel = () => {
+    modal.classList.add('hidden');
+  };
+  
+  modalOk.onclick = handleOk;
+  modalCancel.onclick = handleCancel;
+}
+
 function getElement(id) {
   return document.getElementById(id);
 }
@@ -522,10 +560,10 @@ function renderCategorySelect() {
   container.innerHTML = '';
 
   const sections = [
-    { key: 'WRITING', name: 'Escritura' },
-    { key: 'LISTENING', name: 'Comprensión Auditiva' },
-    { key: 'READING_AND_GRAMMAR', name: 'Lectura y Gramática' },
-    { key: 'SPEAKING', name: 'Expresión Oral' }
+    { key: 'WRITING', name: 'Writing' },
+    { key: 'LISTENING', name: 'Listening' },
+    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar' },
+    { key: 'SPEAKING', name: 'Speaking' }
   ];
 
   sections.forEach(sec => {
@@ -541,7 +579,7 @@ function renderCategorySelect() {
         : 0;
       const total = 4;
       const percent = answered > 0 ? Math.round((answered / total) * 100) : 0;
-      label = percent > 0 ? `${count} ejercicios • ${percent}%` : `${count} ejercicios`;
+      label = percent > 0 ? `${percent}%` : '';
     } else if (data && data.length > 0) {
       count = data.length;
       const saved = loadProgress();
@@ -549,15 +587,17 @@ function renderCategorySelect() {
         ? saved.answeredQuestions.size 
         : 0;
       const percent = answered > 0 ? Math.round((answered / count) * 100) : 0;
-      label = percent > 0 ? `${count} preguntas • ${percent}%` : `${count} preguntas`;
+      label = percent > 0 ? `${percent}%` : '';
     } else {
-      label = `${sec.name} - Próximamente`;
+      label = 'Coming soon';
     }
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
     
-    btn.innerHTML = `<strong>${sec.name}</strong><span>${label}</span>`;
+    btn.innerHTML = label 
+      ? `<strong>${sec.name}</strong><span class="progress-badge">${label}</span>` 
+      : `<strong>${sec.name}</strong>`;
     
     if (count === 0) {
       btn.style.opacity = '0.5';
@@ -938,11 +978,11 @@ function updatePrevButtonVisibility() {
   const checkBtn = getElement('check-btn');
   const nextBtn = getElement('next-btn');
   const skipBtn = getElement('skip-btn');
-  const controlsCenter = document.querySelector('.controls-center');
   
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
     const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK2;
+    const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
     
     if (isPreview) {
       prevBtn?.classList.add('hidden');
@@ -973,12 +1013,19 @@ function updatePrevButtonVisibility() {
     }
   } else if (currentSection) {
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
+    const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
     
-    if (isLast) {
+    if (isLast && alreadyAnswered) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
+      skipBtn?.classList.add('hidden');
+    } else if (isLast && !alreadyAnswered) {
+      prevBtn?.classList.remove('hidden');
+      checkBtn?.classList.remove('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.add('hidden');
       skipBtn?.classList.remove('hidden');
       skipBtn.textContent = 'Finalizar';
       skipBtn.classList.remove('btn-secondary');
@@ -1517,6 +1564,9 @@ function initEventListeners() {
   getElement('email-btn')?.addEventListener('click', sendEmail);
   getElement('results-home-btn')?.addEventListener('click', goHome);
   getElement('home-btn')?.addEventListener('click', goHome);
+  getElement('reset-btn')?.addEventListener('click', () => {
+    resetProgress(currentSection);
+  });
   
   getElement('time-home-btn')?.addEventListener('click', () => {
     stopTimer();
