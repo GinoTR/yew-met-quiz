@@ -719,15 +719,12 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.add('hidden');
-    getElement('restart-btn').classList.remove('hidden');
-    getElement('restart-btn').textContent = 'Enviar';
     setupCarouselEvents();
   } else {
     getElement('controls').classList.remove('hidden');
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.remove('hidden');
-    getElement('restart-btn').classList.add('hidden');
   }
   
   updatePrevButtonVisibility();
@@ -840,7 +837,7 @@ const slide = slides[currentPreviewIndex];
   
   return `
     <div class="carousel-container">
-      <h3 class="carousel-title">Revisa tus respuestas <span id="edit-response-text" class="edit-link">Editar</span></h3>
+      <h3 class="carousel-title">Revisa tus respuestas</h3>
       <div class="carousel-viewer">
         <button id="carousel-prev" class="carousel-btn carousel-btn-left">&lt;</button>
         <div class="carousel-slide">
@@ -849,6 +846,9 @@ const slide = slides[currentPreviewIndex];
           <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
         </div>
         <button id="carousel-next" class="carousel-btn carousel-btn-right">&gt;</button>
+      </div>
+      <div class="edit-section">
+        <span id="edit-response-text" class="edit-link">Editar esta respuesta</span>
       </div>
       <div class="carousel-indicators">
         ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
@@ -916,7 +916,6 @@ function updatePrevButtonVisibility() {
   const submitBtn = getElement('submit-section-btn');
   const checkBtn = getElement('check-btn');
   const nextBtn = getElement('next-btn');
-  const restartBtn = getElement('restart-btn');
   const skipBtn = getElement('skip-btn');
   
   if (currentSection === 'WRITING') {
@@ -928,7 +927,6 @@ function updatePrevButtonVisibility() {
     submitBtn?.classList.toggle('hidden', !isPreview);
     checkBtn?.classList.toggle('hidden', true);
     nextBtn?.classList.toggle('hidden', isLastQuestion || isPreview);
-    restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
     
     if (skipBtn) {
       skipBtn.classList.toggle('hidden', !isLastQuestion);
@@ -950,7 +948,6 @@ function updatePrevButtonVisibility() {
     submitBtn?.classList.toggle('hidden', !isLast);
     checkBtn?.classList.toggle('hidden', isLast);
     nextBtn?.classList.toggle('hidden', isLast);
-    restartBtn?.classList.toggle('hidden', isLast);
     
     if (skipBtn) {
       skipBtn.classList.toggle('hidden', !isLast);
@@ -1190,9 +1187,6 @@ function loadQuestion() {
   getElement('feedback-container')?.classList.add('hidden');
   getElement('check-btn')?.classList.remove('hidden');
   getElement('next-btn')?.classList.add('hidden');
-  getElement('restart-btn')?.classList.add('hidden');
-  getElement('restart-btn')?.classList.remove('hidden');
-  getElement('restart-btn').textContent = 'Reiniciar Pregunta';
 
   selectedOptionIndex = null;
   updateProgressBar();
@@ -1258,7 +1252,6 @@ function checkAnswer() {
   
   getElement('check-btn').classList.add('hidden');
   getElement('next-btn').classList.remove('hidden');
-  getElement('restart-btn').classList.remove('hidden');
 
   saveProgress();
 }
@@ -1324,47 +1317,6 @@ function goToPreview() {
     renderWritingStep();
   }
   updatePrevButtonVisibility();
-}
-
-function restartQuestion() {
-  getElement('confirm-modal').classList.remove('hidden');
-  
-  const confirmBtn = getElement('confirm-ok');
-  const cancelBtn = getElement('confirm-cancel');
-  
-  const handleConfirm = () => {
-    getElement('confirm-modal').classList.add('hidden');
-    cleanup();
-    
-    if (currentSection === 'WRITING') {
-      currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
-      sectionResponses = [];
-      currentWritingStep = WRITING_STEPS.TASK1_Q1;
-      currentPreviewIndex = 0;
-      renderWritingStep();
-      updatePrevButtonVisibility();
-      return;
-    }
-    
-    currentQuestionIndex = 0;
-    selectedOptionIndex = null;
-    score[currentSection] = 0;
-    answeredQuestions.clear();
-    loadQuestion();
-  };
-  
-  const handleCancel = () => {
-    getElement('confirm-modal').classList.add('hidden');
-    cleanup();
-  };
-  
-  const cleanup = () => {
-    confirmBtn.removeEventListener('click', handleConfirm);
-    cancelBtn.removeEventListener('click', handleCancel);
-  };
-  
-  confirmBtn.addEventListener('click', handleConfirm);
-  cancelBtn.addEventListener('click', handleCancel);
 }
 
 function showResults() {
@@ -1467,39 +1419,6 @@ Enviado desde Your English World Quiz`;
   window.location.href = mailto;
 }
 
-function restartTest() {
-  getElement('confirm-modal')?.classList.remove('hidden');
-}
-
-function setupConfirmModalListeners() {
-  getElement('confirm-ok')?.addEventListener('click', () => {
-    getElement('confirm-modal')?.classList.add('hidden');
-    clearProgress();
-    currentQuestionIndex = 0;
-    selectedOptionIndex = null;
-    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-    answeredQuestions.clear();
-    shuffledQuestions = [];
-    currentGroup = null;
-    sectionResponses = [];
-    currentWritingStep = 0;
-    currentPreviewIndex = 0;
-
-    getElement('email-btn')?.classList.remove('hidden');
-    getElement('results-container')?.classList.add('hidden');
-    
-    if (currentSection) {
-      beginQuiz(currentSection);
-    } else {
-      renderCategorySelect();
-    }
-  });
-  
-  getElement('confirm-cancel')?.addEventListener('click', () => {
-    getElement('confirm-modal')?.classList.add('hidden');
-  });
-}
-
 async function continueFromSaved() {
   const saved = loadProgress();
   if (saved) {
@@ -1548,17 +1467,8 @@ function initEventListeners() {
   getElement('check-btn')?.addEventListener('click', checkAnswer);
   getElement('next-btn')?.addEventListener('click', nextQuestion);
   getElement('prev-btn')?.addEventListener('click', previousQuestion);
-  getElement('restart-btn')?.addEventListener('click', () => {
-    if (getElement('restart-btn').textContent === 'Enviar') {
-      submitWritingResponses();
-    } else {
-      restartQuestion();
-    }
-  });
   getElement('email-btn')?.addEventListener('click', sendEmail);
-  getElement('restart-test-btn')?.addEventListener('click', restartTest);
   getElement('results-home-btn')?.addEventListener('click', goHome);
-  getElement('continue-btn')?.addEventListener('click', continueFromSaved);
   getElement('home-btn')?.addEventListener('click', goHome);
   
   getElement('time-home-btn')?.addEventListener('click', () => {
