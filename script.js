@@ -1371,7 +1371,14 @@ function loadQuestion() {
   if (audioSrc) {
     if (currentAudioSrc !== audioSrc) {
       currentAudioSrc = audioSrc;
-      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${audioSrc}"></audio>`;
+      
+      let fullPath = audioSrc;
+      if (currentPartKey && currentPartKey.startsWith('LISTENING_P')) {
+        const partNum = currentPartKey.replace('LISTENING_P', '');
+        fullPath = `data/audios/listening-p${partNum}/${audioSrc}`;
+      }
+      
+      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${fullPath}"></audio>`;
       currentAudioElement = document.getElementById('main-audio');
     }
     getElement('audio-container').classList.remove('hidden');
