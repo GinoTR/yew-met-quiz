@@ -352,8 +352,6 @@ function shuffleOptions(question) {
   };
 }
 
-let answersByPart = {};
-
 function saveProgress() {
   const progress = {
     currentIndex: currentQuestionIndex,
