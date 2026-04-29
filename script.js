@@ -772,9 +772,6 @@ function beginWriting(section, saved, config) {
   renderWritingStep();
   updatePrevButtonVisibility();
   startTimer('WRITING');
-  const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
-  const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-  updateWritingHash(taskPart, qNum);
 }
 
 function beginListening(section, saved, config) {
@@ -822,7 +819,6 @@ function beginListening(section, saved, config) {
   loadQuestion();
   updatePrevButtonVisibility();
   startTimer('LISTENING');
-  updateHash(section, 1);
 }
 
 function setupInstructionsPanel() {
