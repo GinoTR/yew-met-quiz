@@ -416,10 +416,31 @@ h1 {
 }
 
 #category-buttons {
-  display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
+}
+
+.section-row {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.section-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.part-btn {
+  flex: 1;
+  min-width: 140px;
 }
 
 .category-btn {

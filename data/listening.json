@@ -1,0 +1,394 @@
+{
+  "instructions": "This is the listening section of the MET. There are three parts in this section, with special directions for each part.\nPlease answer all of the questions. You will not be able to go back after moving on to the next one. If you do not know the answer, you may guess. Try to answer as many questions as possible.",
+  "parts": [
+    {
+      "id": 1,
+      "instructions": "In this part of the test, you will hear short conversations between two people. After each conversation, you will hear a question about it. Choose the answer to the question.\n\nThe conversations and questions will not be repeated. Please listen carefully.",
+      "questions": [
+        {
+          "number": 1,
+          "audio": "p1-q1.mp3",
+          "question": "What does the woman say about the bus?",
+          "options": ["It is late.", "It stops in a different place.", "It has broken down.", "It already came."],
+          "correct": 0
+        },
+        {
+          "number": 2,
+          "audio": "p1-q2.mp3",
+          "question": "What will the woman probably do the following day?",
+          "options": ["Drive to the city", "Watch the parade on television", "Give the man's family a ride", "Take the train to the city"],
+          "correct": 3
+        },
+        {
+          "number": 3,
+          "audio": "p1-q3.mp3",
+          "question": "What does the woman hope to do?",
+          "options": ["Learn to cook", "Bring lunch from home", "Avoid bad weather", "Try some new restaurants"],
+          "correct": 1
+        },
+        {
+          "number": 4,
+          "audio": "p1-q4.mp3",
+          "question": "What will the students do tomorrow?",
+          "options": ["Call the professor for their grades", "Turn in their papers", "Make appointments to see the professor", "Pick up their quizzes"],
+          "correct": 3
+        },
+        {
+          "number": 5,
+          "audio": "p1-q5.mp3",
+          "question": "What does the woman most likely want todo?",
+          "options": ["Compare different phone models", "Have her phone repaired", "Receive a refund", "Explain her problem"],
+          "correct": 1
+        },
+        {
+          "number": 6,
+          "audio": "p1-q6.mp3",
+          "question": "How did the man feel when he heard the news?",
+          "options": ["Happy", "Surprised", "Embarrassed", "Angry"],
+          "correct": 1
+        },
+        {
+          "number": 7,
+          "audio": "p1-q7.mp3",
+          "question": "What does the woman imply about the man?",
+          "options": ["He should continue down the street.", "He's going to be late.", "He's going in the wrong direction.", "He should take a bus."],
+          "correct": 1
+        },
+        {
+          "number": 8,
+          "audio": "p1-q8.mp3",
+          "question": "How does the man feel?",
+          "options": ["Nervous", "Confident", "Confused", "Excited"],
+          "correct": 0
+        },
+        {
+          "number": 9,
+          "audio": "p1-q9.mp3",
+          "question": "What is probably true about the company?",
+          "options": ["It has new owners.", "It is expanding rapidly.", "It has lost many staff recently.", "It is having financial problems."],
+          "correct": 1
+        },
+        {
+          "number": 10,
+          "audio": "p1-q10.mp3",
+          "question": "What happened when the man went to university?",
+          "options": ["He took his instrument with him.", "He stopped playing the piano.", "He began playing a new instrument.", "He signed up for music classes."],
+          "correct": 1
+        },
+        {
+          "number": 11,
+          "audio": "p1-q11.mp3",
+          "question": "What does the woman say about the article?",
+          "options": ["She read part of it earlier.", "She doesn't remember what it was about.", "She looked it over very quickly.", "She won't read it for another few days."],
+          "correct": 0
+        },
+        {
+          "number": 12,
+          "audio": "p1-q12.mp3",
+          "question": "What kind of toy does the man want to buy?",
+          "options": ["Something simple", "Something that plays music", "Something cheap", "Something educational"],
+          "correct": 0
+        },
+        {
+          "number": 13,
+          "audio": "p1-q13.mp3",
+          "question": "What are the speakers discussing?",
+          "options": ["Their math exam", "Their group project", "Their homework", "Their favorite class"],
+          "correct": 0
+        },
+        {
+          "number": 14,
+          "audio": "p1-q14.mp3",
+          "question": "Why will the professor contact the class?",
+          "options": ["To cancel a class", "To give them materials for homework", "To explain a recent lecture", "To complain about the bookstore"],
+          "correct": 1
+        },
+        {
+          "number": 15,
+          "audio": "p1-q15.mp3",
+          "question": "What are the speakers mainly discussing?",
+          "options": ["An athlete they like", "A team they play for", "A game they watched", "A sports team's potential"],
+          "correct": 3
+        },
+        {
+          "number": 16,
+          "audio": "p1-q16.mp3",
+          "question": "What does the man describe as annoying?",
+          "options": ["Airports", "Waiting for relatives", "Snowy weather", "Travel delays"],
+          "correct": 3
+        },
+        {
+          "number": 17,
+          "audio": "p1-q17.mp3",
+          "question": "When should the man probably feel better?",
+          "options": ["In about a week", "By this evening", "In two or three days", "On Friday"],
+          "correct": 2
+        },
+        {
+          "number": 18,
+          "audio": "p1-q18.mp3",
+          "question": "What are the speakers mainly talking about?",
+          "options": ["Moving to a new apartment", "Their plans for the summer", "How hot the weather is", "Fixing the air conditioner"],
+          "correct": 2
+        },
+        {
+          "number": 19,
+          "audio": "p1-q19.mp3",
+          "question": "How does the man feel about the new policy?",
+          "options": ["He thinks it benefits all students.", "He thinks it is a good idea.", "He believes it will affect him negatively.", "He believes it will make little difference."],
+          "correct": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "instructions": "In this part of the test, you will hear conversations between two people. After each conversation, you will answer some questions about it. Choose the answer to each question.\n\nThe conversations will not be repeated. Please listen carefully.",
+      "audioGroups": [
+        {
+          "number": 1,
+          "mainAudio": "p2-a1-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What are the speakers mainly discussing?",
+              "options": ["The state of the man's business", "The woman's new company", "The seminar the man will attend", "An event for business owners"],
+              "correct": 3
+            },
+            {
+              "number": 2,
+              "question": "Why does the man mention next year?",
+              "options": ["He will start a new business then.", "He will miss the conference then.", "He thinks the economy will be better then.", "He thinks his business may be closed then."],
+              "correct": 2
+            },
+            {
+              "number": 3,
+              "question": "What is the man likely to do next?",
+              "options": ["Call his office", "Attend a seminar", "Ask the woman to lunch", "Drive back to his office"],
+              "correct": 0
+            },
+            {
+              "number": 4,
+              "question": "What does the man mean when he says:",
+              "options": ["His business will close soon.", "His business suffered some damage.", "His business isn't yet ready to open.", "His business may not make money."],
+              "correct": 3,
+              "extraAudio": "p2-a1-q4-extra.mp3"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "mainAudio": "p2-a2-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "Why does the man tell the woman she's lucky?",
+              "options": ["The item she wants is on sale.", "The store is open late today.", "He has what she is looking for.", "She is getting married."],
+              "correct": 2
+            },
+            {
+              "number": 2,
+              "question": "What problem does the woman have?",
+              "options": ["The store doesn't have her size.", "Someone else bought what she wanted.", "She doesn't like anything in the store.", "She doesn't have enough money."],
+              "correct": 3
+            },
+            {
+              "number": 3,
+              "question": "What does the man mean when he says:",
+              "options": ["He will close the store early.", "He will recommend another suit.", "He will sell the suit to someone else.", "He will reserve the suit temporarily."],
+              "correct": 3,
+              "extraAudio": "p2-a2-q3-extra.mp3"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "mainAudio": "p2-a3-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What are the speakers discussing?",
+              "options": ["A course textbook the woman is returning", "A course textbook the woman needs", "A book the woman had reserved online", "A book the woman's friend recommended"],
+              "correct": 3
+            },
+            {
+              "number": 2,
+              "question": "Why does the man ask about the woman's research?",
+              "options": ["To send her to the correct building", "To suggest a topic for a project", "To help her find what she needs", "To learn more about her interests"],
+              "correct": 2
+            },
+            {
+              "number": 3,
+              "question": "What will the woman probably do?",
+              "options": ["Get the electronic version of the book", "Borrow the book from her friend", "Check the book out from the library", "Come back later to get the book"],
+              "correct": 2
+            },
+            {
+              "number": 4,
+              "question": "What does the woman mean when she says:",
+              "options": ["The book didn't contain useful information.", "The book wasn't available online.", "She didn't know what to do.", "She didn't find the name of the book."],
+              "correct": 3,
+              "extraAudio": "p2-a3-q4-extra.mp3"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "mainAudio": "p2-a4-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What did the woman do the previous semester?",
+              "options": ["Started to use technology while teaching", "Trained her assistant to teach her course", "Asked students about how they used laptops", "Gathered evidence about students' use of laptops"],
+              "correct": 3
+            },
+            {
+              "number": 2,
+              "question": "Why does the woman talk about research studies?",
+              "options": ["To explain how she got her idea", "To argue against the man's opinion", "To describe the type of work she enjoys", "To explain what she'll discuss with her students"],
+              "correct": 3
+            },
+            {
+              "number": 3,
+              "question": "What does the man think about the woman's idea?",
+              "options": ["It is better than his idea.", "It might influence others.", "It is already accepted at their school.", "It might be rejected by the administration."],
+              "correct": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "instructions": "In this part of the test, you will hear some short talks. After each talk, you will answer some questions about it. Choose the answer to each question.\n\nThe talks will not be repeated. Please listen carefully.",
+      "audioGroups": [
+        {
+          "number": 1,
+          "mainAudio": "p3-a1-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is the talk mainly about?",
+              "options": ["The different types of birds in a park", "The eating habits of a type of bird", "The speaker's research on endangered species", "The characteristics of a type of bird"],
+              "correct": 3
+            },
+            {
+              "number": 2,
+              "question": "What does the speaker suggest the listeners do?",
+              "options": ["Use equipment to help them see better", "Use equipment to climb a tree", "Try to catch some fish", "Try to take a photo of the bird"],
+              "correct": 0
+            },
+            {
+              "number": 3,
+              "question": "What does the speaker think the bird standing on the nest is doing?",
+              "options": ["Waiting for its mate", "Protecting eggs", "Looking for food", "Watching the tour group"],
+              "correct": 1
+            },
+            {
+              "number": 4,
+              "question": "Why does the speaker mention fish?",
+              "options": ["To tell the listeners what they'll do next", "To compare the behavior of different animals", "To explain what one bird is doing", "To describe what lives in the lake"],
+              "correct": 2
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "mainAudio": "p3-a2-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is the speaker mainly discussing?",
+              "options": ["The schedule for a project", "Principles of design", "Different construction materials", "Plans for a new building"],
+              "correct": 3
+            },
+            {
+              "number": 2,
+              "question": "Why does the speaker mention a home appliance store?",
+              "options": ["To suggest an interesting storage method", "To criticize a common sales strategy", "To describe inexpensive display ideas", "To compare different types of shoppers"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "What will the meeting participants most likely do next?",
+              "options": ["Discuss the project's budget", "Visit a store", "View some drawings", "Sign a contract"],
+              "correct": 2
+            },
+            {
+              "number": 4,
+              "question": "What does the speaker suggest about his team when he says:",
+              "options": ["They had difficulty making a decision.", "They were confused about the instructions.", "They did not want to change their minds.", "They had concerns about an idea."],
+              "correct": 0,
+              "extraAudio": "p3-a2-q4-extra.mp3"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "mainAudio": "p3-a3-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is the talk mainly about?",
+              "options": ["Student activities at a high school", "Academic programs at a high school", "Teaching staff at a high school", "An upcoming sporting event at a high school"],
+              "correct": 0
+            },
+            {
+              "number": 2,
+              "question": "What does the speaker say about other teachers?",
+              "options": ["They help with the sports programs.", "They teach a variety of subjects.", "They will also talk to the parents.", "They will take the parents on a tour."],
+              "correct": 2
+            },
+            {
+              "number": 3,
+              "question": "Why does the speaker mention some equipment?",
+              "options": ["To explain what parents will need to buy", "To explain how students play sports safely", "To explain a benefit of two sports teams", "To explain a disadvantage of a sports team"],
+              "correct": 2
+            },
+            {
+              "number": 4,
+              "question": "What does the speaker say about participating in a sport?",
+              "options": ["It can be dangerous.", "It is required at this school.", "It is not appropriate for all students.", "It is a valuable experience."],
+              "correct": 3
+            },
+            {
+              "number": 5,
+              "question": "What will the audience probably do next?",
+              "options": ["Hear about music and art", "Watch a basketball game", "Listen to some students speak", "Ask the speaker some questions"],
+              "correct": 0
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "mainAudio": "p3-a4-main.mp3",
+          "questions": [
+            {
+              "number": 1,
+              "question": "What will the students be doing?",
+              "options": ["Making copies of ancient objects", "Looking for artifacts in Greece", "Selling some of the pottery they make", "Volunteering at a local museum"],
+              "correct": 0
+            },
+            {
+              "number": 2,
+              "question": "What does the speaker wish he could do?",
+              "options": ["Be a student at City College", "Touch museum objects", "Meet a famous artist", "Own an ancient Greek bowl"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "What is mentioned about the oven?",
+              "options": ["It is very old.", "It was made in Greece.", "It was made for this project.", "It was designed by the students."],
+              "correct": 2
+            },
+            {
+              "number": 4,
+              "question": "What will happen in May at the museum?",
+              "options": ["There will be an exhibit of student pottery.", "Students will teach a pottery class.", "The museum will be temporarily closed.", "Art scholars will give lectures about Greek pottery."],
+              "correct": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

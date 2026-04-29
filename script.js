@@ -9,7 +9,17 @@ const SECTION_CONFIG = {
   WRITING: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing' },
   LISTENING: { time: 35 * 60, parts: 3, items: 50, name: 'listening' },
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: 'reading' },
-  SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' }
+  SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' },
+  WRITING_TASK1: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task1', parentSection: 'WRITING' },
+  WRITING_TASK2: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task2', parentSection: 'WRITING' },
+  LISTENING_P1: { time: 35 * 60, parts: 3, items: 19, name: 'listening-p1', parentSection: 'LISTENING', partId: 1 },
+  LISTENING_P2: { time: 35 * 60, parts: 3, items: 14, name: 'listening-p2', parentSection: 'LISTENING', partId: 2 },
+  LISTENING_P3: { time: 35 * 60, parts: 3, items: 17, name: 'listening-p3', parentSection: 'LISTENING', partId: 3 },
+  READING_P1: { time: 65 * 60, parts: 3, items: 20, name: 'reading-p1', parentSection: 'READING_AND_GRAMMAR', partId: 1 },
+  READING_P2: { time: 65 * 60, parts: 3, items: 11, name: 'reading-p2', parentSection: 'READING_AND_GRAMMAR', partId: 2 },
+  READING_P3: { time: 65 * 60, parts: 3, items: 20, name: 'reading-p3', parentSection: 'READING_AND_GRAMMAR', partId: 3 },
+  SPEAKING_P1: { time: 10 * 60, parts: 2, items: 3, name: 'speaking-p1', parentSection: 'SPEAKING', partId: 1 },
+  SPEAKING_P2: { time: 10 * 60, parts: 2, items: 2, name: 'speaking-p2', parentSection: 'SPEAKING', partId: 2 }
 };
 
 const SECTION_NAMES = {
@@ -28,12 +38,67 @@ const SECTION_TIMES = {
 
 const WARNING_TIME = 5 * 60;
 
-let timerInterval = null;
-let timerRemaining = 0;
-let timerRunning = false;
+const SECTION_PARTS = {
+  WRITING: [
+    { key: 'WRITING_TASK1', name: 'Task 1', time: 45 * 60 },
+    { key: 'WRITING_TASK2', name: 'Task 2', time: 45 * 60 }
+  ],
+  LISTENING: [
+    { key: 'LISTENING_P1', name: 'Part 1', time: 35 * 60 },
+    { key: 'LISTENING_P2', name: 'Part 2', time: 35 * 60 },
+    { key: 'LISTENING_P3', name: 'Part 3', time: 35 * 60 }
+  ],
+  READING_AND_GRAMMAR: [
+    { key: 'READING_P1', name: 'Part 1', time: 65 * 60 },
+    { key: 'READING_P2', name: 'Part 2', time: 65 * 60 },
+    { key: 'READING_P3', name: 'Part 3', time: 65 * 60 }
+  ],
+  SPEAKING: [
+    { key: 'SPEAKING_P1', name: 'Part 1', time: 10 * 60 },
+    { key: 'SPEAKING_P2', name: 'Part 2', time: 10 * 60 }
+  ]
+};
 
-function formatHash(section, taskPart, qNum) {
-  return `#/${section}/${taskPart}/q${qNum.toString().padStart(2, '0')}`;
+function getSectionKey(partKey) {
+  if (partKey.startsWith('WRITING')) return 'WRITING';
+  if (partKey.startsWith('LISTENING')) return 'LISTENING';
+  if (partKey.startsWith('READING')) return 'READING_AND_GRAMMAR';
+  if (partKey.startsWith('SPEAKING')) return 'SPEAKING';
+  return null;
+}
+
+function formatHash(partKey, qNum) {
+  return `#/${partKey}/q${qNum.toString().padStart(2, '0')}`;
+}
+
+function formatWritingHash(taskPart, qNum) {
+  return `#/writing-${taskPart}/q${qNum.toString().padStart(2, '0')}`;
+}
+
+function updateHash(partKey, qNum) {
+  const config = SECTION_CONFIG[partKey];
+  if (config) {
+    window.location.hash = formatHash(config.name, qNum);
+  }
+}
+
+function updateWritingHash(taskPart, qNum) {
+  window.location.hash = formatWritingHash(taskPart, qNum);
+}
+
+function formatWritingHash(taskPart, qNum) {
+  return `#/writing-${taskPart}/q${qNum.toString().padStart(2, '0')}`;
+}
+
+function updateHash(partKey, qNum) {
+  const config = SECTION_CONFIG[partKey];
+  if (config) {
+    window.location.hash = formatHash(config.name, qNum);
+  }
+}
+
+function updateWritingHash(taskPart, qNum) {
+  window.location.hash = formatWritingHash(taskPart, qNum);
 }
 
 function parseHash() {
@@ -43,12 +108,11 @@ function parseHash() {
   const parts = hash.split('/').filter(p => p);
   if (parts.length < 2) return null;
   
-  const [section, taskPart, qPart] = parts;
-  const sectionKey = SECTION_NAMES[section];
-  if (!sectionKey) return null;
+  const [sectionKey, taskPart, qPart] = parts;
   
   if (taskPart === 'preview') {
-    return { section: sectionKey, taskPart: 'preview', qNum: null, hash };
+    const parentSection = getSectionKey(sectionKey);
+    return { section: sectionKey, parentSection, taskPart: 'preview', qNum: null, hash };
   }
   
   if (parts.length < 3) return null;
@@ -57,7 +121,8 @@ function parseHash() {
   if (!qMatch) return null;
   
   const qNum = parseInt(qMatch[1], 10);
-  return { section: sectionKey, taskPart, qNum, hash };
+  const parentSection = getSectionKey(sectionKey);
+  return { section: sectionKey, parentSection, taskPart, qNum, hash };
 }
 
 function updateHash(section, taskPart, qNum) {
@@ -240,6 +305,9 @@ let score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
 let answeredQuestions = new Set();
 let shuffledQuestions = [];
 let currentSection = null;
+let currentPartKey = null;
+let currentPartQuestionIndex = 0;
+let answersByPart = {};
 
 let currentUser = null;
 let pendingSection = null;
@@ -284,13 +352,19 @@ function shuffleOptions(question) {
   };
 }
 
+let answersByPart = {};
+
 function saveProgress() {
   const progress = {
     currentIndex: currentQuestionIndex,
     currentSection: currentSection,
+    currentPartKey: currentPartKey,
+    currentPartQuestionIndex: currentPartQuestionIndex,
     currentExerciseIndex: currentExerciseIndex,
     score: score,
     answeredQuestions: Array.from(answeredQuestions),
+    answersByPart: answersByPart,
+    timerRemaining: timerRemaining,
     questionsOrder: shuffledQuestions.map(q => ({ exerciseIndex: q.exerciseIndex, questionIndex: q.questionIndex })),
     writingStep: currentWritingStep,
     writingResponses: sectionResponses,
@@ -574,53 +648,75 @@ function renderCategorySelect() {
   container.innerHTML = '';
 
   const sections = [
-    { key: 'WRITING', name: 'Writing' },
-    { key: 'LISTENING', name: 'Listening' },
-    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar' },
-    { key: 'SPEAKING', name: 'Speaking' }
+    { key: 'WRITING', name: 'Writing', parts: SECTION_PARTS.WRITING },
+    { key: 'LISTENING', name: 'Listening', parts: SECTION_PARTS.LISTENING },
+    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar', parts: SECTION_PARTS.READING_AND_GRAMMAR },
+    { key: 'SPEAKING', name: 'Speaking', parts: SECTION_PARTS.SPEAKING }
   ];
 
   sections.forEach(sec => {
-    const data = quizData[sec.key];
-    let count = 0;
-    let label = '';
+    const sectionRow = document.createElement('div');
+    sectionRow.className = 'section-row';
     
-    if (sec.key === 'WRITING' && data && data.groups) {
-      count = data.groups.length;
-      const saved = loadProgress();
-      const answered = (saved && saved.currentSection === 'WRITING' && saved.writingResponses) 
-        ? saved.writingResponses.filter(r => r && r.length > 0).length 
-        : 0;
-      const total = 4;
-      const percent = answered > 0 ? Math.round((answered / total) * 100) : 0;
-      label = percent > 0 ? `${percent}%` : '';
-    } else if (data && data.length > 0) {
-      count = data.length;
-      const saved = loadProgress();
-      const answered = (saved && saved.currentSection === sec.key && saved.answeredQuestions) 
-        ? saved.answeredQuestions.length 
-        : 0;
-      const percent = answered > 0 ? Math.round((answered / count) * 100) : 0;
-      label = percent > 0 ? `${percent}%` : '';
-    } else {
-      label = 'Coming soon';
-    }
+    const titleRow = document.createElement('div');
+    titleRow.className = 'section-title';
+    titleRow.textContent = sec.name;
+    sectionRow.appendChild(titleRow);
 
-    const btn = document.createElement('button');
-    btn.className = 'category-btn';
+    const partsContainer = document.createElement('div');
+    partsContainer.className = 'section-parts';
     
-    btn.innerHTML = label 
-      ? `<strong>${sec.name}</strong><span class="progress-badge">${label}</span>` 
-      : `<strong>${sec.name}</strong>`;
+    sec.parts.forEach(part => {
+      const config = SECTION_CONFIG[part.key];
+      const hasContent = hasSectionContent(part.key);
+      const saved = loadProgress();
+      const partProgress = getPartProgress(part.key, saved);
+      const percent = partProgress.percent;
+      const label = percent > 0 ? `${percent}%` : '';
+      
+      const btn = document.createElement('button');
+      btn.className = 'category-btn part-btn';
+      
+      btn.innerHTML = label 
+        ? `<strong>${part.name}</strong><span class="progress-badge">${label}</span>` 
+        : `<strong>${part.name}</strong>`;
+      
+      if (!hasContent) {
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
+        btn.innerHTML = `<strong>${part.name}</strong><span class="progress-badge">Soon</span>`;
+      }
+      
+      btn.addEventListener('click', () => startFromSection(part.key));
+      partsContainer.appendChild(btn);
+    });
     
-    if (count === 0) {
-      btn.style.opacity = '0.5';
-      btn.style.pointerEvents = 'none';
-    }
-    
-    btn.addEventListener('click', () => startFromSection(sec.key));
-    container.appendChild(btn);
+    sectionRow.appendChild(partsContainer);
+    container.appendChild(sectionRow);
   });
+}
+
+function hasSectionContent(partKey) {
+  const section = getSectionKey(partKey);
+  if (section === 'WRITING') return quizData.WRITING && quizData.WRITING.groups && quizData.WRITING.groups.length > 0;
+  if (section === 'LISTENING') return quizData.LISTENING && quizData.LISTENING.parts && quizData.LISTENING.parts.length > 0;
+  return false;
+}
+
+function getPartProgress(partKey, saved) {
+  if (!saved) return { answered: 0, total: 0, percent: 0 };
+  
+  const section = getSectionKey(partKey);
+  const config = SECTION_CONFIG[partKey];
+  const total = config ? config.items : 0;
+  
+  if (!saved.answersByPart || !saved.answersByPart[partKey]) {
+    return { answered: 0, total, percent: 0 };
+  }
+  
+  const answered = saved.answersByPart[partKey].length;
+  const percent = answered > 0 && total > 0 ? Math.round((answered / total) * 100) : 0;
+  return { answered, total, percent };
 }
 
 function startFromSection(section) {
@@ -636,70 +732,127 @@ function startFromSection(section) {
 
 function beginQuiz(section) {
   const saved = loadProgress();
-  const hasSavedProgress = saved && saved.currentSection === section && saved.currentIndex !== undefined;
+  const config = SECTION_CONFIG[section];
   
-  currentSection = section;
-  currentExerciseIndex = hasSavedProgress ? saved.currentExerciseIndex : 0;
-  currentQuestionIndex = hasSavedProgress ? saved.currentIndex : 0;
+  currentPartKey = section;
+  currentSection = getSectionKey(section) || section;
+  currentPartQuestionIndex = 0;
   selectedOptionIndex = null;
-  score = hasSavedProgress ? saved.score : { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-  answeredQuestions = hasSavedProgress ? new Set(saved.answeredQuestions) : new Set();
   currentAudioSrc = null;
   currentAudioElement = null;
+  
+  if (saved) {
+    score = saved.score || { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answersByPart = saved.answersByPart || {};
+    timerRemaining = saved.timerRemaining || SECTION_TIMES[currentSection];
+  } else {
+    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answersByPart = {};
+    timerRemaining = SECTION_TIMES[currentSection];
+  }
 
-  const config = SECTION_CONFIG[section];
+  if (section === 'WRITING_TASK1' || section === 'WRITING_TASK2') {
+    beginWriting(section, saved, config);
+    return;
+  }
 
-  if (section === 'WRITING') {
-    if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
-      alert('La sección de Writing aún no tiene contenido.');
-      return;
-    }
-    
-    if (hasSavedProgress && saved.writingGroupId) {
-      const group = quizData.WRITING.groups.find(g => g.id === saved.writingGroupId);
-      if (group) {
-        currentGroup = group;
-        sectionResponses = saved.writingResponses || [];
-        currentWritingStep = saved.writingStep || WRITING_STEPS.TASK1_Q1;
-      } else {
-        currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
-        sectionResponses = [];
-        currentWritingStep = WRITING_STEPS.TASK1_Q1;
-      }
+  if (section.startsWith('LISTENING_P')) {
+    beginListening(section, saved, config);
+    return;
+  }
+
+  alert('Esta sección aún no tiene contenido.');
+}
+
+function beginWriting(section, saved, config) {
+  if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
+    alert('La sección de Writing aún no tiene contenido.');
+    return;
+  }
+  
+  const isTask2 = section === 'WRITING_TASK2';
+  const hasSavedProgress = saved && saved.currentPartKey === section;
+  
+  if (hasSavedProgress && saved.writingGroupId) {
+    const group = quizData.WRITING.groups.find(g => g.id === saved.writingGroupId);
+    if (group) {
+      currentGroup = group;
+      sectionResponses = saved.writingResponses || [];
+      currentWritingStep = saved.writingStep || (isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1);
     } else {
       currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
       sectionResponses = [];
-      currentWritingStep = WRITING_STEPS.TASK1_Q1;
+      currentWritingStep = isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1;
     }
-    currentPreviewIndex = 0;
-    
-    getElement('category-select').classList.add('hidden');
-    getElement('quiz-view').classList.remove('hidden');
-    getElement('results-container').classList.add('hidden');
-    
-    setupInstructionsPanel();
-    logActivity('INICIO', `WRITING - Grupo: ${currentGroup.id}`);
-    renderWritingStep();
-    updatePrevButtonVisibility();
-    startTimer(section);
-    const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
-    const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-    updateHash('WRITING', taskPart, qNum);
-    return;
-  }
-
-  if (!quizData[section] || quizData[section].length === 0) {
-    alert('Esta sección aún no tiene contenido.');
-    return;
-  }
-
-  const data = quizData[section];
-  if (Array.isArray(data) && data[0] && data[0].groups) {
-    const groups = shuffleArray([...data]);
-    questions = groups.map(g => g).flat();
   } else {
-    questions = shuffleArray([...data]);
+    currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    sectionResponses = [];
+    currentWritingStep = isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1;
   }
+  currentPreviewIndex = 0;
+  
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+  
+  setupInstructionsPanel();
+  const partName = isTask2 ? 'Task 2' : 'Task 1';
+  logActivity('INICIO', `WRITING ${partName} - Grupo: ${currentGroup.id}`);
+  renderWritingStep();
+  updatePrevButtonVisibility();
+  startTimer('WRITING');
+  const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
+  const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
+  updateWritingHash(taskPart, qNum);
+}
+
+function beginListening(section, saved, config) {
+  if (!quizData.LISTENING || !quizData.LISTENING.parts || quizData.LISTENING.parts.length === 0) {
+    alert('La sección de Listening aún no tiene contenido.');
+    return;
+  }
+  
+  const partId = config.partId;
+  const partData = quizData.LISTENING.parts.find(p => p.id === partId);
+  
+  if (!partData) {
+    alert('Parte no encontrada.');
+    return;
+  }
+  
+  const hasSavedProgress = saved && saved.currentPartKey === section;
+  currentPartQuestionIndex = hasSavedProgress ? (saved.currentPartQuestionIndex || 0) : 0;
+  answeredQuestions = new Set();
+  
+  let partQuestions = [];
+  let audioGroups = [];
+  
+  if (partId === 1) {
+    partQuestions = partData.questions.map(q => ({ ...q, category: `Listening P${partId}` }));
+  } else {
+    audioGroups = partData.audioGroups || [];
+    partQuestions = audioGroups.flatMap(group => 
+      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `Listening P${partId}` }))
+    );
+  }
+  
+  shuffledQuestions = partQuestions.map((q, i) => {
+    const optionsCopy = [...q.options];
+    const correctCopy = q.correct;
+    return { ...q, shuffledOptions: optionsCopy, correctShuffledIndex: correctCopy, originalIndex: i, questionCategory: q.category };
+  });
+  
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+  
+  setupInstructionsPanel();
+  logActivity('INICIO', `LISTENING Part ${partId}`);
+  loadQuestion();
+  updatePrevButtonVisibility();
+  startTimer('LISTENING');
+  updateHash(section, `q01`);
+}
 
   shuffledQuestions = questions.map((q, i) => ({
     ...shuffleOptions(q),
@@ -983,7 +1136,7 @@ function editCurrentResponse() {
   
   const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
   const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-  updateHash('WRITING', taskPart, qNum);
+  updateWritingHash(taskPart, qNum);
 }
 
 function updatePrevButtonVisibility() {
@@ -1168,7 +1321,7 @@ function nextSectionStep() {
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
     qNum = 1;
     renderWritingStep();
-    updateHash('WRITING', taskPart, qNum);
+    updateWritingHash(taskPart, qNum);
     return;
   }
 
@@ -1182,7 +1335,7 @@ function nextSectionStep() {
       qNum = 1;
     }
     renderWritingStep();
-    updateHash('WRITING', taskPart, qNum);
+    updateWritingHash(taskPart, qNum);
     return;
   }
 
@@ -1251,7 +1404,7 @@ function loadQuestion() {
     getElement('quiz-container').style.animation = 'fadeIn 0.5s ease';
   }, 300);
 
-  getElement('category-badge').textContent = question.category;
+  getElement('category-badge').textContent = question.questionCategory || question.category || 'Listening';
 
   getElement('transcription-toggle').innerHTML = '';
   getElement('transcription-toggle').classList.add('hidden');
@@ -1260,10 +1413,11 @@ function loadQuestion() {
 
   getElement('controls').classList.remove('hidden');
 
-  if (question.audio) {
-    if (currentAudioSrc !== question.audio) {
-      currentAudioSrc = question.audio;
-      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${question.audio}"></audio>`;
+  const audioSrc = question.audio || question.mainAudio;
+  if (audioSrc) {
+    if (currentAudioSrc !== audioSrc) {
+      currentAudioSrc = audioSrc;
+      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${audioSrc}"></audio>`;
       currentAudioElement = document.getElementById('main-audio');
     }
     getElement('audio-container').classList.remove('hidden');
@@ -1273,34 +1427,9 @@ function loadQuestion() {
     currentAudioElement = null;
   }
 
-  if (question.transcription) {
-    getElement('transcription-toggle').innerHTML = `<button id="transcription-btn" data-tooltip="Transcription">T</button>`;
-    getElement('transcription-toggle').classList.remove('hidden');
-    getElement('transcription-btn').addEventListener('click', toggleTranscription);
-    
-    let transcriptionContent = question.transcription;
-    if (question.instruction) {
-      transcriptionContent = `<em>(${question.instruction})</em><br><br>"${question.transcription}"`;
-    }
-    getElement('transcription-text').innerHTML = transcriptionContent;
-    getElement('transcription-text').classList.add('hidden');
-    document.getElementById('transcription-btn').classList.remove('active');
-    
-    getElement('question-text').textContent = '';
-    getElement('question-text').classList.add('hidden');
-  } else {
-    getElement('transcription-toggle').classList.add('hidden');
-    getElement('question-text').textContent = question.question;
-    getElement('question-text').classList.remove('hidden');
-  }
-
-  if (question.lectureText) {
-    getElement('reading-text').innerHTML = `<strong>Lecture:</strong><br><br>${question.lectureText}`;
-    getElement('reading-text').classList.remove('hidden');
-  } else if (question.text) {
-    getElement('reading-text').textContent = question.text;
-    getElement('reading-text').classList.remove('hidden');
-  }
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('question-text').textContent = question.question;
+  getElement('question-text').classList.remove('hidden');
 
   const optionsContainer = getElement('options-container');
   optionsContainer.innerHTML = '';
@@ -1423,7 +1552,8 @@ function previousQuestion() {
       }
       renderWritingStep();
       const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-      updateHash('WRITING', currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1', qNum);
+      const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
+      updateWritingHash(taskPart, qNum);
     }
     return;
   }
@@ -1641,10 +1771,10 @@ function initEventListeners() {
   });
 
   getElement('preview-btn')?.addEventListener('click', () => {
-    if (currentSection === 'WRITING') {
+    if (currentPartKey && (currentPartKey === 'WRITING_TASK1' || currentPartKey === 'WRITING_TASK2')) {
       currentWritingStep = WRITING_STEPS.TASK2;
       renderWritingStep();
-      updateHash('WRITING', 'task2', 1);
+      updateWritingHash('task2', 1);
     } else {
       const qNum = currentQuestionIndex;
       if (qNum > 0) {
