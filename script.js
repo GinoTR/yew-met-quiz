@@ -209,6 +209,11 @@ function loadFromHash() {
     return;
   }
   
+  if (currentSection === getSectionKey(section) && currentPartKey !== section) {
+    navigateToPart(section);
+    return;
+  }
+  
   beginQuiz(section);
 }
 
@@ -1130,6 +1135,18 @@ function editCurrentResponse() {
   updateWritingHash(taskPart, qNum);
 }
 
+function getNextPartKey() {
+  const parts = SECTION_PARTS[currentSection];
+  if (!parts) return null;
+  const currentIndex = parts.findIndex(p => p.key === currentPartKey);
+  if (currentIndex < 0 || currentIndex >= parts.length - 1) return null;
+  return parts[currentIndex + 1];
+}
+
+function isLastPartOfSection() {
+  return getNextPartKey() === null;
+}
+
 function updatePrevButtonVisibility() {
   const prevBtn = getElement('prev-btn');
   const submitBtn = getElement('submit-section-btn');
@@ -1139,22 +1156,21 @@ function updatePrevButtonVisibility() {
   
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-    const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK2;
-    const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
+    const isLastTask = currentWritingStep === WRITING_STEPS.TASK2;
     
     if (isPreview) {
       prevBtn?.classList.add('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
-      if (skipBtn) skipBtn.classList.add('hidden');
-    } else if (isLastQuestion) {
+      skipBtn?.classList.add('hidden');
+    } else if (isLastTask) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.add('hidden');
       skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Finalizar';
+      skipBtn.textContent = 'Finalizar sección';
       skipBtn.classList.remove('btn-secondary');
       skipBtn.classList.add('btn-primary');
     } else {
@@ -1164,35 +1180,23 @@ function updatePrevButtonVisibility() {
       submitBtn?.classList.add('hidden');
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
-        skipBtn.textContent = '⏭ Finalizar';
+        skipBtn.textContent = '⏭ Finalizar sección';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
     }
-  } else if (currentSection) {
-    if (sectionPreviewMode) {
-      prevBtn?.classList.add('hidden');
-      checkBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.remove('hidden');
-      skipBtn?.classList.add('hidden');
-    } else {
+  } else if (currentSection && !sectionPreviewMode) {
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
     const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
+    const hasNextPart = getNextPartKey();
     
-    if (isLast && alreadyAnswered) {
+    if (isLast) {
       prevBtn?.classList.remove('hidden');
-      checkBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
+      checkBtn?.classList.toggle('hidden', alreadyAnswered);
+      nextBtn?.classList.toggle('hidden', alreadyAnswered);
       submitBtn?.classList.remove('hidden');
-      skipBtn?.classList.add('hidden');
-    } else if (isLast && !alreadyAnswered) {
-      prevBtn?.classList.remove('hidden');
-      checkBtn?.classList.remove('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.add('hidden');
       skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Finalizar';
+      skipBtn.textContent = hasNextPart ? `${alreadyAnswered ? '' : '⏭ '}Siguiente: ${hasNextPart.name}` : 'Finalizar sección';
       skipBtn.classList.remove('btn-secondary');
       skipBtn.classList.add('btn-primary');
     } else {
@@ -1202,14 +1206,17 @@ function updatePrevButtonVisibility() {
       submitBtn?.classList.add('hidden');
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
-        skipBtn.textContent = '⏭ Finalizar';
+        skipBtn.textContent = hasNextPart ? `⏭ Siguiente: ${hasNextPart.name}` : '⏭ Finalizar sección';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
     }
-    }
-  }
-    }
+  } else if (sectionPreviewMode) {
+    prevBtn?.classList.add('hidden');
+    checkBtn?.classList.add('hidden');
+    nextBtn?.classList.add('hidden');
+    submitBtn?.classList.remove('hidden');
+    skipBtn?.classList.add('hidden');
   }
 }
 
@@ -1514,13 +1521,77 @@ function nextQuestion() {
   const qNum = currentQuestionIndex + 1;
 
   if (currentQuestionIndex >= shuffledQuestions.length) {
-    pauseTimer();
-    showResults();
+    navigateToNextPart();
   } else {
     loadQuestion();
     resumeTimer();
     updateHash(currentPartKey, qNum);
   }
+}
+
+function loadMcPart(partKey, skipCheck) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return false;
+  
+  const section = getSectionKey(partKey);
+  const partData = quizData.LISTENING?.parts?.find(p => p.id === config.partId);
+  
+  if (!partData) return false;
+  
+  currentPartKey = partKey;
+  currentPartQuestionIndex = 0;
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  currentAudioSrc = null;
+  currentAudioElement = null;
+  if (!skipCheck) answeredQuestions = new Set();
+  
+  let partQuestions = [];
+  if (config.partId === 1) {
+    partQuestions = partData.questions.map(q => ({ ...q, category: `${section} P${config.partId}` }));
+  } else {
+    const audioGroups = partData.audioGroups || [];
+    partQuestions = audioGroups.flatMap(group =>
+      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `${section} P${config.partId}` }))
+    );
+  }
+  
+  shuffledQuestions = partQuestions.map((q, i) => {
+    const optionsCopy = [...q.options];
+    const correctCopy = q.correct;
+    return { ...q, shuffledOptions: optionsCopy, correctShuffledIndex: correctCopy, originalIndex: i, questionCategory: q.category };
+  });
+  
+  setupInstructionsPanel();
+  loadQuestion();
+  resumeTimer();
+  updateHash(currentPartKey, 1);
+  updatePrevButtonVisibility();
+  return true;
+}
+
+function navigateToNextPart() {
+  pauseTimer();
+  const nextPart = getNextPartKey();
+  
+  if (!nextPart) {
+    goToPreview();
+    return;
+  }
+  
+  saveProgress();
+  loadMcPart(nextPart.key);
+}
+
+function navigateToPart(partKey) {
+  if (!currentSection) return;
+  
+  const targetSection = getSectionKey(partKey);
+  if (targetSection !== currentSection) return;
+  
+  pauseTimer();
+  saveProgress();
+  loadMcPart(partKey);
 }
 
 function previousQuestion() {
@@ -1807,8 +1878,11 @@ function initEventListeners() {
   });
 
   getElement('skip-btn')?.addEventListener('click', () => {
-    pauseTimer();
-    goToPreview();
+    if (currentSection === 'WRITING') {
+      goToPreview();
+    } else {
+      navigateToNextPart();
+    }
   });
 
   document.querySelectorAll('.user-link').forEach(el => {
