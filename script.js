@@ -122,15 +122,15 @@ function parseHash() {
 }
 
 function getProgressKey(partKey, qNum) {
-  const config = SECTION_CONFIG[section];
+  const config = SECTION_CONFIG[partKey];
   if (config) {
-    return `${config.name}_${taskPart}_q${qNum.toString().padStart(2, '0')}`;
+    return `${config.name}_q${qNum.toString().padStart(2, '0')}`;
   }
-  return `${section.toLowerCase()}_${taskPart}_q${qNum}`;
+  return `${partKey.toLowerCase()}_q${qNum}`;
 }
 
-function saveAnswerToHash(section, taskPart, qNum, answer) {
-  const key = getProgressKey(section, taskPart, qNum);
+function saveAnswerToHash(answer) {
+  const key = getProgressKey(currentPartKey, currentQuestionIndex + 1);
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
   saved.answers = saved.answers || {};
   saved.answers[key] = answer;
@@ -730,6 +730,7 @@ function beginQuiz(section) {
   currentPartKey = section;
   currentSection = getSectionKey(section) || section;
   currentPartQuestionIndex = 0;
+  currentQuestionIndex = 0;
   selectedOptionIndex = null;
   currentAudioSrc = null;
   currentAudioElement = null;
@@ -1485,8 +1486,7 @@ function checkAnswer() {
   feedback.classList.remove('hidden');
   answeredQuestions.add(currentQuestionIndex);
 
-  const qNum = currentQuestionIndex + 1;
-  saveAnswerToHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum, letters[selectedOptionIndex]);
+  saveAnswerToHash(letters[selectedOptionIndex]);
 
   pauseTimer();
   
@@ -1542,19 +1542,17 @@ function previousQuestion() {
 
 function goToPreview() {
   pauseTimer();
-  const config = SECTION_CONFIG[currentSection];
+  const config = SECTION_CONFIG[currentPartKey];
   if (!config) return;
   
-  if (currentSection === 'WRITING') {
+  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
     saveCurrentWritingResponse();
-    saveProgress();
-  } else {
-    saveProgress();
   }
+  saveProgress();
   
   window.location.hash = `#/${config.name}/preview`;
   
-  if (currentSection === 'WRITING') {
+  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
   }
