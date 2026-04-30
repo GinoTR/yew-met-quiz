@@ -415,6 +415,8 @@ let pendingSection = null;
 
 let currentGroup = null;
 let sectionResponses = [];
+let groupSelectedAnswers = {};
+let groupChecked = false;
 let currentWritingStep = 0;
 let currentPreviewIndex = 0;
 
@@ -1073,6 +1075,9 @@ function loadGroup() {
   const grp = questionGroups[currentGroupIndex];
   if (!grp) return;
 
+  groupSelectedAnswers = {};
+  groupChecked = false;
+
   const container = getElement('quiz-container');
   container.classList.remove('fade-out');
   void container.offsetWidth;
@@ -1124,6 +1129,8 @@ function loadGroup() {
 function renderGroupQuestions(grp) {
   getElement('question-text').classList.add('hidden');
 
+  const isSingleQuestion = grp.questions.length === 1;
+
   let html = '<div class="question-group">';
 
   if (grp.isConnector && grp.connectorArticles) {
@@ -1140,8 +1147,9 @@ function renderGroupQuestions(grp) {
     }
 
     const globalNum = q.globalNumber;
-    const savedAnswer = getAnswerFromHash(currentPartKey, globalNum);
-    const isAnswered = answeredQuestions.has(shuffledQuestions.indexOf(q));
+    const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === globalNum);
+    const isAnswered = answeredQuestions.has(questionIdx);
+    const savedAnswer = isAnswered ? getAnswerFromHash(currentPartKey, globalNum) : null;
 
     html += `<div class="group-question-item" data-global="${globalNum}">`;
     html += `<div class="group-q-header">
@@ -1154,18 +1162,53 @@ function renderGroupQuestions(grp) {
     html += `<div class="group-q-options">`;
 
     q.shuffledOptions.forEach((opt, i) => {
-      const isSelected = isAnswered;
-      html += `<div class="option ${isSelected ? 'selected disabled' : ''}" data-global="${globalNum}" data-option="${i}">
+      let classes = 'option';
+      if (isAnswered) {
+        classes += ' disabled';
+        if (i === q.correctShuffledIndex) {
+          classes += ' correct';
+        } else if (savedAnswer && letters[i] === savedAnswer) {
+          classes += ' incorrect';
+        }
+      }
+      html += `<div class="${classes}" data-global="${globalNum}" data-option="${i}" ${isAnswered ? 'style="pointer-events:none"' : ''}>
         <span class="option-letter">${letters[i]}</span><span>${opt}</span>
       </div>`;
     });
 
     html += `</div>`;
-    html += `<div class="group-q-feedback hidden" data-global="${globalNum}"></div>`;
+
+    if (isSingleQuestion && !isAnswered) {
+      html += `<button class="check-single-btn" data-global="${globalNum}">COMPROBAR</button>`;
+    }
+
+    html += `<div class="group-q-feedback ${isAnswered ? '' : 'hidden'}" data-global="${globalNum}">`;
+    if (isAnswered && savedAnswer) {
+      const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
+      if (isCorrect) {
+        html += '¡Correcto!';
+      } else {
+        html += `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
+      }
+    }
+    html += `</div>`;
     html += `</div>`;
   });
 
   html += '</div>';
+
+  if (!isSingleQuestion) {
+    const allAnswered = grp.questions.every(q => {
+      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+      return answeredQuestions.has(qi);
+    });
+    if (!allAnswered && grp.questions.some(q => {
+      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+      return groupSelectedAnswers[q.globalNumber] !== undefined;
+    })) {
+      html += `<button id="check-group-btn" class="btn btn-primary" style="margin-top:16px;">COMPROBAR</button>`;
+    }
+  }
 
   getElement('options-container').innerHTML = html;
 
@@ -1173,10 +1216,23 @@ function renderGroupQuestions(grp) {
     opt.addEventListener('click', () => {
       const globalNum = parseInt(opt.dataset.global);
       const optIdx = parseInt(opt.dataset.option);
-      const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
-      selectGroupOption(questionIdx, optIdx, opt);
+      selectGroupOption(globalNum, optIdx, opt);
     });
   });
+
+  document.querySelectorAll('.check-single-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const globalNum = parseInt(btn.dataset.global);
+      checkSingleQuestion(globalNum);
+    });
+  });
+
+  const checkGroupBtn = document.getElementById('check-group-btn');
+  if (checkGroupBtn) {
+    checkGroupBtn.addEventListener('click', () => {
+      checkCurrentGroup();
+    });
+  }
 }
 
 function renderMagazineArticle(art) {
@@ -1207,29 +1263,55 @@ function renderMagazineArticle(art) {
   return html;
 }
 
-function selectGroupOption(questionIdx, optionIdx, element) {
-  const globalNum = shuffledQuestions[questionIdx].globalNumber;
+function selectGroupOption(globalNum, optionIdx, element) {
+  const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
+  if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
+
+  const grp = questionGroups[currentGroupIndex];
+  const isSingleQuestion = grp.questions.length === 1;
 
   document.querySelectorAll(`.option[data-global="${globalNum}"]`).forEach(opt => opt.classList.remove('selected'));
   element.classList.add('selected');
 
+  groupSelectedAnswers[globalNum] = optionIdx;
+
+  if (isSingleQuestion) {
+    const checkBtn = document.querySelector(`.check-single-btn[data-global="${globalNum}"]`);
+    if (checkBtn) {
+      checkBtn.classList.remove('hidden');
+      checkBtn.style.display = '';
+    }
+  }
+}
+
+function checkSingleQuestion(globalNum) {
+  const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
+  if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
+  if (groupSelectedAnswers[globalNum] === undefined) return;
+
   const question = shuffledQuestions[questionIdx];
+  const optIdx = groupSelectedAnswers[globalNum];
+
   const feedback = document.querySelector(`.group-q-feedback[data-global="${globalNum}"]`);
   const options = document.querySelectorAll(`.option[data-global="${globalNum}"]`);
+  const selectedOpt = document.querySelector(`.option[data-global="${globalNum}"][data-option="${optIdx}"]`);
 
-  options.forEach(opt => opt.classList.add('disabled'));
+  options.forEach(opt => {
+    opt.classList.add('disabled');
+    opt.style.pointerEvents = 'none';
+  });
 
-  const isCorrect = optionIdx === question.correctShuffledIndex;
+  const isCorrect = optIdx === question.correctShuffledIndex;
 
   if (isCorrect) {
     score[question.category]++;
-    element.classList.add('correct');
+    selectedOpt.classList.add('correct');
     if (feedback) {
       feedback.className = 'group-q-feedback correct';
       feedback.textContent = '¡Correcto!';
     }
   } else {
-    element.classList.add('incorrect');
+    selectedOpt.classList.add('incorrect');
     const correctOpt = document.querySelector(`.option[data-global="${globalNum}"][data-option="${question.correctShuffledIndex}"]`);
     if (correctOpt) correctOpt.classList.add('correct');
     if (feedback) {
@@ -1239,9 +1321,74 @@ function selectGroupOption(questionIdx, optionIdx, element) {
   }
 
   answeredQuestions.add(questionIdx);
-  saveAnswerToHash(letters[optionIdx], globalNum);
+  saveAnswerToHash(letters[optIdx], globalNum);
   pauseTimer();
   saveProgress();
+
+  const checkBtn = document.querySelector(`.check-single-btn[data-global="${globalNum}"]`);
+  if (checkBtn) checkBtn.style.display = 'none';
+
+  updatePrevButtonVisibility();
+}
+
+function checkCurrentGroup() {
+  const grp = questionGroups[currentGroupIndex];
+  if (!grp || groupChecked) return;
+
+  let allSelected = true;
+  grp.questions.forEach(q => {
+    if (groupSelectedAnswers[q.globalNumber] === undefined) {
+      allSelected = false;
+    }
+  });
+
+  if (!allSelected) return;
+
+  groupChecked = true;
+
+  grp.questions.forEach(q => {
+    const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+    if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
+
+    const optIdx = groupSelectedAnswers[q.globalNumber];
+    const feedback = document.querySelector(`.group-q-feedback[data-global="${q.globalNumber}"]`);
+    const options = document.querySelectorAll(`.option[data-global="${q.globalNumber}"]`);
+    const selectedOpt = document.querySelector(`.option[data-global="${q.globalNumber}"][data-option="${optIdx}"]`);
+
+    options.forEach(opt => {
+      opt.classList.add('disabled');
+      opt.style.pointerEvents = 'none';
+    });
+
+    const isCorrect = optIdx === q.correctShuffledIndex;
+
+    if (isCorrect) {
+      score[q.category]++;
+      selectedOpt.classList.add('correct');
+      if (feedback) {
+        feedback.className = 'group-q-feedback correct';
+        feedback.textContent = '¡Correcto!';
+      }
+    } else {
+      selectedOpt.classList.add('incorrect');
+      const correctOpt = document.querySelector(`.option[data-global="${q.globalNumber}"][data-option="${q.correctShuffledIndex}"]`);
+      if (correctOpt) correctOpt.classList.add('correct');
+      if (feedback) {
+        feedback.className = 'group-q-feedback incorrect';
+        feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
+      }
+    }
+
+    answeredQuestions.add(questionIdx);
+    saveAnswerToHash(letters[optIdx], q.globalNumber);
+  });
+
+  pauseTimer();
+  saveProgress();
+
+  const checkGroupBtn = document.getElementById('check-group-btn');
+  if (checkGroupBtn) checkGroupBtn.style.display = 'none';
+
   updatePrevButtonVisibility();
 }
 
@@ -1534,13 +1681,27 @@ function updatePrevButtonVisibility() {
       skipBtn.classList.add('btn-secondary');
     }
   } else if (currentSection && !sectionPreviewMode) {
+    const grp = questionGroups[currentGroupIndex];
+    const isSingleQuestion = grp ? grp.questions.length === 1 : true;
+    const hasAnySelection = grp && Object.keys(groupSelectedAnswers).length > 0;
+    const allChecked = grp && grp.questions.every(q => {
+      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+      return answeredQuestions.has(qi);
+    });
+
     const isLastGroup = currentGroupIndex >= questionGroups.length - 1;
     const hasNextPart = getNextPartKey();
 
     prevBtn?.classList.toggle('hidden', currentGroupIndex === 0);
     checkBtn?.classList.add('hidden');
-    nextBtn?.classList.remove('hidden');
     submitBtn?.classList.add('hidden');
+
+    if (allChecked) {
+      nextBtn?.classList.remove('hidden');
+    } else {
+      nextBtn?.classList.add('hidden');
+    }
+
     if (isLastGroup) {
       skipBtn?.classList.remove('hidden');
       skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
