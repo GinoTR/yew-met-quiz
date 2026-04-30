@@ -1545,6 +1545,11 @@ function renderCarouselSlide() {
   ];
 
   const slide = slides[currentPreviewIndex];
+  const responseDisplay = slide.response === 'Sin respuesta'
+    ? 'Sin respuesta'
+    : slide.response.length > 200
+      ? slide.response.substring(0, 200) + '...'
+      : slide.response;
 
   return `
     <div class="carousel-container">
@@ -1554,7 +1559,7 @@ function renderCarouselSlide() {
         <div class="carousel-slide">
           <div class="slide-header">${slide.title}</div>
           <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
-          <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
+          <div class="slide-response">${responseDisplay.replace(/\n/g, '<br>')}</div>
         </div>
         <button id="carousel-next" class="carousel-btn carousel-btn-right">&gt;</button>
       </div>
@@ -2486,6 +2491,11 @@ function renderSectionPreview() {
     return;
   }
 
+  if (currentSection === 'SPEAKING') {
+    renderSpeakingPreview();
+    return;
+  }
+
   getElement('category-select').classList.add('hidden');
   getElement('quiz-view').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
@@ -2502,17 +2512,8 @@ function renderSectionPreview() {
   }, 300);
 
   const allGroups = buildAllSectionGroups(currentSection);
-  const totalQ = allGroups.reduce((sum, g) => sum + g.questions.length, 0);
-
-  const savedAnswers = JSON.parse(localStorage.getItem('metQuizProgress') || '{}').answers || {};
-
-  const answeredCount = allGroups.reduce((sum, g) => {
-    return sum + g.questions.filter(q => {
-      const config = SECTION_CONFIG[q.partKey];
-      const key = config ? `${config.name}_q${q.globalNumber.toString().padStart(2, '0')}` : `${q.partKey.toLowerCase()}_q${q.globalNumber}`;
-      return savedAnswers[key] !== undefined && savedAnswers[key] !== null;
-    }).length;
-  }, 0);
+  let answeredCount = 0;
+  let totalQ = 0;
 
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
   getElement('progress-text').textContent = `Preview`;
@@ -2546,14 +2547,37 @@ function renderSectionPreview() {
     html += `<div class="preview-slide-header">${headerText}</div>`;
 
     grp.questions.forEach(q => {
-      const savedAnswer = getAnswerFromHash(q.partKey, q.globalNumber);
-      const isAnswered = savedAnswer !== null;
+      const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+      const isAnswered = answeredQuestions.has(questionIdx);
       const displayNum = q.displayNumber || q.globalNumber;
+      const userAnswerIdx = groupSelectedAnswers[q.globalNumber];
+      totalQ++;
+      if (isAnswered) answeredCount++;
+
+      let statusClass = 'unanswered';
+      let statusText = 'Sin responder';
+      let answerDetail = '';
+
+      if (isAnswered && questionIdx >= 0) {
+        const sq = shuffledQuestions[questionIdx];
+        statusClass = 'answered';
+        if (userAnswerIdx !== undefined) {
+          const userLetter = letters[userAnswerIdx];
+          const isCorrect = userAnswerIdx === sq.correctShuffledIndex;
+          statusClass = isCorrect ? 'correct' : 'incorrect';
+          const correctLetter = letters[sq.correctShuffledIndex];
+          const userText = sq.options ? sq.options[userAnswerIdx] : userLetter;
+          const correctText = sq.options ? sq.options[sq.correctShuffledIndex] : correctLetter;
+          answerDetail = isCorrect
+            ? `✓ Tu respuesta: ${userLetter}. ${userText}`
+            : `✗ Tu respuesta: ${userLetter}. ${userText} — Correcta: ${correctLetter}. ${correctText}`;
+        }
+      }
 
       html += `<div class="preview-question">`;
       html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.question}</div>`;
-      html += `<div class="preview-q-answer ${isAnswered ? 'answered' : 'unanswered'}">`;
-      html += isAnswered ? `Tu respuesta: ${savedAnswer}` : 'Sin responder';
+      html += `<div class="preview-q-answer ${statusClass}">`;
+      html += answerDetail || statusText;
       html += `</div></div>`;
     });
 
@@ -2565,6 +2589,144 @@ function renderSectionPreview() {
   html += `<div class="preview-summary">${answeredCount}/${totalQ} respondidas</div>`;
   html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
   html += '</div>';
+
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = html;
+  getElement('controls').classList.add('hidden');
+}
+
+function renderSpeakingPreview() {
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+
+  const container = getElement('quiz-container');
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('feedback-container').classList.add('hidden');
+
+  getAllSpeakingAudio().then(records => {
+    const speakingPartData = speakingPart;
+    if (!speakingPartData) return;
+
+    const tasks = speakingPartData.tasks;
+    const answered = speakingResponses.filter(r => r !== null && r !== undefined).length;
+
+    getElement('category-badge').textContent = 'SPEAKING';
+    getElement('progress-text').textContent = `Preview`;
+    getElement('progress-bar').style.width = '100%';
+
+    let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
+    html += '<div class="preview-scroll-container">';
+
+    tasks.forEach((task, i) => {
+      const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
+      const duration = hasRecording ? speakingResponses[i].duration : null;
+
+      html += `<div class="preview-slide">`;
+      html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
+      html += `<div class="preview-question">`;
+      html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
+
+      if (hasRecording) {
+        html += `<div class="preview-q-answer correct">`;
+        html += `✓ Response recorded (${duration}s)`;
+        html += `<button class="btn-preview-playback" data-task-idx="${i}" style="margin-top:8px;">▶ Play recording</button>`;
+        html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
+        html += `</div>`;
+      } else {
+        html += `<div class="preview-q-answer unanswered">Sin respuesta</div>`;
+      }
+
+      html += `</div></div>`;
+    });
+
+    html += '</div>';
+    html += `<div class="preview-summary">${answered}/${tasks.length} respondidas</div>`;
+    html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
+    html += '</div>';
+
+    getElement('question-text').classList.add('hidden');
+    getElement('options-container').innerHTML = html;
+    getElement('controls').classList.add('hidden');
+
+    document.querySelectorAll('.btn-preview-playback').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskIdx = parseInt(btn.dataset.taskIdx);
+        playSpeakingPreviewRecording(taskIdx, btn);
+      });
+    });
+  }).catch(() => {
+    renderSpeakingPreviewFallback();
+  });
+}
+
+function playSpeakingPreviewRecording(taskIdx, btn) {
+  const response = speakingResponses[taskIdx];
+  if (!response || !response.blob) return;
+
+  const audioEl = document.getElementById(`preview-audio-${taskIdx}`);
+  if (!audioEl) return;
+
+  const url = URL.createObjectURL(response.blob);
+  audioEl.src = url;
+  audioEl.play();
+
+  btn.textContent = '⏸ Playing...';
+  btn.disabled = true;
+
+  audioEl.onended = () => {
+    URL.revokeObjectURL(url);
+    btn.textContent = '▶ Play recording';
+    btn.disabled = false;
+  };
+
+  audioEl.onerror = () => {
+    URL.revokeObjectURL(url);
+    btn.textContent = '▶ Play recording';
+    btn.disabled = false;
+  };
+}
+
+function renderSpeakingPreviewFallback() {
+  getElement('category-badge').textContent = 'SPEAKING';
+  getElement('progress-text').textContent = `Preview`;
+  getElement('progress-bar').style.width = '100%';
+
+  let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
+  html += '<div class="preview-scroll-container">';
+
+  speakingPart.tasks.forEach((task, i) => {
+    const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
+    const duration = hasRecording ? speakingResponses[i].duration : null;
+
+    html += `<div class="preview-slide">`;
+    html += `<div class="preview-slide-header">Task ${task.number}</div>`;
+    html += `<div class="preview-question">`;
+    html += `<div class="preview-q-text">${task.prompt}</div>`;
+
+    if (hasRecording) {
+      html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)</div>`;
+    } else {
+      html += `<div class="preview-q-answer unanswered">Sin respuesta</div>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  html += '</div></div>';
 
   getElement('question-text').classList.add('hidden');
   getElement('options-container').innerHTML = html;
