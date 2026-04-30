@@ -2161,8 +2161,14 @@ function renderSectionPreview() {
   const allGroups = buildAllSectionGroups(currentSection);
   const totalQ = allGroups.reduce((sum, g) => sum + g.questions.length, 0);
 
+  const savedAnswers = JSON.parse(localStorage.getItem('metQuizProgress') || '{}').answers || {};
+
   const answeredCount = allGroups.reduce((sum, g) => {
-    return sum + g.questions.filter(q => getAnswerFromHash(q.partKey, q.globalNumber) !== null).length;
+    return sum + g.questions.filter(q => {
+      const config = SECTION_CONFIG[q.partKey];
+      const key = config ? `${config.name}_q${q.globalNumber.toString().padStart(2, '0')}` : `${q.partKey.toLowerCase()}_q${q.globalNumber}`;
+      return savedAnswers[key] !== undefined && savedAnswers[key] !== null;
+    }).length;
   }, 0);
 
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
@@ -2214,13 +2220,18 @@ function renderSectionPreview() {
   html += '</div>';
 
   html += `<div class="preview-summary">${answeredCount}/${totalQ} respondidas</div>`;
+  html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
   html += '</div>';
 
   getElement('question-text').classList.add('hidden');
   getElement('options-container').innerHTML = html;
-  getElement('controls').classList.remove('hidden');
+  getElement('controls').classList.add('hidden');
+}
 
-  updatePrevButtonVisibility();
+function submitFromPreview() {
+  pauseTimer();
+  saveProgress();
+  showResults();
 }
 
 function showResults() {
