@@ -886,7 +886,7 @@ function beginMcPart(partKey, saved = null) {
   if (section === 'LISTENING') {
     partData = quizData.LISTENING?.parts?.find(p => p.id === config.partId);
   } else if (section === 'READING_AND_GRAMMAR') {
-    partData = quizData.READING_AND_GRAMMAR?.[config.partId - 1] || null;
+    partData = quizData.READING_AND_GRAMMAR?.parts?.[config.partId - 1] || null;
   }
 
   if (!partData) return false;
@@ -1692,7 +1692,7 @@ function buildAllSectionGroups(section) {
       }
     });
   } else if (section === 'READING_AND_GRAMMAR') {
-    const data = quizData.READING_AND_GRAMMAR || [];
+    const data = quizData.READING_AND_GRAMMAR?.parts || [];
     data.forEach((part, idx) => {
       const partId = idx + 1;
       const partKey = `READING_P${partId}`;
@@ -1847,10 +1847,6 @@ function showResults() {
             if (p.questions) count += p.questions.length;
             if (p.audioGroups) p.audioGroups.forEach(g => { count += g.questions.length; });
           });
-        } else if (Array.isArray(catData)) {
-          catData.forEach(item => {
-            if (item.questions) count += item.questions.length;
-          });
         }
       }
       totalParts += count;
@@ -1892,12 +1888,10 @@ function sendEmail() {
     });
   }
 
-  if (quizData.READING_AND_GRAMMAR) {
-    if (Array.isArray(quizData.READING_AND_GRAMMAR)) {
-      quizData.READING_AND_GRAMMAR.forEach(item => {
-        if (item.questions) readingCount += item.questions.length;
-      });
-    }
+  if (quizData.READING_AND_GRAMMAR?.parts) {
+    quizData.READING_AND_GRAMMAR.parts.forEach(item => {
+      if (item.questions) readingCount += item.questions.length;
+    });
   }
 
   const writingPart1 = currentGroup?.task1?.length || 0;

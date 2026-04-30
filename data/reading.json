@@ -1,0 +1,131 @@
+{
+  "instructions": "This is the reading and grammar section of the MET.\n\nThere are three parts in this section, with special directions for each part.\n\nTry to answer all the questions. If you are not sure about an answer, you may guess.\n\nYou may answer the questions in any order you wish. You may click Back to go back to the last question. The numbers on the side of the screen will show you which questions have been answered.",
+  "parts": [
+    {
+      "id": 1,
+      "instructions": "In this part of the test, you will answer some grammar questions. Choose the word or phrase to complete each sentence from the choices given.",
+      "questions": [
+        {
+          "number": 1,
+          "question": "If the committee _______ the proposal earlier, the project could have started last month.",
+          "options": ["approves", "had approved", "approving", "approve"],
+          "correct": 1
+        },
+        {
+          "number": 2,
+          "question": "The manager suggested that the interns _______ more time on research before presenting.",
+          "options": ["spend", "spent", "spending", "to spend"],
+          "correct": 0
+        },
+        {
+          "number": 3,
+          "question": "Rarely _______ such a convincing argument presented in class.",
+          "options": ["has been", "is", "have", "was"],
+          "correct": 0
+        },
+        {
+          "number": 4,
+          "question": "The new regulations require that all employees _______ safety training annually.",
+          "options": ["complete", "completed", "are completing", "to complete"],
+          "correct": 0
+        },
+        {
+          "number": 5,
+          "question": "No sooner _______ the announcement made than the audience began to applaud.",
+          "options": ["was", "had", "is", "has"],
+          "correct": 1
+        },
+        {
+          "number": 6,
+          "question": "The director insisted that the report _______ in greater detail before being published.",
+          "options": ["should be written more carefully", "should write more carefully", "should have written more carefully", "should writing more carefully"],
+          "correct": 0
+        },
+        {
+          "number": 7,
+          "question": "By the time the conference began, the participants _______ all the necessary documents.",
+          "options": ["had prepared every required file", "had preparing every required file", "had been prepared every required file", "had to prepare every required file"],
+          "correct": 0
+        },
+        {
+          "number": 8,
+          "question": "The new policy aims to ensure that employees _______ equal opportunities regardless of background.",
+          "options": ["are given fair treatment", "are giving fair treatment", "are to give fair treatment", "are treated fair treatment"],
+          "correct": 0
+        },
+        {
+          "number": 9,
+          "question": "The teacher reminded the students that plagiarism _______ serious consequences in academic work.",
+          "options": ["could result in severe penalties", "could resulting in severe penalties", "could have resulted in severe penalties", "could be result in severe penalties"],
+          "correct": 0
+        },
+        {
+          "number": 10,
+          "question": "The project was delayed because the team _______ the technical issues earlier.",
+          "options": ["had not addressed them properly", "had not addressing them properly", "had not been addressed them properly", "had not to address them properly"],
+          "correct": 0
+        },
+        {
+          "number": 11,
+          "question": "The students decided to organize a meeting _______ they could discuss the project together.",
+          "options": ["so that they could share ideas", "so they could sharing ideas", "so they share ideas", "so that sharing ideas"],
+          "correct": 0
+        },
+        {
+          "number": 12,
+          "question": "The teacher asked the class to read the article carefully _______ they would understand the topic better.",
+          "options": ["because they would gain more knowledge", "because they gain more knowledge", "because they gaining more knowledge", "because they to gain more knowledge"],
+          "correct": 0
+        },
+        {
+          "number": 13,
+          "question": "The company offered training sessions _______ the employees could improve their computer skills.",
+          "options": ["so that they could learn faster", "so they learning faster", "so they to learn faster", "so that learning faster"],
+          "correct": 0
+        },
+        {
+          "number": 14,
+          "question": "The children were excited to go to the park _______ they could play with their friends.",
+          "options": ["because they wanted to have fun", "because they want to have fun", "because they wanting to have fun", "because they to have fun"],
+          "correct": 0
+        },
+        {
+          "number": 15,
+          "question": "The manager explained the new rules clearly _______ everyone could follow them without confusion.",
+          "options": ["so that they could understand easily", "so they understanding easily", "so they to understand easily", "so that understanding easily"],
+          "correct": 0
+        },
+        {
+          "number": 16,
+          "question": "The students were late _______.",
+          "options": ["because of heavy rain", "because heavy rain", "because raining hard", "because the rain"],
+          "correct": 0
+        },
+        {
+          "number": 17,
+          "question": "The teacher asked us _______.",
+          "options": ["to read the text", "to reading the text", "to reads the text", "to have read text"],
+          "correct": 0
+        },
+        {
+          "number": 18,
+          "question": "The company will hire _______.",
+          "options": ["more workers next month", "more worker next month", "more working next month", "more work next month"],
+          "correct": 0
+        },
+        {
+          "number": 19,
+          "question": "The children enjoyed _______.",
+          "options": ["playing in the park", "play in the park", "played in the park", "plays in the park"],
+          "correct": 0
+        },
+        {
+          "number": 20,
+          "question": "The meeting was canceled _______.",
+          "options": ["due to bad weather", "due bad weather", "due the bad weather", "due with bad weather"],
+          "correct": 0
+        }
+      ]
+    }
+  ]
+}
