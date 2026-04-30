@@ -1181,20 +1181,6 @@ function renderMagazineArticle(art) {
   return html;
 }
 
-  html += '</div>';
-
-  getElement('options-container').innerHTML = html;
-
-  document.querySelectorAll('.group-q-options .option:not(.disabled)').forEach(opt => {
-    opt.addEventListener('click', () => {
-      const globalNum = parseInt(opt.dataset.global);
-      const optIdx = parseInt(opt.dataset.option);
-      const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
-      selectGroupOption(questionIdx, optIdx, opt);
-    });
-  });
-}
-
 function selectGroupOption(questionIdx, optionIdx, element) {
   const globalNum = shuffledQuestions[questionIdx].globalNumber;
 
