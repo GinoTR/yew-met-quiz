@@ -1531,34 +1531,6 @@ function updatePrevButtonVisibility() {
     skipBtn?.classList.add('hidden');
   }
 }
-    }
-  } else if (currentSection && !sectionPreviewMode) {
-    const isLastGroup = currentGroupIndex >= questionGroups.length - 1;
-    const hasNextPart = getNextPartKey();
-
-    prevBtn?.classList.toggle('hidden', currentGroupIndex === 0);
-    checkBtn?.classList.add('hidden');
-    nextBtn?.classList.remove('hidden');
-    submitBtn?.classList.add('hidden');
-    if (isLastGroup) {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
-      skipBtn.classList.remove('btn-secondary');
-      skipBtn.classList.add('btn-primary');
-    } else {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Siguiente';
-      skipBtn.classList.remove('btn-primary');
-      skipBtn.classList.add('btn-secondary');
-    }
-  } else if (sectionPreviewMode) {
-    prevBtn?.classList.add('hidden');
-    checkBtn?.classList.add('hidden');
-    nextBtn?.classList.add('hidden');
-    submitBtn?.classList.remove('hidden');
-    skipBtn?.classList.add('hidden');
-  }
-}
 
 function handleCarouselKeydown(e) {
   if (currentSection !== 'WRITING' || currentWritingStep !== WRITING_STEPS.PREVIEW) {
