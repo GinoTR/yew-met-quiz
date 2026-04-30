@@ -1,0 +1,131 @@
+Reading and Grammar Section Instructions:
+
+This is the reading and grammar section of the MET.
+
+There are three parts in this section, with special directions for each part.
+
+Try to answer all the questions. If you are not sure about an answer, you may guess.
+
+You may answer the questions in any order you wish. You may click Back to go back to the last question. The numbers on the side of the screen will show you which questions have been answered.
+
+----------
+
+Part 2 of Reading and Grammar Section Instructions:
+
+In this part of the test, you will read longer texts and answer some questions about them. Choose the answer to each question from the choices given.
+
+----------
+
+=== TEXT 1 ===
+1. This passage is about Renewable Energy
+
+Around the world, renewable energy has become a central topic in discussions about the future of 
+our planet. Unlike fossil fuels, which release large amounts of carbon dioxide and contribute to 
+climate change, renewable sources such as solar, wind, and hydroelectric power generate electricity 
+without producing harmful emissions. Solar panels can be installed on rooftops, providing clean 
+energy directly to households. Wind turbines, often located in rural or coastal areas, transform 
+the power of moving air into electricity. Hydroelectric dams use flowing water to produce energy, 
+and in some countries they already supply a significant portion of national electricity needs.
+
+One of the greatest advantages of renewable energy is sustainability. Fossil fuels are limited and 
+will eventually run out, but sunlight, wind, and water are naturally replenished. Another benefit 
+is economic: once the infrastructure is built, the cost of producing renewable energy is relatively 
+low compared to traditional methods. However, there are challenges. Solar panels depend on weather 
+conditions and produce less energy on cloudy days. Wind turbines require specific geographic 
+locations, and hydroelectric dams can affect local ecosystems. Despite these obstacles, governments 
+and private companies continue to invest heavily in renewable technologies. Experts believe that 
+renewable energy will play a decisive role in reducing pollution and ensuring a cleaner, healthier 
+future for generations to come.
+
+=== TEXT 1 QUESTIONS ===
+1. What is one main difference between fossil fuels and renewable energy?
+   A) Fossil fuels are unlimited
+   B) Renewable energy produces fewer emissions
+   C) Fossil fuels are cheaper to install
+   D) Renewable energy is always available
+   Correct Answer: B
+
+2. Which renewable source is mentioned as being installed on rooftops?
+   A) Wind turbines
+   B) Hydroelectric dams
+   C) Solar panels
+   D) Geothermal plants
+   Correct Answer: C
+
+3. What is one economic benefit of renewable energy?
+   A) It requires no investment
+   B) It has low production costs after installation
+   C) It eliminates the need for workers
+   D) It increases fuel prices
+   Correct Answer: B
+
+4. What is a challenge related to hydroelectric dams?
+   A) They depend on sunny weather
+   B) They can affect local ecosystems
+   C) They require strong winds
+   D) They are impossible to build
+   Correct Answer: B
+
+5. What does the passage suggest about the future of renewable energy?
+   A) It will remain a minor source
+   B) It will replace fossil fuels immediately
+   C) It will play a decisive role in reducing pollution
+   D) It will disappear due to high costs
+   Correct Answer: C
+
+----------
+
+=== TEXT 2 ===
+2. This passage is about Urbanization
+
+Urbanization refers to the increasing number of people living in cities rather than rural areas. 
+Over the past century, this trend has accelerated due to industrial growth, better job opportunities, 
+and improved living standards in urban centers. Cities often provide access to modern healthcare, 
+education, and transportation, which attract families seeking a higher quality of life. In addition, 
+urban areas are cultural hubs, offering museums, theaters, and diverse restaurants that enrich 
+social experiences.
+
+However, rapid urbanization also creates challenges. Overcrowding can lead to housing shortages and 
+higher living costs. Traffic congestion and pollution are common problems in large cities, affecting 
+both health and productivity. Furthermore, the expansion of cities sometimes reduces green spaces, 
+which are essential for recreation and environmental balance. Governments and city planners are 
+working to address these issues by promoting sustainable development, such as building affordable 
+housing, improving public transportation, and creating parks. Experts believe that urbanization 
+will continue to grow, but its success depends on careful planning to ensure that cities remain 
+healthy and livable for future generations.
+
+=== TEXT 2 QUESTIONS ===
+1. What is one main reason people move to cities?
+   A) To avoid healthcare
+   B) To find better job opportunities
+   C) To escape cultural activities
+   D) To reduce education access
+   Correct Answer: B
+
+2. Which benefit of urban areas is mentioned in the passage?
+   A) Lower living costs
+   B) Access to modern healthcare and education
+   C) Unlimited green spaces
+   D) Guaranteed housing
+   Correct Answer: B
+
+3. What is one challenge caused by rapid urbanization?
+   A) Increased rural population
+   B) Housing shortages and higher costs
+   C) Lack of cultural institutions
+   D) Excess farmland
+   Correct Answer: B
+
+4. How do governments and planners try to solve urban problems?
+   A) By reducing public services
+   B) By promoting sustainable development
+   C) By limiting cultural activities
+   D) By discouraging transportation
+   Correct Answer: B
+
+5. What does the passage suggest about the future of urbanization?
+   A) It will stop completely
+   B) It will continue but requires careful planning
+   C) It will only benefit rural areas
+   D) It will eliminate all green spaces
+   Correct Answer: B

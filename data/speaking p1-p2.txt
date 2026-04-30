@@ -1,0 +1,73 @@
+SPEAKING SECTION (5 TASK DIVIDED IN 2 PARTS)
+INSTRUCTIONS...
+
+----
+PART 1
+----
+
+Task 1 
+
+"Describe the family meal."
+
+"You have 60 seconds to talk."
+
+"Begin speaking now."
+
+[Time Remaining]
+[Audio Capturer]
+"🎙 Recording"
+
+
+Task 2
+
+Tell me about a meal that you really enjoyed.
+
+You have 60 seconds to talk.
+
+Begin speaking now. 
+
+[Time Remaining]
+[Audio Capturer]
+"🎙 Recording"
+
+
+Task 3
+
+"Some people like to eat at home. Other people like to go to restaurants. What do you prefer to do? Give your opinion and reasons to support it."
+
+"You have 60 seconds to talk."
+
+Begin speaking now. 
+
+[Time Remaining]
+[Audio Capturer]
+"🎙 Recording"
+
+----
+PART 2
+----
+
+Task 1
+
+"You have been offered a new job. It sounds like a good opportunity to learn different skills, but your boss will be your old friend from high school. What are the advantages and disadvantages of taking this job?"
+
+"You have 90 seconds to talk."
+
+"Begin speaking now."
+
+[Time Remaining]
+[Audio Capturer]
+"🎙 Recording"
+
+
+Task 2
+
+"A local school is considering requiring all students to attend school on Saturdays. Many people think this is unfair to the students. I am the school principal. Tell me what you think about this and try to convince me to agree with you."
+
+"You have 90 seconds to talk."
+
+"Begin speaking now."
+
+[Time Remaining]
+[Audio Capturer]
+"🎙 Recording"

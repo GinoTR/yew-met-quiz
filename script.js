@@ -255,6 +255,26 @@ function loadFromHash() {
     return;
   }
 
+  if (section.startsWith('WRITING') && currentSection === 'WRITING') {
+    if (qStart !== null) {
+      const step = qStart - 1;
+      if (step >= WRITING_STEPS.TASK1_Q1 && step <= WRITING_STEPS.TASK1_Q3) {
+        if (currentWritingStep !== step) {
+          saveCurrentWritingResponse();
+          currentWritingStep = step;
+          renderWritingStep();
+        }
+      } else if (qStart === 4) {
+        if (currentWritingStep !== WRITING_STEPS.TASK2) {
+          saveCurrentWritingResponse();
+          currentWritingStep = WRITING_STEPS.TASK2;
+          renderWritingStep();
+        }
+      }
+    }
+    return;
+  }
+
   if (currentPartKey === section && qStart !== null && questionGroups.length > 0) {
     const targetGroup = questionGroups.findIndex(g => qStart >= g.questionRange.start && qStart <= g.questionRange.end);
     if (targetGroup >= 0 && targetGroup !== currentGroupIndex) {
@@ -887,6 +907,12 @@ function beginWriting(section, saved, config) {
   logActivity('INICIO', `WRITING ${partName} - Grupo: ${currentGroup.id}`);
   renderWritingStep();
   updatePrevButtonVisibility();
+
+  const taskPart = isTask2 ? 'task2' : 'task1';
+  hashNavigationLocked = true;
+  updateWritingHash(taskPart, 1);
+  hashNavigationLocked = false;
+
   startTimer('WRITING');
 }
 
@@ -1274,6 +1300,8 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.add('hidden');
+    getElement('skip-btn').classList.add('hidden');
+    getElement('submit-section-btn').classList.remove('hidden');
     getElement('section-instructions-panel').classList.add('hidden');
     setupCarouselEvents();
   } else {
@@ -1281,6 +1309,7 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.remove('hidden');
+    getElement('submit-section-btn').classList.add('hidden');
     setupWritingTextareaEvents();
   }
 
@@ -1444,7 +1473,7 @@ function updatePrevButtonVisibility() {
   const prevBtn = document.getElementById('prev-btn');
   const nextBtn = document.getElementById('next-btn');
   const checkBtn = document.getElementById('check-btn');
-  const submitBtn = document.getElementById('submit-btn');
+  const submitBtn = document.getElementById('submit-section-btn');
   const skipBtn = document.getElementById('skip-btn');
 
   if (currentSection === 'WRITING') {
@@ -1857,14 +1886,18 @@ function nextSectionStep() {
       qNum = 1;
     }
     renderWritingStep();
+    hashNavigationLocked = true;
     updateWritingHash(taskPart, qNum);
+    hashNavigationLocked = false;
     return;
   }
 
   if (currentWritingStep === WRITING_STEPS.TASK2) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
+    hashNavigationLocked = true;
     window.location.hash = '#/writing/preview';
+    hashNavigationLocked = false;
     return;
   }
 

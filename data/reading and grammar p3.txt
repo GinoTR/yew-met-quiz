@@ -1,0 +1,332 @@
+Reading and Grammar Section Instructions:
+
+This is the reading and grammar section of the MET.
+
+There are three parts in this section, with special directions for each part.
+
+Try to answer all the questions. If you are not sure about an answer, you may guess.
+
+You may answer the questions in any order you wish. You may click Back to go back to the last question. The numbers on the side of the screen will show you which questions have been answered.
+
+----------
+
+Part 3
+
+In this part of the test, you will read three shorter texts (journalist style) about a similar topic and answer some questions about them. Choose the answer to each question from the choices given.
+
+----------
+GROUP 1 (THREE ARTICLES)
+
+=== ARTICLE A ===
+The Rise of Electric Vehicles  
+April 12, 2026  
+
+Cleaner streets, quieter engines, and a vision of sustainable mobility are driving the rapid growth 
+of electric vehicles (EVs) across the globe. Once considered experimental, EVs are now entering the 
+mainstream, reshaping the way societies think about transportation.
+
+• More than 10 million EVs are already on the road worldwide, with sales increasing each year.  
+• Advances in battery technology allow longer trips and faster charging times.  
+• Governments encourage adoption through tax incentives and the expansion of charging networks.  
+• Automakers invest heavily in research, producing models that combine efficiency, safety, and style.  
+• Environmental benefits include reduced air pollution and lower greenhouse gas emissions.  
+
+Challenges remain. Charging infrastructure is uneven, and battery production depends on rare 
+minerals that raise sustainability concerns. Yet experts agree that the momentum is unstoppable.  
+
+For many citizens, the electric car is more than a vehicle—it is a symbol of progress. As cities 
+adapt and industries innovate, EVs stand as a promise of cleaner air, smarter mobility, and a 
+future where technology and responsibility travel side by side.
+
+
+=== ARTICLE B ===
+Midvillage Daily News staff reporter Helen Carter interviews automotive historian Daniel Brooks.
+
+Q: In your view, who has been the most influential figure in the history of electric vehicles?  
+A: Without hesitation, I would say Nikola Tesla. His vision of harnessing electricity for practical 
+use laid the foundation for technologies that inspire today’s engineers. Though he lived in the 
+late 19th and early 20th centuries, his ideas remain alive in every modern battery and motor.
+
+Q: Could you tell us about his early life?  
+A: Tesla was born in 1856 in what is now Croatia. From a young age, he showed remarkable talent 
+for mathematics and imagination. He often spoke of vivid dreams and inventions that came to him 
+like flashes of light. That creative energy never left him.
+
+Q: How did he begin his career in the field of electricity?  
+A: He moved to the United States in 1884 and quickly found work with Thomas Edison. Their 
+collaboration was short-lived, but it gave Tesla the chance to demonstrate his brilliance. Soon 
+after, he developed the alternating current system, which became the backbone of modern power 
+distribution.
+
+Q: What would you say was his greatest contribution to the world of technology?  
+A: Tesla’s gift was his ability to see beyond the present. His alternating current system changed 
+the way electricity was delivered, making it possible to power homes and industries across vast 
+distances. More than that, his passion for innovation continues to inspire the engineers who design 
+the electric vehicles of today.
+
+
+=== ARTICLE C ===
+The Value of Using Technology in Education  
+by Dr. Laura Mitchell  
+April 15, 2026  
+
+In classrooms across the world, technology has become more than a tool—it is a bridge between 
+students and knowledge. From interactive whiteboards to online platforms, digital resources are 
+transforming the way young learners and adolescents engage with lessons. Properly used, technology 
+does not distract; it empowers.  
+
+Digital media captures attention and sparks imagination. A video clip can illustrate a scientific 
+concept more vividly than a textbook, while interactive apps encourage students to practice skills 
+with enthusiasm. Technology also promotes values and life skills: collaboration in group projects, 
+responsibility in managing online tasks, and awareness of global issues through instant access to 
+information.  
+
+Older students, already immersed in digital culture, find comfort in learning through familiar 
+platforms. Lessons delivered with multimedia are often more relevant, current, and engaging. 
+Teachers who embrace technology are perceived as approachable and modern, strengthening the 
+relationship between instructor and student. This bond, in turn, enhances retention and deepens 
+understanding.  
+
+Technology in education is not a passing trend. It is a powerful ally that enriches learning, 
+encourages critical thinking, and prepares students for a world where digital literacy is as 
+essential as reading and writing.  
+
+*Dr. Laura Mitchell is a professor of educational technology and consultant for innovative schools.*
+
+
+===  QUESTIONS GROUP 1  ===
+
+Article A: The Rise of Electric Vehicles
+1. What is one environmental benefit of electric vehicles mentioned in the article?
+   A) They reduce air pollution
+   B) They increase fuel prices
+   C) They eliminate traffic congestion
+   D) They require no batteries
+   → Correct: A
+
+2. What challenge related to electric vehicles is highlighted in the article?
+   A) Lack of stylish designs
+   B) Limited charging infrastructure
+   C) Excessive noise in cities
+   D) High gasoline consumption
+   → Correct: B
+
+3. According to the article, what concern is linked to battery production?
+   A) Excessive noise
+   B) Use of rare minerals
+   C) Lack of stylish models
+   D) High gasoline prices
+   → Correct: B
+
+
+Article B: Interview with Daniel Brooks on Nikola Tesla
+4. According to the interview, what was Tesla’s greatest contribution?
+   A) Inventing the gasoline engine
+   B) Developing alternating current
+   C) Creating solar panels
+   D) Building hydroelectric dams
+   → Correct: B
+
+5. Where did Tesla begin his career in the United States?
+   A) At General Motors
+   B) With Thomas Edison
+   C) At Midvillage College
+   D) In Croatia
+   → Correct: B
+
+6. What inspired Tesla’s lifelong passion for invention?
+   A) His work with Edison
+   B) His vivid dreams and imagination
+   C) His move to Africa
+   D) His studies at Midvillage College
+   → Correct: B
+
+7. In which year did Tesla move to the United States?
+   A) 1856
+   B) 1884
+   C) 1920
+   D) 1939
+   → Correct: B
+
+
+Article C: The Value of Using Technology in Education
+8. What is one advantage of using technology in classrooms mentioned in the article?
+   A) It distracts students
+   B) It makes teachers less approachable
+   C) It strengthens teacher-student relationships
+   D) It eliminates the need for textbooks
+   → Correct: C
+
+9. What is one way technology helps older students, according to the article?
+   A) It reduces their interest in lessons
+   B) It connects them through familiar platforms
+   C) It eliminates the need for teachers
+   D) It limits their access to information
+   → Correct: B
+
+Connecting All Three Articles
+10. What common theme unites the three readings?
+   A) The importance of entertainment
+   B) The role of innovation in shaping society
+   C) The decline of traditional education
+   D) The dangers of urbanization
+   → Correct: B
+
+
+
+----------
+GROUP 2 (THREE ARTICLES)
+
+=== ARTICLE A ===
+The Spirit of Local Markets  
+April 25, 2026  
+
+Colorful stalls, lively voices, and the aroma of fresh food fill the air in local markets across the 
+world. Once seen only as places to buy daily necessities, these markets are now celebrated as 
+cultural landmarks, attracting visitors eager to experience authentic traditions.
+
+• Local markets showcase regional foods, crafts, and handmade goods.  
+• They provide economic opportunities for small producers and artisans.  
+• Tourists discover cultural heritage through flavors, colors, and conversations.  
+• Markets strengthen community ties by bringing people together in shared spaces.  
+• Sustainability is promoted through local sourcing and reduced transport.  
+
+Challenges exist, of course. Modern supermarkets and online shopping compete with traditional 
+markets, and maintaining hygiene and infrastructure requires effort. Yet the resilience of these 
+spaces is undeniable.  
+
+For many communities, the market is more than commerce—it is a living stage where culture, 
+identity, and human connection thrive. As cities grow and societies change, local markets remain 
+a timeless reminder that tradition and community are treasures worth preserving.
+
+
+=== ARTICLE B ===
+The Evolution of Public Libraries  
+by Prof. Eleanor Grant  
+April 27, 2026  
+
+Early Period (1830–1850) — Public libraries began as small collections funded by local communities 
+and philanthropists. Their purpose was simple: to provide access to books for those who could not 
+afford them. In these early years, libraries were modest, often housed in single rooms, but they 
+represented a revolutionary idea—knowledge for all.  
+
+Middle Period (1850–1900) — With industrial growth and rising literacy rates, libraries expanded 
+rapidly. Many cities built grand library buildings, often in neoclassical or Victorian styles. 
+Collections grew to include newspapers, journals, and reference works. The library became not only 
+a place to read but also a civic symbol of progress and education.
+
+Late Period (1900–1950) — Libraries embraced new technologies, such as card catalogs and lending 
+systems, making access easier. They also began offering lectures, exhibitions, and children’s 
+programs. By mid-century, the public library had become a cornerstone of community life, adapting 
+to social changes while preserving its mission of free access to knowledge.  
+
+Today, libraries continue to evolve with digital resources, online catalogs, and multimedia 
+collections. Yet their essence remains unchanged: they are spaces where learning, culture, and 
+community converge.
+
+
+
+=== ARTICLE C ===
+Voices of Tradition: The Story of Local Artisans  
+by Dr. Samuel Hayes  
+April 28, 2026  
+
+In every bustling market, behind the colorful stalls and handcrafted goods, there are artisans whose 
+stories embody resilience and creativity. These men and women carry forward traditions that have 
+been passed down through generations, shaping not only objects but also cultural identity.  
+
+Born into families of weavers, potters, and woodcarvers, many artisans begin their craft in 
+childhood. Their skills are honed through practice, patience, and a deep respect for materials. 
+Each piece they create—whether a woven basket, a ceramic vase, or a carved figure—tells a story of 
+heritage and community.  
+
+The challenges are real. Globalization and mass production often overshadow handmade goods, and 
+younger generations sometimes turn away from traditional crafts. Yet artisans continue to adapt, 
+using modern platforms to share their work with wider audiences. Markets, fairs, and cultural 
+festivals provide spaces where their voices can be heard and their creations valued.  
+
+For Dr. Hayes, these artisans are more than producers of goods; they are guardians of memory. Their 
+crafts remind us that culture is not static but alive, evolving with each generation while holding 
+firm to its roots.  
+
+*Dr. Samuel Hayes is a cultural historian and lecturer specializing in traditional crafts and 
+community heritage.*
+
+
+=== QUESTIONS GROUP 2 ===
+
+Article A: The Spirit of Local Markets
+1. What is one cultural benefit of local markets mentioned in the article?
+   A) They reduce online shopping
+   B) They strengthen community ties
+   C) They eliminate supermarkets
+   D) They increase fuel prices
+   → Correct: B
+
+2. What challenge do local markets face according to the article?
+   A) Lack of colorful stalls
+   B) Competition from supermarkets and online shopping
+   C) Too many tourists
+   D) Shortage of artisans
+   → Correct: B
+
+3. What sustainability benefit is associated with local markets?
+   A) Reduced transport through local sourcing
+   B) Increased online shopping
+   C) Elimination of cultural festivals
+   D) Higher fuel consumption
+   → Correct: A
+
+
+Article B: The Evolution of Public Libraries
+4. In the early period (1830–1850), what was the main purpose of public libraries?
+   A) To host lectures
+   B) To provide access to books for those who could not afford them
+   C) To store government records
+   D) To promote Victorian architecture
+   → Correct: B
+
+5. During the middle period (1850–1900), what symbol did libraries represent?
+   A) A place for entertainment
+   B) A civic symbol of progress and education
+   C) A marketplace for artisans
+   D) A center for political debate
+   → Correct: B
+
+6. What innovation did libraries adopt in the early 20th century?
+   A) Digital catalogs
+   B) Card catalogs and lending systems
+   C) Online platforms
+   D) Victorian architecture
+   → Correct: B
+
+7. By mid-century, what role had libraries assumed in community life?
+   A) They became centers of political debate
+   B) They were cornerstones of community life
+   C) They replaced schools
+   D) They focused only on children’s programs
+   → Correct: B
+
+
+Article C: Voices of Tradition: The Story of Local Artisans
+8. According to the article, what challenge do artisans face today?
+   A) Lack of creativity
+   B) Overshadowing by globalization and mass production
+   C) Too many cultural festivals
+   D) Excessive government support
+   → Correct: B
+
+9. What do artisans’ crafts symbolize according to Dr. Hayes?
+   A) Economic competition
+   B) Guardianship of memory and heritage
+   C) Mass production efficiency
+   D) Modern industrial progress
+   → Correct: B
+
+Connecting All Three Articles
+10. What theme unites the three readings?
+   A) The decline of traditional culture
+   B) The importance of preserving and adapting cultural traditions
+   C) The rise of political institutions
+   D) The dangers of globalization
+   → Correct: B
