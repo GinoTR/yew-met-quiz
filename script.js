@@ -1787,24 +1787,41 @@ function updatePrevButtonVisibility() {
     }
   } else if (currentSection && !sectionPreviewMode) {
     const grp = questionGroups[currentGroupIndex];
-    const lastQ = isLastQuestionOfSection();
-    const isLastPart = isLastPartOfSection();
-    const nextPart = getNextPartKey();
+    const isSingleQuestion = grp ? grp.questions.length === 1 : true;
+    const allChecked = grp && grp.questions.every(q => {
+      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+      return answeredQuestions.has(qi);
+    });
 
     prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
     submitBtn?.classList.add('hidden');
 
-    if (lastQ) {
+    const lastQ = isLastQuestionOfSection();
+    const isLastPart = isLastPartOfSection();
+    const nextPart = getNextPartKey();
+
+    if (allChecked) {
       nextBtn?.classList.remove('hidden');
-      nextBtn.textContent = 'Finalizar sección';
+      nextBtn.textContent = lastQ ? 'Finalizar sección' : 'Siguiente';
       nextBtn.classList.remove('btn-secondary');
       nextBtn.classList.add('btn-primary');
-      skipBtn?.classList.add('hidden');
+      if (checkBtn) checkBtn.classList.add('hidden');
+      if (controlsSecondary) controlsSecondary.classList.add('hidden');
     } else {
-      nextBtn?.classList.remove('hidden');
-      nextBtn.textContent = 'Siguiente';
-      nextBtn.classList.remove('btn-secondary');
-      nextBtn.classList.add('btn-primary');
+      nextBtn?.classList.add('hidden');
+      if (checkBtn) {
+        const anySelected = grp && grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
+        if (anySelected) {
+          checkBtn.classList.remove('hidden');
+          if (controlsSecondary) controlsSecondary.classList.remove('hidden');
+        } else {
+          checkBtn.classList.add('hidden');
+          if (controlsSecondary) controlsSecondary.classList.add('hidden');
+        }
+      }
+    }
+
+    if (!lastQ && !allChecked) {
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
         const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
@@ -1817,20 +1834,21 @@ function updatePrevButtonVisibility() {
           skipBtn.classList.add('btn-secondary');
         }
       }
-    }
-
-    if (grp && grp.questions.length > 1) {
-      const allAnswered = grp.questions.every(q => {
-        const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-        return answeredQuestions.has(qi);
-      });
-      const anySelected = grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
-      if (!allAnswered && anySelected) {
-        if (checkBtn) {
-          checkBtn.classList.remove('hidden');
-          if (controlsSecondary) controlsSecondary.classList.remove('hidden');
+    } else if (!lastQ && allChecked) {
+      if (skipBtn) {
+        skipBtn.classList.remove('hidden');
+        const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
+        skipBtn.textContent = targetName;
+        if (isLastPart) {
+          skipBtn.classList.remove('btn-secondary');
+          skipBtn.classList.add('btn-primary');
+        } else {
+          skipBtn.classList.remove('btn-primary');
+          skipBtn.classList.add('btn-secondary');
         }
       }
+    } else {
+      skipBtn?.classList.add('hidden');
     }
   } else if (sectionPreviewMode) {
     prevBtn?.classList.add('hidden');
