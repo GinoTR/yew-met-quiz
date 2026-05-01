@@ -881,6 +881,7 @@ function beginWriting(section, saved, config) {
     return;
   }
 
+  currentPartKey = section;
   const isTask2 = section === 'WRITING_TASK2';
   const hasSavedProgress = saved && saved.currentPartKey === section;
 
@@ -1407,6 +1408,40 @@ function navigateToPrevGroup() {
   if (currentGroupIndex > 0) {
     currentGroupIndex--;
     loadGroup();
+    return;
+  }
+
+  const prevPart = getPrevPartKey();
+  if (!prevPart) return;
+
+  pauseTimer();
+  saveProgress();
+
+  if (currentSection === 'SPEAKING') {
+    beginSpeaking(prevPart.key);
+    startTimer(currentSection);
+  } else {
+    beginMcPart(prevPart.key);
+    startTimer(currentSection);
+  }
+}
+
+function navigateToPrevPart() {
+  pauseTimer();
+  const prevPart = getPrevPartKey();
+
+  if (!prevPart) {
+    return;
+  }
+
+  saveProgress();
+
+  if (currentSection === 'SPEAKING') {
+    beginSpeaking(prevPart.key);
+    startTimer(currentSection);
+  } else {
+    beginMcPart(prevPart.key);
+    startTimer(currentSection);
   }
 }
 
@@ -1446,19 +1481,10 @@ function renderWritingStep() {
 
   if (currentWritingStep === WRITING_STEPS.PREVIEW) {
     getElement('controls').classList.remove('hidden');
-    getElement('check-btn').classList.add('hidden');
-    getElement('next-btn').classList.add('hidden');
-    getElement('prev-btn').classList.add('hidden');
-    getElement('skip-btn').classList.add('hidden');
-    getElement('submit-section-btn').classList.remove('hidden');
     getElement('section-instructions-panel').classList.add('hidden');
     setupCarouselEvents();
   } else {
     getElement('controls').classList.remove('hidden');
-    getElement('check-btn').classList.add('hidden');
-    getElement('next-btn').classList.add('hidden');
-    getElement('prev-btn').classList.remove('hidden');
-    getElement('submit-section-btn').classList.add('hidden');
     setupWritingTextareaEvents();
   }
 
@@ -1619,117 +1645,178 @@ function getNextPartKey() {
   return parts[currentIndex + 1];
 }
 
+function getPrevPartKey() {
+  const parts = SECTION_PARTS[currentSection];
+  if (!parts) return null;
+  const currentIndex = parts.findIndex(p => p.key === currentPartKey);
+  if (currentIndex <= 0) return null;
+  return parts[currentIndex - 1];
+}
+
+function isFirstPartOfSection() {
+  if (currentSection === 'WRITING') {
+    return currentWritingStep <= WRITING_STEPS.TASK1_Q3;
+  }
+  return getPrevPartKey() === null;
+}
+
 function isLastPartOfSection() {
+  if (currentSection === 'WRITING') {
+    return currentWritingStep >= WRITING_STEPS.TASK2;
+  }
   return getNextPartKey() === null;
+}
+
+function isLastQuestionOfSection() {
+  if (currentSection === 'WRITING') {
+    return currentWritingStep === WRITING_STEPS.TASK2;
+  }
+  if (currentSection === 'SPEAKING') {
+    return isLastPartOfSection() && speakingTaskIndex >= speakingPart.tasks.length - 1;
+  }
+  if (currentSection) {
+    return isLastPartOfSection() && currentGroupIndex >= questionGroups.length - 1;
+  }
+  return false;
+}
+
+function isFirstQuestionOfSection() {
+  if (currentSection === 'WRITING') {
+    return currentWritingStep === WRITING_STEPS.TASK1_Q1;
+  }
+  if (currentSection === 'SPEAKING') {
+    return isFirstPartOfSection() && speakingTaskIndex === 0;
+  }
+  if (currentSection) {
+    return isFirstPartOfSection() && currentGroupIndex === 0;
+  }
+  return false;
+}
+
+function getWritingNextPartName() {
+  if (currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
+    return 'Task 2';
+  }
+  return null;
 }
 
 function updatePrevButtonVisibility() {
   const prevBtn = document.getElementById('prev-btn');
   const nextBtn = document.getElementById('next-btn');
-  const checkBtn = document.getElementById('check-btn');
   const submitBtn = document.getElementById('submit-section-btn');
   const skipBtn = document.getElementById('skip-btn');
 
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-    const isLastTask = currentWritingStep === WRITING_STEPS.TASK2;
-    const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK1_Q3;
+    const lastQ = isLastQuestionOfSection();
 
     if (isPreview) {
       prevBtn?.classList.add('hidden');
-      checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
+      submitBtn.textContent = 'Confirmar';
       skipBtn?.classList.add('hidden');
-    } else if (isLastTask || isLastQuestion) {
-      prevBtn?.classList.remove('hidden');
-      checkBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.add('hidden');
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Finalizar sección';
-      skipBtn.classList.remove('btn-secondary');
-      skipBtn.classList.add('btn-primary');
     } else {
-      prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
-      checkBtn?.classList.add('hidden');
+      prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
       nextBtn?.classList.remove('hidden');
       submitBtn?.classList.add('hidden');
-      if (skipBtn) {
-        skipBtn.classList.remove('hidden');
-        skipBtn.textContent = 'Task 2';
-        skipBtn.classList.remove('btn-primary');
-        skipBtn.classList.add('btn-secondary');
+
+      if (lastQ) {
+        nextBtn.textContent = 'Finalizar sección';
+        nextBtn.classList.remove('btn-secondary');
+        nextBtn.classList.add('btn-primary');
+        skipBtn?.classList.add('hidden');
+      } else {
+        nextBtn.textContent = 'Siguiente';
+        nextBtn.classList.remove('btn-secondary');
+        nextBtn.classList.add('btn-primary');
+        if (skipBtn) {
+          skipBtn.classList.remove('hidden');
+          const targetName = getWritingNextPartName();
+          skipBtn.textContent = targetName ? `Skip to ${targetName}` : 'Skip to Preview';
+          skipBtn.classList.remove('btn-primary');
+          skipBtn.classList.add('btn-secondary');
+        }
       }
     }
   } else if (currentSection === 'SPEAKING') {
-    const isLastTask = speakingTaskIndex >= speakingPart.tasks.length - 1;
-    const hasNextPart = getNextPartKey();
+    const pastTasks = speakingTaskIndex >= speakingPart.tasks.length;
 
-    prevBtn?.classList.toggle('hidden', speakingTaskIndex === 0);
-    checkBtn?.classList.add('hidden');
-    nextBtn?.classList.add('hidden');
-    submitBtn?.classList.add('hidden');
-
-    if (speakingTaskIndex >= speakingPart.tasks.length) {
+    if (pastTasks) {
       prevBtn?.classList.add('hidden');
-      checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
+      submitBtn.textContent = 'Confirmar';
       skipBtn?.classList.add('hidden');
-    } else if (isLastTask) {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Preview';
-      skipBtn.classList.remove('btn-secondary');
-      skipBtn.classList.add('btn-primary');
     } else {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Siguiente';
-      skipBtn.classList.remove('btn-primary');
-      skipBtn.classList.add('btn-secondary');
-    }
-  } else if (currentSection && !sectionPreviewMode) {
-    const grp = questionGroups[currentGroupIndex];
-    const isSingleQuestion = grp ? grp.questions.length === 1 : true;
-    const hasAnySelection = grp && Object.keys(groupSelectedAnswers).length > 0;
-    const allChecked = grp && grp.questions.every(q => {
-      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-      return answeredQuestions.has(qi);
-    });
+      prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
+      submitBtn?.classList.add('hidden');
+      const lastQ = isLastQuestionOfSection();
+      const isLastPart = isLastPartOfSection();
+      const nextPart = getNextPartKey();
 
-    const isLastGroup = currentGroupIndex >= questionGroups.length - 1;
-    const hasNextPart = getNextPartKey();
-
-    prevBtn?.classList.toggle('hidden', currentGroupIndex === 0);
-    checkBtn?.classList.add('hidden');
-    submitBtn?.classList.add('hidden');
-
-    if (allChecked) {
-      if (isLastGroup) {
-        nextBtn?.classList.add('hidden');
+      if (lastQ) {
+        nextBtn?.classList.remove('hidden');
+        nextBtn.textContent = 'Finalizar sección';
+        nextBtn.classList.remove('btn-secondary');
+        nextBtn.classList.add('btn-primary');
+        skipBtn?.classList.add('hidden');
       } else {
         nextBtn?.classList.remove('hidden');
+        nextBtn.textContent = 'Siguiente';
+        nextBtn.classList.remove('btn-secondary');
+        nextBtn.classList.add('btn-primary');
+        if (skipBtn) {
+          skipBtn.classList.remove('hidden');
+          const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
+          skipBtn.textContent = targetName;
+          if (isLastPart) {
+            skipBtn.classList.remove('btn-secondary');
+            skipBtn.classList.add('btn-primary');
+          } else {
+            skipBtn.classList.remove('btn-primary');
+            skipBtn.classList.add('btn-secondary');
+          }
+        }
       }
-    } else {
-      nextBtn?.classList.add('hidden');
     }
+  } else if (currentSection && !sectionPreviewMode) {
+    const lastQ = isLastQuestionOfSection();
+    const isLastPart = isLastPartOfSection();
+    const nextPart = getNextPartKey();
 
-    if (isLastGroup) {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
-      skipBtn.classList.remove('btn-secondary');
-      skipBtn.classList.add('btn-primary');
+    prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
+    submitBtn?.classList.add('hidden');
+
+    if (lastQ) {
+      nextBtn?.classList.remove('hidden');
+      nextBtn.textContent = 'Finalizar sección';
+      nextBtn.classList.remove('btn-secondary');
+      nextBtn.classList.add('btn-primary');
+      skipBtn?.classList.add('hidden');
     } else {
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Siguiente';
-      skipBtn.classList.remove('btn-primary');
-      skipBtn.classList.add('btn-secondary');
+      nextBtn?.classList.remove('hidden');
+      nextBtn.textContent = 'Siguiente';
+      nextBtn.classList.remove('btn-secondary');
+      nextBtn.classList.add('btn-primary');
+      if (skipBtn) {
+        skipBtn.classList.remove('hidden');
+        const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
+        skipBtn.textContent = targetName;
+        if (isLastPart) {
+          skipBtn.classList.remove('btn-secondary');
+          skipBtn.classList.add('btn-primary');
+        } else {
+          skipBtn.classList.remove('btn-primary');
+          skipBtn.classList.add('btn-secondary');
+        }
+      }
     }
   } else if (sectionPreviewMode) {
     prevBtn?.classList.add('hidden');
-    checkBtn?.classList.add('hidden');
     nextBtn?.classList.add('hidden');
     submitBtn?.classList.remove('hidden');
+    submitBtn.textContent = 'Confirmar';
     skipBtn?.classList.add('hidden');
   }
 }
@@ -2329,7 +2416,7 @@ function nextQuestion() {
 
 function goToPreview() {
   pauseTimer();
-  if (!currentPartKey) return;
+  if (!currentSection) return;
 
   if (currentSection === 'WRITING') {
     saveCurrentWritingResponse();
@@ -2337,7 +2424,8 @@ function goToPreview() {
   saveProgress();
 
   hashNavigationLocked = true;
-  window.location.hash = `#/${currentPartKey}/preview`;
+  const sectionHash = currentSection.toLowerCase().replace(/_/g, '-');
+  window.location.hash = `#/${sectionHash}/preview`;
   hashNavigationLocked = false;
 
   renderSectionPreview();
@@ -2947,18 +3035,22 @@ function initEventListeners() {
 
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
-      const isLastTask = currentWritingStep === WRITING_STEPS.TASK2;
-      if (isLastTask) {
-        goToPreview();
+      saveCurrentWritingResponse();
+      saveProgress();
+      if (currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
+        currentPartKey = 'WRITING_TASK2';
+        beginWriting('WRITING_TASK2');
+        startTimer('WRITING');
       } else {
-        nextSectionStep();
+        goToPreview();
       }
     } else if (currentSection === 'SPEAKING') {
-      const isLastTask = speakingTaskIndex >= speakingPart.tasks.length - 1;
-      if (isLastTask) {
-        goToPreview();
+      const nextPart = getNextPartKey();
+      if (nextPart) {
+        beginSpeaking(nextPart.key);
+        startTimer(currentSection);
       } else {
-        nextSpeakingTask();
+        goToPreview();
       }
     } else {
       navigateToNextPart();
