@@ -12,13 +12,13 @@ const quizData = {
 
 // Configuración de cada sección: tiempo en segundos, partes, etc.
 const SECTION_CONFIG = {
-  WRITING: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing' },
+  WRITING: { time: 45 * 60, tasks: 2, items: 4, name: 'writing' },
   LISTENING: { time: 35 * 60, parts: 3, items: 50, name: 'listening' },
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: 'reading' },
   SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' },
   // Configuración de cada parte individual (Task 1, Task 2, Part 1, etc.)
-  WRITING_TASK1: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task1', parentSection: 'WRITING' },
-  WRITING_TASK2: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task2', parentSection: 'WRITING' },
+  WRITING_TASK1: { time: 30 * 60, tasks: 1, items: 3, name: 'writing-task1', parentSection: 'WRITING' },
+  WRITING_TASK2: { time: 45 * 60, tasks: 1, items: 1, name: 'writing-task2', parentSection: 'WRITING' },
   LISTENING_P1: { time: 35 * 60, parts: 3, items: 19, name: 'listening-p1', parentSection: 'LISTENING', partId: 1 },
   LISTENING_P2: { time: 35 * 60, parts: 3, items: 14, name: 'listening-p2', parentSection: 'LISTENING', partId: 2 },
   LISTENING_P3: { time: 35 * 60, parts: 3, items: 17, name: 'listening-p3', parentSection: 'LISTENING', partId: 3 },
