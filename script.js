@@ -652,10 +652,16 @@ async function logWritingResponse(questionNum, task, response) {
 }
 
 function showRegistrationModal() {
-  getElement('registration-modal').classList.remove('hidden');
-  getElement('reg-name').value = '';
-  getElement('reg-email').value = '';
-  getElement('reg-name').focus();
+  const modal = getElement('registration-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const nameInput = getElement('reg-name');
+  const emailInput = getElement('reg-email');
+  if (nameInput) {
+    nameInput.value = '';
+    nameInput.focus();
+  }
+  if (emailInput) emailInput.value = '';
 }
 
 function hideRegistrationModal() {
