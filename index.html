@@ -1,83 +1,98 @@
 <!DOCTYPE html>
+<!-- Idioma de la página: español -->
 <html lang="es">
 <head>
+  <!-- Configuración básica del documento -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Título que aparece en la pestaña del navegador -->
   <title>MET Quiz - Your English World</title>
+  <!-- Conexión con el archivo de estilos visuales -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Google Analytics - Replace G-XXXXXXXXXX with actual Measurement ID -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <!-- Google Analytics - Cambiar G-ERP75JTK26 por el ID real de Diana -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ERP75JTK26"></script>
   <script>
+    // Configuración para rastrear visitas en la página
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-ERP75JTK26');
   </script>
 </head>
 <body>
-  <!-- Dark Mode Toggle -->
+  <!-- Botón para cambiar entre modo claro y oscuro -->
   <div class="theme-toggle-container">
     <label class="theme-toggle" for="theme-switch">
       <input type="checkbox" id="theme-switch">
       <span class="theme-slider"></span>
-      <span class="theme-icon sun">⚪</span>
-      <span class="theme-icon moon">⚫</span>
+      <span class="theme-icon sun">⚪</span> <!-- Icono del sol para modo claro -->
+      <span class="theme-icon moon">⚫</span> <!-- Icono de la luna para modo oscuro -->
     </label>
   </div>
 
-  <!-- Datalist for email autocomplete -->
+  <!-- Lista de opciones para autocompletar el correo electrónico -->
   <datalist id="email-domains">
-    <option value="gmail.com">
+    <option value="gmail.com"> <!-- Opciones más comunes de correo -->
     <option value="hotmail.com">
     <option value="outlook.com">
     <option value="yahoo.com">
     <option value="yahoo.es">
     <option value="icloud.com">
-    <option value="Otro">
+    <option value="Otro"> <!-- Para otros correos no listados -->
   </datalist>
 
+  <!-- Ventana emergente cuando el usuario quiere volver atrás -->
   <div class="modal-overlay hidden" id="back-modal">
     <div class="modal">
-      <h2>¿Qué deseas hacer?</h2>
+      <h2>¿Qué deseas hacer?</h2> <!-- Pregunta al usuario qué acción tomar -->
       <p class="modal-subtitle">Selecciona una opción para continuar</p>
       <div class="modal-buttons">
+        <!-- Botón para ir a la página principal -->
         <button id="back-home-btn" class="btn btn-secondary">Volver al Home</button>
+        <!-- Botón para volver a la pregunta anterior -->
         <button id="back-prev-btn" class="btn btn-primary">Pregunta Anterior</button>
       </div>
+      <!-- Botón para cerrar esta ventana sin hacer nada -->
       <button id="back-cancel" class="btn-link" style="display:block; margin: 15px auto 0;">Cancelar</button>
     </div>
   </div>
 
+  <!-- Ventana para confirmar si quieres borrar todo el progreso -->
   <div class="modal-overlay hidden" id="confirm-modal">
     <div class="modal">
-      <h2>Reset Progress</h2>
+      <h2>Reset Progress</h2> <!-- Título en inglés: Reiniciar progreso -->
       <p class="modal-subtitle" id="confirm-text">Are you sure? This cannot be undone.</p>
       <div class="modal-buttons">
+        <!-- Botón para no borrar nada -->
         <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+        <!-- Botón para sí borrar todo -->
         <button id="confirm-ok" class="btn btn-primary">Yes, reset</button>
       </div>
     </div>
   </div>
 
+  <!-- Ventana para registrar al usuario antes de empezar el quiz -->
   <div class="modal-overlay hidden" id="registration-modal">
     <div class="modal">
-      <h2>Antes de comenzar</h2>
+      <h2>Antes de comenzar</h2> <!-- Pide datos personales -->
       <p class="modal-subtitle">Ingresa tus datos para continuar</p>
       <form id="registration-form">
         <div class="form-group">
-          <label for="reg-name">Nombre</label>
+          <label for="reg-name">Nombre</label> <!-- Campo para el nombre -->
           <input type="text" id="reg-name" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="reg-email-username">Correo</label>
+          <label for="reg-email-username">Correo</label> <!-- Campo para el correo dividido en usuario y dominio -->
           <div class="email-input-group">
             <input type="text" id="reg-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
-            <span class="email-at">@</span>
+            <span class="email-at">@</span> <!-- Símbolo arroba -->
             <input type="text" id="reg-email-domain" required list="email-domains" placeholder="gmail.com">
           </div>
         </div>
         <div class="modal-buttons">
+          <!-- Botón para no registrar y salir -->
           <button type="button" class="btn btn-secondary" id="reg-cancel">Cancelar</button>
+          <!-- Botón para guardar datos y empezar -->
           <button type="submit" class="btn btn-primary">Comenzar</button>
         </div>
       </form>
@@ -87,128 +102,176 @@
   <datalist id="email-username-suggestions">
   </datalist>
 
+  <!-- Ventana para enviar dudas o consultas -->
   <div class="modal-overlay hidden" id="help-modal">
     <div class="modal">
-      <h2>Do you need help?</h2>
+      <h2>Do you need help?</h2> <!-- Título en inglés -->
       <p class="modal-subtitle">Si tienes alguna duda o consulta, escríbela aquí y te responderemos pronto.</p>
       <form id="help-form">
         <div class="form-group">
+          <!-- Caja de texto para escribir la consulta -->
           <textarea id="help-text" rows="5" placeholder="Escribe tu consulta..."></textarea>
         </div>
         <div class="modal-buttons">
+          <!-- Botón para no enviar nada -->
           <button type="button" class="btn btn-secondary" id="help-cancel">Cancelar</button>
+          <!-- Botón para enviar la consulta -->
           <button type="submit" class="btn btn-primary">Enviar</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Ventana para cambiar los datos del usuario -->
   <div class="modal-overlay hidden" id="change-user-modal">
     <div class="modal">
-      <h2>Cambiar usuario</h2>
-      <p class="modal-subtitle">Ingresa tus datos</p>
+      <h2>Cambiar usuario</h2> <!-- Título de la ventana -->
+      <p class="modal-subtitle">Ingresa tus datos</p> <!-- Instrucción -->
       <form id="change-user-form">
         <div class="form-group">
-          <label for="change-name">Nombre</label>
+          <label for="change-name">Nombre</label> <!-- Campo para nuevo nombre -->
           <input type="text" id="change-name" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="change-email-username">Correo electrónico</label>
+          <label for="change-email-username">Correo electrónico</label> <!-- Campo para nuevo correo -->
           <div class="email-input-group">
             <input type="text" id="change-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
-            <span class="email-at">@</span>
+            <span class="email-at">@</span> <!-- Símbolo arroba -->
             <input type="text" id="change-email-domain" required list="email-domains" placeholder="gmail.com">
           </div>
         </div>
         <div class="modal-buttons">
+          <!-- Botón para no guardar cambios -->
           <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
+          <!-- Botón para guardar los nuevos datos -->
           <button type="submit" class="btn btn-primary">Guardar</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Ventana cuando se acaba el tiempo de la sección -->
   <div class="modal-overlay hidden" id="time-modal">
     <div class="modal">
-      <h2>⏰ Tiempo agotado</h2>
+      <h2>⏰ Tiempo agotado</h2> <!-- Título de la ventana -->
       <p class="modal-subtitle">Tu tiempo en esta sección ha terminado. ¿Qué deseas hacer?</p>
       <div class="modal-buttons">
+        <!-- Botón para ir a la página principal -->
         <button id="time-home-btn" class="btn btn-secondary">Ir al Home</button>
+        <!-- Botón para ver el resumen de respuestas -->
         <button id="time-preview-btn" class="btn btn-primary">Ir al Preview</button>
       </div>
     </div>
   </div>
 
+  <!-- Contenedor principal de toda la página -->
   <div class="container">
+    <!-- Sección de inicio (Home) - visibel cuando no estás en el quiz -->
     <div id="category-select" class="hidden">
       <header>
         <div id="header-top">
-          <div id="user-info">
+          <div id="user-info"> <!-- Muestra el nombre del usuario -->
             <span>Welcome </span><span id="user-name" class="user-link"></span>
           </div>
-          <div class="icon-group">
+          <div class="icon-group"> <!-- Botones de iconos -->
+            <!-- Botón para borrar todo el progreso -->
             <button id="reset-all-btn" class="btn-icon" title="Reset all progress">↺</button>
+            <!-- Botón para abrir ventana de ayuda -->
             <button id="help-btn-home" class="btn-icon" title="Help">?</button>
           </div>
         </div>
+        <!-- Logo de Your English World en el Home -->
         <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
-        <p class="subtitle">MET quiz</p>
+        <p class="subtitle">MET quiz</p> <!-- Texto debajo del logo -->
       </header>
-      <div id="category-buttons"></div>
+      <div id="category-buttons"></div> <!-- Aquí se crean los botones de las secciones -->
       <div id="home-description" class="home-description">
         <p>Select a section to start practicing for your MET exam.</p>
       </div>
-      <footer id="home-footer"></footer>
+      <footer id="home-footer"></footer> <!-- Pie de página del Home -->
     </div>
 
+    <!-- Vista del quiz - visibel cuando estás respondiendo preguntas -->
     <div id="quiz-view" class="hidden">
+      <!-- Barra superior del quiz con botón Home y datos del usuario -->
       <div id="quiz-top-bar">
-        <button id="home-btn" class="btn-link">Home</button>
-        <span id="quiz-user-name" class="user-link"></span>
-        <div class="icon-group">
+        <button id="home-btn" class="btn-link">Home</button> <!-- Botón para volver al inicio -->
+        <span id="quiz-user-name" class="user-link"></span> <!-- Muestra el nombre del usuario -->
+        <div class="icon-group"> <!-- Botones de iconos -->
+          <!-- Botón para borrar el progreso de la sección actual -->
           <button id="reset-btn" class="btn-icon" title="Reset progress">↺</button>
+          <!-- Botón para abrir ventana de ayuda -->
           <button id="help-btn-quiz" class="btn-icon" title="Help">?</button>
         </div>
       </div>
+      <!-- Barra de progreso y temporizador -->
       <div id="progress-row">
-        <div id="progress-info">
-          <span id="category-badge"></span>
-          <span id="progress-text">1/6</span>
+        <div id="progress-info"> <!-- Información del progreso -->
+          <span id="category-badge"></span> <!-- Muestra la sección actual (ej: LISTENING) -->
+          <span id="progress-text">1/6</span> <!-- Muestra pregunta actual / total -->
         </div>
-        <div id="progress-bar-container">
-          <div id="progress-bar"></div>
+        <div id="progress-bar-container"> <!-- Contenedor de la barra visual -->
+          <div id="progress-bar"></div> <!-- Barra que se llena según avanzas -->
         </div>
-        <div id="timer-container">
-          <span id="timer-display">00:00</span>
+        <div id="timer-container"> <!-- Temporizador de la sección -->
+          <span id="timer-display">00:00</span> <!-- Muestra el tiempo restante -->
         </div>
       </div>
 
+      <!-- Contenedor principal donde aparecen las preguntas -->
       <div id="quiz-container">
+        <!-- Panel de instrucciones de la sección (se puede mostrar/ocultar) -->
         <div id="section-instructions-panel" class="hidden">
           <button id="toggle-instructions" class="btn-toggle">
-            Instructions <span class="toggle-icon">v</span>
+            Instructions <span class="toggle-icon">v</span> <!-- Flecha para desplegar -->
           </button>
           <div id="instructions-content" class="instructions-content hidden">
-            <p></p>
+            <p></p> <!-- Aquí se cargan las instrucciones -->
           </div>
         </div>
+        <!-- Contenedor para el reproductor de audio (Listening) -->
         <div id="audio-container" class="hidden"></div>
+        <!-- Botón para mostrar/ocultar la transcripción del audio -->
         <div id="transcription-toggle" class="hidden"></div>
+        <!-- Texto de la transcripción del audio -->
         <div id="transcription-text" class="hidden"></div>
+        <!-- Texto de lectura (Reading & Grammar) -->
         <div id="reading-text" class="hidden"></div>
+        <!-- Texto de la pregunta actual -->
         <div id="question-text"></div>
+        <!-- Contenedor donde aparecen las opciones de respuesta -->
         <div id="options-container"></div>
+        <!-- Contenedor para mostrar si la respuesta fue correcta/incorrecta -->
         <div id="feedback-container" class="hidden"></div>
-      </div>
+        </div>
 
+        <!-- Controles de navegación del quiz -->
         <div id="controls">
+          <!-- Fila principal: Anterior, Siguiente, COMPROBAR, Confirmar, Skip -->
           <div class="controls-row controls-row-main">
+            <!-- Botón para ir a la pregunta anterior -->
             <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
-            <div class="controls-center">
+            <div class="controls-center"> <!-- Botones centrales -->
+              <!-- Botón para avanzar a la siguiente pregunta -->
               <button id="next-btn" class="btn btn-primary">Siguiente</button>
+              <!-- Botón para verificar respuestas (MC) -->
               <button id="check-btn" class="btn btn-primary hidden">COMPROBAR</button>
+              <!-- Botón para enviar la sección completa -->
               <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
             </div>
+            <!-- Botón para saltar a la siguiente parte -->
+            <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
+          </div>
+        </div>
+
+          <!-- Botón duplicado para Skip (se usa en móvil) -->
+          <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
+        </div>
+        <!-- Fila secundaria: Botón COMPROBAR para grupos de preguntas -->
+        <div class="controls-row controls-row-secondary hidden" id="controls-secondary">
+          <button id="check-btn" class="btn btn-primary hidden">COMPROBAR</button>
+        </div>
+      </div>
             <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
           </div>
         </div>
@@ -219,23 +282,32 @@
         </div>
       </div>
 
+      <!-- Pie de página durante el quiz -->
       <footer id="quiz-footer">
-        <p>Your English World - MET Practice Test</p>
+        <p>Your English World - MET Practice Test</p> <!-- Texto del pie -->
       </footer>
     </div>
 
+    <!-- Vista de resultados finales -->
     <div id="results-container" class="hidden">
+      <!-- Logo que aparece en los resultados -->
       <img src="data/images/yew logo png.png" alt="Your English World" id="results-logo">
+      <!-- Título de resultados -->
       <h2>¡Test completado!</h2>
+      <!-- Aquí se muestra el porcentaje obtenido -->
       <p id="score-display"></p>
+      <!-- Desglose por secciones (Writing, Listening, etc.) -->
       <div id="results-breakdown"></div>
       <div class="results-buttons">
+        <!-- Botón para volver al inicio -->
         <button id="results-home-btn" class="btn btn-secondary">Home</button>
+        <!-- Botón para enviar resultados por correo -->
         <button id="email-btn" class="btn btn-primary">Enviar resultados por email</button>
       </div>
     </div>
   </div>
 
+  <!-- Conexión con el archivo de JavaScript que tiene toda la lógica -->
   <script src="script.js"></script>
 </body>
 </html>

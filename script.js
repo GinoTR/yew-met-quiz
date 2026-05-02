@@ -1,15 +1,22 @@
+// Archivo principal de JavaScript para el quiz MET de Your English World
+// Este archivo contiene toda la lógica del quiz: preguntas, temporizador, navegación, etc.
+// Los comentarios en español explican cada función para personas sin experiencia en programación.
+
+// Datos de las preguntas - se cargan desde los archivos JSON
 const quizData = {
-  WRITING: null,
-  LISTENING: [],
-  READING_AND_GRAMMAR: [],
-  SPEAKING: []
+  WRITING: null,      // Datos de Writing (se cargan después)
+  LISTENING: [],       // Preguntas de Listening
+  READING_AND_GRAMMAR: [], // Preguntas de Reading & Grammar
+  SPEAKING: []         // Preguntas de Speaking
 };
 
+// Configuración de cada sección: tiempo en segundos, partes, etc.
 const SECTION_CONFIG = {
   WRITING: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing' },
   LISTENING: { time: 35 * 60, parts: 3, items: 50, name: 'listening' },
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: 'reading' },
   SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' },
+  // Configuración de cada parte individual (Task 1, Task 2, Part 1, etc.)
   WRITING_TASK1: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task1', parentSection: 'WRITING' },
   WRITING_TASK2: { time: 45 * 60, tasks: 2, task1Questions: 3, name: 'writing-task2', parentSection: 'WRITING' },
   LISTENING_P1: { time: 35 * 60, parts: 3, items: 19, name: 'listening-p1', parentSection: 'LISTENING', partId: 1 },
@@ -22,6 +29,7 @@ const SECTION_CONFIG = {
   SPEAKING_P2: { time: 10 * 60, parts: 2, items: 2, name: 'speaking-p2', parentSection: 'SPEAKING', partId: 2 }
 };
 
+// Convierte nombre de sección (escrito) a clave interna (en inglés)
 const SECTION_NAMES = {
   'writing': 'WRITING',
   'listening': 'LISTENING',
@@ -29,6 +37,7 @@ const SECTION_NAMES = {
   'speaking': 'SPEAKING'
 };
 
+// Texto que se muestra en pantalla para cada sección
 const SECTION_DISPLAY = {
   'WRITING': 'WRITING',
   'LISTENING': 'LISTENING',
@@ -36,6 +45,7 @@ const SECTION_DISPLAY = {
   'SPEAKING': 'SPEAKING'
 };
 
+// Obtiene la sección padre a partir de una clave (ej: "writing-task1" → "WRITING")
 function getSectionKey(partKey) {
   if (!partKey) return null;
   if (partKey.startsWith('WRITING')) return 'WRITING';
@@ -45,34 +55,49 @@ function getSectionKey(partKey) {
   return null;
 }
 
+// Convierte el nombre de la URL (hash) a una clave interna
+// Ejemplo: "writing-task1" se convierte en "WRITING_TASK1"
+// Convierte el nombre de la URL (hash) a una clave interna
 function getPartKeyFromHashName(hashName) {
+  // Busca si el hash empieza con writing, listening, reading o speaking
   const sectionMatch = hashName.match(/^(writing|listening|reading|speaking)-/);
+  // Si no coincide, devuelve el nombre en mayúsculas cambiando guiones por guiones bajos
   if (!sectionMatch) return hashName.toUpperCase().replace(/-/g, '_');
-
+  
+  // Toma la parte del nombre (writing, listening, etc.)
   const sectionBase = sectionMatch[1].toUpperCase();
+  // Quita la parte inicial para obtener el resto (task1, part2, etc.)
   const suffix = hashName.replace(sectionMatch[0], '');
-
+  
+  // Busca si hay "part" o "task" seguido de un número
   const partNum = suffix.match(/(?:part|task)(\d+)/i);
   if (partNum) {
+    // Combina la sección con el número de parte
+    // Para Writing usa TASK1, para otros usa P1
     return `${sectionBase}_P${partNum[1]}`.replace('_P', sectionBase === 'WRITING' ? '_TASK' : '_P');
   }
-
+  
+  // Si no hay número de parte, devuelve el nombre convertido
   return hashName.toUpperCase().replace(/-/g, '_');
 }
 
+// Muestra el nombre corto de la sección en la barra superior
 function getSectionBadge(partKey) {
   const section = getSectionKey(partKey);
   if (!section) return 'MET QUIZ';
   return SECTION_DISPLAY[section] || section;
 }
 
+// Obtiene la etiqueta de la parte (ej: "Task 1" o "Part 2")
 function getPartLabel(partKey) {
   const config = SECTION_CONFIG[partKey];
   if (!config || !config.partId) return '';
   const section = getSectionKey(partKey);
+  // Para Writing usa "Task", para otros usa "Part"
   return section === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`;
 }
 
+// Crea el texto de progreso (ej: "Task 1: Q1-3/50")
 function getPartProgressText(partKey, qStart, qEnd, totalQ) {
   const partLabel = getPartLabel(partKey);
   if (!partLabel) return `Q${qStart}/${totalQ}`;
@@ -80,44 +105,55 @@ function getPartProgressText(partKey, qStart, qEnd, totalQ) {
   return `${partLabel}: ${qText}/${totalQ}`;
 }
 
+// Tiempo límite para cada sección (en segundos)
 const SECTION_TIMES = {
-  WRITING: 45 * 60,
-  LISTENING: 35 * 60,
-  READING_AND_GRAMMAR: 65 * 60,
-  SPEAKING: 10 * 60
+  WRITING: 45 * 60,        // 45 minutos
+  LISTENING: 35 * 60,     // 35 minutos
+  READING_AND_GRAMMAR: 65 * 60, // 65 minutos
+  SPEAKING: 10 * 60       // 10 minutos
 };
 
+// Tiempo de advertencia (5 minutos antes de acabar)
 const WARNING_TIME = 5 * 60;
 
+// Lista de partes para cada sección (para navegación)
+// Define qué partes tiene cada sección (Task 1, Task 2, Part 1, etc.)
 const SECTION_PARTS = {
+  // Writing tiene 2 partes: Task 1 y Task 2
   WRITING: [
     { key: 'WRITING_TASK1', name: 'Task 1', time: 45 * 60 },
     { key: 'WRITING_TASK2', name: 'Task 2', time: 45 * 60 }
   ],
+  // Listening tiene 3 partes
   LISTENING: [
     { key: 'LISTENING_P1', name: 'Part 1', time: 35 * 60 },
     { key: 'LISTENING_P2', name: 'Part 2', time: 35 * 60 },
     { key: 'LISTENING_P3', name: 'Part 3', time: 35 * 60 }
   ],
+  // Reading & Grammar tiene 3 partes
   READING_AND_GRAMMAR: [
     { key: 'READING_P1', name: 'Part 1', time: 65 * 60 },
     { key: 'READING_P2', name: 'Part 2', time: 65 * 60 },
     { key: 'READING_P3', name: 'Part 3', time: 65 * 60 }
   ],
+  // Speaking tiene 2 partes
   SPEAKING: [
     { key: 'SPEAKING_P1', name: 'Part 1', time: 10 * 60 },
     { key: 'SPEAKING_P2', name: 'Part 2', time: 10 * 60 }
   ]
 };
 
+// Crea el texto de la URL (hash) para una parte y grupo
 function formatHash(partKey, groupIndex) {
   const config = SECTION_CONFIG[partKey];
-  if (!config) return `#/${partKey}/g${groupIndex}`;
+  if (!config) return `#/${partKey}/g${groupIndex}`; // Formato simple
 
-  const sectionName = getSectionKey(partKey).toLowerCase();
-  const partNum = config.partId || 1;
+  const sectionName = getSectionKey(partKey).toLowerCase(); // Nombre de la sección
+  const partNum = config.partId || 1; // Número de parte
+  // Para Writing usa "task1", para otros usa "part1"
   const partName = sectionName === 'writing' ? `task${partNum}` : `part${partNum}`;
 
+  // Si hay grupos, añade el rango de preguntas (ej: q01-03)
   if (questionGroups && questionGroups[groupIndex]) {
     const group = questionGroups[groupIndex];
     const { start, end } = group.questionRange;
@@ -130,33 +166,39 @@ function formatHash(partKey, groupIndex) {
   return `#/${sectionName}-${partName}/g${groupIndex}`;
 }
 
+// Crea el texto de la URL para Writing (task1 o task2)
 function formatWritingHash(taskPart, qNum) {
   return `#/writing-${taskPart}/q${qNum.toString().padStart(2, '0')}`;
 }
 
+// Actualiza la URL con el hash de la parte actual
 function updateHash(partKey, groupIndex) {
   window.location.hash = formatHash(partKey, groupIndex);
 }
 
+// Actualiza la URL para Writing
 function updateWritingHash(taskPart, qNum) {
   window.location.hash = formatWritingHash(taskPart, qNum);
 }
 
+// Lee la URL (hash) y extrae la información de la sección actual
 function parseHash() {
-  const hash = window.location.hash.slice(1);
-  if (!hash || hash === '/') return null;
+  const hash = window.location.hash.slice(1); // Quita el # inicial
+  if (!hash || hash === '/') return null; // URL vacía
 
-  const parts = hash.split('/').filter(p => p);
-  if (parts.length < 2) return null;
+  const parts = hash.split('/').filter(p => p); // Divide por barras
+  if (parts.length < 2) return null; // URL muy corta
 
-  const rawKey = parts[0];
-  const sectionKey = getPartKeyFromHashName(rawKey);
+  const rawKey = parts[0]; // Primera parte (ej: "writing-task1")
+  const sectionKey = getPartKeyFromHashName(rawKey); // Convierte a clave interna
 
+  // Si es vista previa
   if (parts[1] === 'preview') {
     const parentSection = getSectionKey(sectionKey);
     return { section: sectionKey, parentSection, taskPart: 'preview', qStart: null, qEnd: null, groupIndex: null, hash };
   }
 
+  // Si es vista de resultados
   if (parts[1] === 'results') {
     const parentSection = getSectionKey(sectionKey);
     return { section: sectionKey, parentSection, taskPart: 'results', qStart: null, qEnd: null, groupIndex: null, hash };
@@ -182,6 +224,7 @@ function parseHash() {
   return { section: sectionKey, parentSection, taskPart, qStart: qNum, qEnd: qNum, groupIndex: null, hash };
 }
 
+// Crea una clave única para guardar cada respuesta
 function getProgressKey(partKey, qNum) {
   const config = SECTION_CONFIG[partKey];
   if (config) {
@@ -190,6 +233,7 @@ function getProgressKey(partKey, qNum) {
   return `${partKey.toLowerCase()}_q${qNum}`;
 }
 
+// Guarda la respuesta en el navegador
 function saveAnswerToHash(answer, qGlobalNum) {
   const key = getProgressKey(currentPartKey, qGlobalNum);
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
@@ -218,14 +262,16 @@ function saveAnswerToHash(answer, qGlobalNum) {
   localStorage.setItem('metQuizProgress', JSON.stringify(saved));
 }
 
+// Busca una respuesta guardada en el navegador
 function getAnswerFromHash(partKey, qNum) {
-  const key = getProgressKey(partKey, qNum);
+  const key = getProgressKey(partKey, qNum); // Clave única
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
-  return saved.answers ? saved.answers[key] : null;
+  return saved.answers ? saved.answers[key] : null; // Devuelve la respuesta o nada
 }
 
 let hashNavigationLocked = false;
 
+// Carga la sección basándose en la URL
 function loadFromHash() {
   if (hashNavigationLocked) return;
 
@@ -309,12 +355,14 @@ function loadFromHash() {
 
 window.addEventListener('hashchange', loadFromHash);
 
+// Convierte segundos a formato de tiempo (MM:SS)
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Actualiza el reloj en pantalla
 function updateTimerDisplay() {
   const display = getElement('timer-display');
   const container = getElement('timer-container');
@@ -326,6 +374,7 @@ function updateTimerDisplay() {
   }
 }
 
+// Inicia el cronómetro de la sección
 function startTimer(section) {
   if (timerRunning) return;
 
@@ -355,6 +404,7 @@ function startTimer(section) {
   }, 1000);
 }
 
+// Pausa el cronómetro
 function pauseTimer() {
   timerRunning = false;
   if (timerInterval) {
@@ -364,12 +414,14 @@ function pauseTimer() {
   saveTimerProgress();
 }
 
+// Detiene el cronómetro completamente
 function stopTimer() {
   pauseTimer();
   timerRemaining = 0;
   updateTimerDisplay();
 }
 
+// Reanuda el cronómetro si estaba pausado
 function resumeTimer() {
   if (timerRemaining > 0 && !timerRunning) {
     timerRunning = true;
@@ -385,6 +437,7 @@ function resumeTimer() {
   }
 }
 
+// Guarda el tiempo restante en el navegador
 function saveTimerProgress() {
   if (currentSection && timerRemaining > 0) {
     const saved = loadProgress() || {};
@@ -395,52 +448,86 @@ function saveTimerProgress() {
   }
 }
 
+// Muestra el mensaje de tiempo agotado
 function showTimeModal() {
   getElement('time-modal').classList.remove('hidden');
   getElement('timer-display').textContent = '00:00';
 }
 
+// Oculta el mensaje de tiempo agotado
 function hideTimeModal() {
   getElement('time-modal').classList.add('hidden');
 }
 
+// Variables que guardan el estado actual del quiz
 let questions = [];
+// Índice de la pregunta actual
 let currentQuestionIndex = 0;
+// Opción seleccionada
 let selectedOptionIndex = null;
+// Puntuación por sección
 let score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+// Preguntas ya respondidas
 let answeredQuestions = new Set();
+// Preguntas en orden mezclado
 let shuffledQuestions = [];
+// Grupos de preguntas
 let questionGroups = [];
+// Índice del grupo actual
 let currentGroupIndex = 0;
+// Sección actual
 let currentSection = null;
+// Parte actual
 let currentPartKey = null;
+// Índice de pregunta en la parte
 let currentPartQuestionIndex = 0;
+// Respuestas por parte
 let answersByPart = {};
+// Intervalo del cronómetro
 let timerInterval = null;
+// Tiempo restante
 let timerRemaining = 0;
+// Si el cronómetro está corriendo
 let timerRunning = false;
+// Índice del ejercicio actual
 let currentExerciseIndex = 0;
+// Fuente del audio actual
 let currentAudioSrc = null;
+// Elemento de audio
 let currentAudioElement = null;
+// Si estamos en modo vista previa
 let sectionPreviewMode = false;
 
+// Usuario actual
 let currentUser = null;
+// Sección pendiente por cargar
 let pendingSection = null;
 
+// Grupo actual
 let currentGroup = null;
+// Respuestas de la sección
 let sectionResponses = [];
+// Respuestas seleccionadas en el grupo
 let groupSelectedAnswers = {};
+// Si el grupo ya fue revisado
 let groupChecked = false;
+// Paso actual de Writing
 let currentWritingStep = 0;
+// Índice de vista previa
 let currentPreviewIndex = 0;
 
+// Letras para las opciones
 const letters = ['A', 'B', 'C', 'D'];
 
+// URL para enviar datos a Google Sheets
 const APPS_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
 
+// Límite de caracteres para Task 1
 const TASK1_CHAR_LIMIT = 750;
+// Límite de caracteres para Task 2
 const TASK2_CHAR_LIMIT = 3500;
 
+// Pasos del Writing (qué parte se está haciendo)
 const WRITING_STEPS = {
   TASK1_Q1: 0,
   TASK1_Q2: 1,
@@ -449,6 +536,7 @@ const WRITING_STEPS = {
   PREVIEW: 4
 };
 
+// Mezcla aleatoriamente los elementos de un arreglo
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -458,6 +546,7 @@ function shuffleArray(array) {
   return shuffled;
 }
 
+// Mezcla las opciones de una pregunta
 function shuffleOptions(question) {
   const optionsWithIndex = question.options.map((opt, i) => ({ text: opt, originalIndex: i }));
   const shuffled = shuffleArray(optionsWithIndex);
@@ -469,6 +558,7 @@ function shuffleOptions(question) {
   };
 }
 
+// Guarda el progreso del quiz en el navegador
 function saveProgress() {
   const progress = {
     currentIndex: currentQuestionIndex,
@@ -491,15 +581,18 @@ function saveProgress() {
   localStorage.setItem('metQuizProgress', JSON.stringify(progress));
 }
 
+// Carga el progreso guardado del navegador
 function loadProgress() {
   const saved = localStorage.getItem('metQuizProgress');
   return saved ? JSON.parse(saved) : null;
 }
 
+// Borra todo el progreso guardado
 function clearProgress() {
   localStorage.removeItem('metQuizProgress');
 }
 
+// Reinicia todo el progreso del quiz
 function resetAllProgress() {
   const modal = getElement('confirm-modal');
   const modalText = getElement('confirm-text');
@@ -527,6 +620,7 @@ function resetAllProgress() {
   modalCancel.onclick = () => modal.classList.add('hidden');
 }
 
+// Reinicia solo la sección actual
 function resetSectionProgress() {
   if (!currentSection) return;
 
@@ -554,10 +648,12 @@ function resetSectionProgress() {
   modalCancel.onclick = () => modal.classList.add('hidden');
 }
 
+// Busca un elemento del HTML por su ID (atajo)
 function getElement(id) {
   return document.getElementById(id);
 }
 
+// Guarda los datos del usuario en el navegador
 function saveUser(user) {
   localStorage.setItem('metQuizUser', JSON.stringify(user));
   localStorage.setItem('metQuizTheme', document.documentElement.getAttribute('data-theme') || 'light');
@@ -565,6 +661,7 @@ function saveUser(user) {
   updateUserDisplay();
 }
 
+// Carga los datos del usuario guardados
 function loadUser() {
   const saved = localStorage.getItem('metQuizUser');
   if (saved) {
@@ -574,6 +671,7 @@ function loadUser() {
   return null;
 }
 
+// Verifica que el nombre sea válido
 function isValidName(name) {
   if (!name || name.length < 2) return false;
   const cleanName = name.trim();
@@ -582,6 +680,7 @@ function isValidName(name) {
   return true;
 }
 
+// Actualiza cómo se muestra el nombre del usuario
 function updateUserDisplay() {
   if (currentUser) {
     getElement('user-info').classList.remove('hidden');
@@ -651,6 +750,7 @@ async function logWritingResponse(questionNum, task, response) {
   }
 }
 
+// Muestra la ventana para registrar usuario
 function showRegistrationModal() {
   const modal = getElement('registration-modal');
   if (!modal) return;
@@ -664,20 +764,24 @@ function showRegistrationModal() {
   if (emailInput) emailInput.value = '';
 }
 
+// Oculta la ventana de registro
 function hideRegistrationModal() {
   getElement('registration-modal').classList.add('hidden');
 }
 
+// Muestra la ventana de ayuda
 function showHelpModal() {
   getElement('help-modal').classList.remove('hidden');
   getElement('help-text').value = '';
   getElement('help-text').focus();
 }
 
+// Oculta la ventana de ayuda
 function hideHelpModal() {
   getElement('help-modal').classList.add('hidden');
 }
 
+// Muestra la ventana para cambiar usuario
 function showChangeUserModal() {
   getElement('change-user-modal').classList.remove('hidden');
   getElement('change-name').value = currentUser?.name || '';
@@ -685,10 +789,12 @@ function showChangeUserModal() {
   getElement('change-name').focus();
 }
 
+// Oculta la ventana de cambiar usuario
 function hideChangeUserModal() {
   getElement('change-user-modal').classList.add('hidden');
 }
 
+// Actualiza la barra de progreso de la sección
 function updateSectionProgress() {
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
 
@@ -719,6 +825,7 @@ function updateSectionProgress() {
   }
 }
 
+// Aplana las preguntas de los ejercicios en una sola lista
 function flattenQuestions(category, data) {
   const flattened = [];
   data.forEach((exercise, exerciseIndex) => {
@@ -761,6 +868,7 @@ async function loadAllData() {
   }
 }
 
+// Muestra la pantalla de inicio con las categorías
 function renderCategorySelect() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
@@ -828,6 +936,7 @@ function renderCategorySelect() {
   });
 }
 
+// Revisa si una sección ya tiene contenido disponible
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === 'WRITING') return quizData.WRITING && quizData.WRITING.groups && quizData.WRITING.groups.length > 0;
@@ -837,6 +946,7 @@ function hasSectionContent(partKey) {
   return false;
 }
 
+// Obtiene el progreso de una parte específica
 function getPartProgress(partKey, saved) {
   if (!saved) return { answered: 0, total: 0, percent: 0 };
 
@@ -875,6 +985,7 @@ function getPartProgress(partKey, saved) {
   return { answered: 0, total: 0, percent: 0 };
 }
 
+// Inicia el quiz desde una sección específica
 function startFromSection(section) {
   pendingSection = section;
 
@@ -886,6 +997,7 @@ function startFromSection(section) {
   beginQuiz(section);
 }
 
+// Comienza el quiz para una sección
 function beginQuiz(section) {
   const saved = loadProgress();
   const config = SECTION_CONFIG[section];
@@ -938,6 +1050,7 @@ function beginQuiz(section) {
   alert('Esta sección aún no tiene contenido.');
 }
 
+// Inicia la sección de Writing
 function beginWriting(section, saved, config) {
   if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
     alert('La sección de Writing aún no tiene contenido.');
@@ -984,6 +1097,7 @@ function beginWriting(section, saved, config) {
   startTimer('WRITING');
 }
 
+// Inicia una parte de preguntas de opción múltiple (Listening o Reading)
 function beginMcPart(partKey, saved = null) {
   const config = SECTION_CONFIG[partKey];
   if (!config || !config.partId) return false;
@@ -1022,6 +1136,7 @@ function beginMcPart(partKey, saved = null) {
   return true;
 }
 
+// Procesa una pregunta individual para el quiz
 function processQuestion(q, section, partId, globalNum) {
   const sectionLabel = SECTION_DISPLAY[section];
   const optionsCopy = [...q.options];
@@ -1035,6 +1150,7 @@ function processQuestion(q, section, partId, globalNum) {
   };
 }
 
+// Crea los grupos de preguntas para una parte
 function buildQuestionGroups(partData, section, partId) {
   questionGroups = [];
   shuffledQuestions = [];
@@ -1100,6 +1216,7 @@ function buildQuestionGroups(partData, section, partId) {
   }
 }
 
+// Configura el panel de instrucciones
 function setupInstructionsPanel() {
   const contentEl = getElement('instructions-content');
   const contentPara = contentEl.querySelector('p');
@@ -1127,6 +1244,7 @@ function setupInstructionsPanel() {
   }
 }
 
+// Obtiene la ruta correcta del archivo de audio
 function getAudioPath(audioSrc) {
   if (!audioSrc) return '';
   if (audioSrc.startsWith('data/') || audioSrc.startsWith('http')) return audioSrc;
@@ -1137,6 +1255,7 @@ function getAudioPath(audioSrc) {
   return `data/audios/${audioSrc}`;
 }
 
+// Carga un grupo de preguntas en pantalla
 function loadGroup() {
   sectionPreviewMode = false;
   const grp = questionGroups[currentGroupIndex];
@@ -1193,6 +1312,7 @@ function loadGroup() {
   resumeTimer();
 }
 
+// Dibuja las preguntas del grupo en pantalla
 function renderGroupQuestions(grp) {
   getElement('question-text').classList.add('hidden');
 
@@ -1289,6 +1409,7 @@ function renderGroupQuestions(grp) {
   }
 }
 
+// Dibuja un artículo de revista en pantalla
 function renderMagazineArticle(art) {
   let html = `<div class="magazine-article" data-article="${art.letter}">`;
   html += `<div class="magazine-header">`;
@@ -1317,6 +1438,7 @@ function renderMagazineArticle(art) {
   return html;
 }
 
+// Selecciona una opción en el grupo de preguntas
 function selectGroupOption(globalNum, optionIdx, element) {
   const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
   if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
@@ -1340,6 +1462,7 @@ function selectGroupOption(globalNum, optionIdx, element) {
   updatePrevButtonVisibility();
 }
 
+// Revisa una pregunta individual
 function checkSingleQuestion(globalNum) {
   const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
   if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
@@ -1387,6 +1510,7 @@ function checkSingleQuestion(globalNum) {
   updatePrevButtonVisibility();
 }
 
+// Revisa todo el grupo de preguntas
 function checkCurrentGroup() {
   const grp = questionGroups[currentGroupIndex];
   if (!grp || groupChecked) return;
@@ -1445,6 +1569,7 @@ function checkCurrentGroup() {
   updatePrevButtonVisibility();
 }
 
+// Avanza al siguiente grupo de preguntas
 function navigateToNextGroup() {
   if (currentGroupIndex < questionGroups.length - 1) {
     currentGroupIndex++;
@@ -1455,6 +1580,7 @@ function navigateToNextGroup() {
   }
 }
 
+// Regresa al grupo anterior de preguntas
 function navigateToPrevGroup() {
   if (currentGroupIndex > 0) {
     currentGroupIndex--;
@@ -1477,6 +1603,7 @@ function navigateToPrevGroup() {
   }
 }
 
+// Navega a la parte anterior de la sección
 function navigateToPrevPart() {
   pauseTimer();
   const prevPart = getPrevPartKey();
@@ -1496,6 +1623,7 @@ function navigateToPrevPart() {
   }
 }
 
+// Dibuja el paso actual de Writing
 function renderWritingStep() {
   const container = getElement('quiz-container');
   container.classList.remove('fade-out');
@@ -1540,6 +1668,7 @@ function renderWritingStep() {
   updatePrevButtonVisibility();
 }
 
+// Configura los eventos del área de texto de Writing
 function setupWritingTextareaEvents() {
   const textarea = document.getElementById('writing-textarea');
   const counter = document.getElementById('char-count');
@@ -1558,6 +1687,7 @@ function setupWritingTextareaEvents() {
   textarea.focus();
 }
 
+// Dibuja una pregunta de Task 1 de Writing
 function renderWritingTask1(qIndex) {
   const question = currentGroup.task1[qIndex];
   const existingResponse = sectionResponses[qIndex] || '';
@@ -1580,6 +1710,7 @@ function renderWritingTask1(qIndex) {
   `;
 }
 
+// Dibuja la Task 2 de Writing (el essay)
 function renderWritingTask2() {
   const task2 = currentGroup.task2;
   const existingResponse = sectionResponses[3] || '';
@@ -1605,6 +1736,7 @@ function renderWritingTask2() {
 
 // Preview now handled by renderUnifiedPreview()
 
+// Obtiene la siguiente parte de la sección
 function getNextPartKey() {
   const parts = SECTION_PARTS[currentSection];
   if (!parts) return null;
@@ -1613,6 +1745,7 @@ function getNextPartKey() {
   return parts[currentIndex + 1];
 }
 
+// Obtiene la parte anterior de la sección
 function getPrevPartKey() {
   const parts = SECTION_PARTS[currentSection];
   if (!parts) return null;
@@ -1621,6 +1754,7 @@ function getPrevPartKey() {
   return parts[currentIndex - 1];
 }
 
+// Revisa si es la primera parte de la sección
 function isFirstPartOfSection() {
   if (currentSection === 'WRITING') {
     return currentWritingStep <= WRITING_STEPS.TASK1_Q3;
@@ -1628,6 +1762,7 @@ function isFirstPartOfSection() {
   return getPrevPartKey() === null;
 }
 
+// Revisa si es la última parte de la sección
 function isLastPartOfSection() {
   if (currentSection === 'WRITING') {
     return currentWritingStep >= WRITING_STEPS.TASK2;
@@ -1635,6 +1770,7 @@ function isLastPartOfSection() {
   return getNextPartKey() === null;
 }
 
+// Revisa si es la última pregunta de la sección
 function isLastQuestionOfSection() {
   if (currentSection === 'WRITING') {
     return currentWritingStep === WRITING_STEPS.TASK2;
@@ -1648,6 +1784,7 @@ function isLastQuestionOfSection() {
   return false;
 }
 
+// Revisa si es la primera pregunta de la sección
 function isFirstQuestionOfSection() {
   if (currentSection === 'WRITING') {
     return currentWritingStep === WRITING_STEPS.TASK1_Q1;
@@ -1661,6 +1798,7 @@ function isFirstQuestionOfSection() {
   return false;
 }
 
+// Obtiene el nombre de la siguiente parte de Writing
 function getWritingNextPartName() {
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
     const writingParts = SECTION_PARTS.WRITING;
@@ -1671,6 +1809,7 @@ function getWritingNextPartName() {
   return null;
 }
 
+// Actualiza qué botones se ven (Anterior, Siguiente, etc.)
 function updatePrevButtonVisibility() {
   const prevBtn = document.getElementById('prev-btn');
   const nextBtn = document.getElementById('next-btn');
@@ -1833,6 +1972,7 @@ function updatePrevButtonVisibility() {
   }
 }
 
+// Guarda la respuesta actual de Writing
 function saveCurrentWritingResponse() {
   const textarea = document.getElementById('writing-textarea');
   if (!textarea) return;
@@ -1850,24 +1990,38 @@ function saveCurrentWritingResponse() {
   saveProgress();
 }
 
+// Variables para la sección de Speaking
 let speakingPart = null;
+// Índice de la tarea actual
 let speakingTaskIndex = 0;
+// Respuestas de audio
 let speakingResponses = [];
+// Tiempo restante de Speaking
 let speakingTimerRemaining = 0;
+// Intervalo del cronómetro
 let speakingTimerInterval = null;
+// Grabadora de audio
 let speakingMediaRecorder = null;
+// Fragmentos de audio grabado
 let speakingAudioChunks = [];
+// Flujo del micrófono
 let speakingStream = null;
+// Contexto de audio
 let speakingAudioContext = null;
+// Analizador de audio
 let speakingAnalyser = null;
+// ID de animación
 let speakingAnimationId = null;
 
+// Configuración de la base de datos para Speaking
 const SPEAKING_DB_NAME = 'SpeakingAudioDB';
 const SPEAKING_DB_VERSION = 1;
 const SPEAKING_STORE_NAME = 'audioResponses';
 
+// Conexión a la base de datos
 let speakingDB = null;
 
+// Abre la base de datos para guardar audios de Speaking
 function openSpeakingDB() {
   return new Promise((resolve, reject) => {
     if (speakingDB) {
@@ -1889,6 +2043,7 @@ function openSpeakingDB() {
   });
 }
 
+// Guarda un audio de Speaking en la base de datos
 function saveSpeakingAudio(taskIndex, blob, duration) {
   return openSpeakingDB().then(db => {
     return new Promise((resolve, reject) => {
@@ -1908,6 +2063,7 @@ function saveSpeakingAudio(taskIndex, blob, duration) {
   });
 }
 
+// Obtiene un audio guardado de Speaking
 function getSpeakingAudio(taskIndex) {
   return openSpeakingDB().then(db => {
     return new Promise((resolve, reject) => {
@@ -1920,6 +2076,7 @@ function getSpeakingAudio(taskIndex) {
   });
 }
 
+// Obtiene todos los audios de Speaking guardados
 function getAllSpeakingAudio() {
   return openSpeakingDB().then(db => {
     return new Promise((resolve, reject) => {
@@ -1932,6 +2089,7 @@ function getAllSpeakingAudio() {
   });
 }
 
+// Borra todos los audios de Speaking
 function clearSpeakingDB() {
   return openSpeakingDB().then(db => {
     return new Promise((resolve, reject) => {
@@ -1944,6 +2102,7 @@ function clearSpeakingDB() {
   });
 }
 
+// Pasos del Speaking (qué tarea se está haciendo)
 const SPEAKING_STEPS = {
   TASK_1: 0,
   TASK_2: 1,
@@ -1953,6 +2112,7 @@ const SPEAKING_STEPS = {
   PREVIEW: 5
 };
 
+// Inicia la sección de Speaking
 function beginSpeaking(partKey, saved = null) {
   stopSpeakingMic();
 
@@ -1997,6 +2157,7 @@ function beginSpeaking(partKey, saved = null) {
   return true;
 }
 
+// Dibuja la tarea actual de Speaking
 function renderSpeakingTask() {
   const task = speakingPart.tasks[speakingTaskIndex];
   if (!task) return;
@@ -2071,6 +2232,7 @@ function renderSpeakingTask() {
   updatePrevButtonVisibility();
 }
 
+// Empieza a grabar la respuesta de Speaking
 function startSpeakingRecording(task) {
   const beginBtn = document.getElementById('begin-speaking-btn');
   const timerEl = document.getElementById('speaking-timer');
@@ -2130,6 +2292,7 @@ function startSpeakingRecording(task) {
     });
 }
 
+// Configura la visualización de ondas de audio
 function setupAudioVisualization(stream) {
   const canvas = document.getElementById('audio-waveform');
   if (!canvas) return;
@@ -2171,6 +2334,7 @@ function setupAudioVisualization(stream) {
   draw();
 }
 
+// Detiene la visualización de ondas de audio
 function stopAudioVisualization() {
   if (speakingAnimationId) {
     cancelAnimationFrame(speakingAnimationId);
@@ -2182,6 +2346,7 @@ function stopAudioVisualization() {
   }
 }
 
+// Detiene el micrófono de Speaking
 function stopSpeakingMic() {
   if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
     speakingMediaRecorder.stop();
@@ -2197,6 +2362,7 @@ function stopSpeakingMic() {
   stopAudioVisualization();
 }
 
+// Reproduce una grabación de Speaking
 function playSpeakingRecording(taskIndex) {
   const response = speakingResponses[taskIndex];
   if (!response || !response.blob) return;
@@ -2228,6 +2394,7 @@ function playSpeakingRecording(taskIndex) {
   };
 }
 
+// Actualiza la barra de progreso de Speaking
 function updateSpeakingProgress() {
   const badge = getElement('category-badge');
   const progressText = getElement('progress-text');
@@ -2246,6 +2413,7 @@ function updateSpeakingProgress() {
   }
 }
 
+// Avanza al siguiente paso de Writing
 function nextSectionStep() {
   if (currentSection !== 'WRITING') return;
 
@@ -2296,6 +2464,7 @@ async function submitWritingResponses() {
   showResults();
 }
 
+// Muestra los resultados de Writing
 function showWritingResults() {
   pauseTimer();
   window.location.hash = '#/writing/preview';
@@ -2325,6 +2494,7 @@ function showWritingResults() {
   getElement('email-btn').classList.remove('hidden');
 }
 
+// Navega a la siguiente parte de la sección
 function navigateToNextPart() {
   pauseTimer();
   const nextPart = getNextPartKey();
@@ -2350,6 +2520,7 @@ function navigateToNextPart() {
   }
 }
 
+// Navega a una parte específica de la sección
 function navigateToPart(partKey) {
   if (!currentSection) return;
 
@@ -2373,6 +2544,7 @@ function navigateToPart(partKey) {
   }
 }
 
+// Regresa a la pregunta anterior
 function previousQuestion() {
   if (currentSection === 'WRITING') {
     if (currentWritingStep > 0) {
@@ -2399,6 +2571,7 @@ function previousQuestion() {
   saveProgress();
 }
 
+// Avanza a la siguiente pregunta
 function nextQuestion() {
   if (currentSection === 'WRITING') {
     nextSectionStep();
@@ -2413,6 +2586,7 @@ function nextQuestion() {
   navigateToNextGroup();
 }
 
+// Va a la vista previa de la sección
 function goToPreview() {
   pauseTimer();
   if (!currentSection) return;
@@ -2433,6 +2607,7 @@ function goToPreview() {
   renderUnifiedPreview();
 }
 
+// Avanza a la siguiente tarea de Speaking
 function nextSpeakingTask() {
   if (currentSection !== 'SPEAKING') return;
 
@@ -2446,6 +2621,7 @@ function nextSpeakingTask() {
   }
 }
 
+// Regresa a la tarea anterior de Speaking
 function previousSpeakingTask() {
   if (currentSection !== 'SPEAKING') return;
 
@@ -2456,6 +2632,7 @@ function previousSpeakingTask() {
   }
 }
 
+// Crea todos los grupos de preguntas de una sección
 function buildAllSectionGroups(section) {
   const allGroups = [];
   let sectionGlobalNum = 0;
@@ -2574,6 +2751,7 @@ function buildAllSectionGroups(section) {
   return allGroups;
 }
 
+// Dibuja la vista previa unificada
 function renderUnifiedPreview() {
   sectionPreviewMode = true;
 
@@ -2625,6 +2803,7 @@ function renderUnifiedPreview() {
   attachPreviewItemListeners();
 }
 
+// Dibuja los elementos de vista previa para Writing
 function renderWritingPreviewItems() {
   if (!currentGroup) return '';
   const task1 = currentGroup.task1 || [];
@@ -2672,6 +2851,7 @@ function renderWritingPreviewItems() {
   return html;
 }
 
+// Dibuja los elementos de vista previa para Speaking
 function renderSpeakingPreviewItems() {
   if (!speakingPart) return '';
   const tasks = speakingPart.tasks || [];
@@ -2702,6 +2882,7 @@ function renderSpeakingPreviewItems() {
   return html;
 }
 
+// Dibuja los elementos de vista previa para preguntas de opción múltiple
 function renderMCPreviewItems() {
   const allGroups = buildAllSectionGroups(currentSection);
   let html = '';
@@ -2771,6 +2952,7 @@ function renderMCPreviewItems() {
   return html;
 }
 
+// Obtiene el resumen de la vista previa
 function getPreviewSummary() {
   if (currentSection === 'WRITING') {
     const total = 4;
@@ -2787,6 +2969,7 @@ function getPreviewSummary() {
   }
 }
 
+// Agrega los eventos a los elementos de la vista previa
 function attachPreviewItemListeners() {
   // MC items are NOT editable — no click handler to navigate back
 
@@ -2815,6 +2998,7 @@ function attachPreviewItemListeners() {
   });
 }
 
+// Edita una respuesta de Writing desde la vista previa
 function editWritingFromPreview(step) {
   saveCurrentWritingResponse();
 
@@ -2827,6 +3011,7 @@ function editWritingFromPreview(step) {
   updateWritingHash(taskPart, qNum);
 }
 
+// Reproduce una grabación desde la vista previa
 function playSpeakingPreviewRecording(taskIdx, btn) {
   const response = speakingResponses[taskIdx];
   if (!response || !response.blob) return;
@@ -2854,6 +3039,7 @@ function playSpeakingPreviewRecording(taskIdx, btn) {
   };
 }
 
+// Navega a una pregunta específica
 function navigateToQuestion(globalNum) {
   sectionPreviewMode = false;
   const qIndex = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
@@ -2876,6 +3062,7 @@ function navigateToQuestion(globalNum) {
   resumeTimer();
 }
 
+// Edita una tarea de Speaking
 function editSpeakingTask(taskIdx) {
   speakingTaskIndex = taskIdx;
   sectionPreviewMode = false;
@@ -2883,12 +3070,14 @@ function editSpeakingTask(taskIdx) {
   resumeTimer();
 }
 
+// Envía desde la vista previa
 function submitFromPreview() {
   pauseTimer();
   saveProgress();
   showResults();
 }
 
+// Muestra los resultados finales
 function showResults() {
   pauseTimer();
 
@@ -2962,6 +3151,7 @@ function showResults() {
   getElement('email-btn').classList.remove('hidden');
 }
 
+// Envía los resultados por correo electrónico
 function sendEmail() {
   let listeningCount = 0;
   let readingCount = 0;
@@ -3071,6 +3261,7 @@ async function continueFromSaved() {
   resumeTimer();
 }
 
+// Inicializa los escuchadores de eventos
 function initEventListeners() {
   getElement('next-btn')?.addEventListener('click', nextQuestion);
   getElement('prev-btn')?.addEventListener('click', previousQuestion);
@@ -3234,6 +3425,7 @@ function initEventListeners() {
   });
 }
 
+// Regresa a la página de inicio
 function goHome() {
   stopTimer();
   stopSpeakingMic();
@@ -3256,6 +3448,7 @@ function goHome() {
   renderCategorySelect();
 }
 
+// Inicializa la aplicación
 async function init() {
   loadUser();
   updateUserDisplay();
@@ -3271,6 +3464,7 @@ async function init() {
   }
 }
 
+// Inicializa el tema (claro/oscuro)
 function initTheme() {
   const themeSwitch = document.getElementById('theme-switch');
   const savedTheme = localStorage.getItem('metQuizTheme') || 'light';
@@ -3293,6 +3487,7 @@ function initTheme() {
   }
 }
 
+// Permite exportar funciones si se usa en Node.js
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { quizData, loadGroup, loadAllData };
 }

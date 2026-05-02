@@ -1,3 +1,5 @@
+/* Configuración de variables CSS para el modo claro */
+/* Colores, sombras y estilos que se usarán en toda la página */
 :root {
   /* Light Mode Colors */
   --bg-primary: #ffffff;
@@ -32,6 +34,7 @@
   --scrollbar-track: #e9ecef;
 }
 
+/* Configuración de variables CSS para el modo oscuro */
 [data-theme="dark"] {
   --bg-primary: #121212;
   --bg-secondary: #1e1e1e;
@@ -65,17 +68,21 @@
   --scrollbar-track: #333333;
 }
 
+/* Reinicia los márgenes y padding de todos los elementos */
+/* Esto asegura que todos los elementos empiecen sin espacios extra */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* Estilo del cuerpo de la página */
+/* Centra todo el contenido en la pantalla */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height:100vh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -83,12 +90,14 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Contenedor principal de la página */
 .container {
   max-width: 560px;
   width: 100%;
   text-align: center;
 }
 
+/* Ajustes para pantallas grandes (más de 1200px de ancho) */
 @media (min-width: 1200px) {
   .container {
     max-width: 900px;
@@ -124,6 +133,10 @@ h1 {
   color: var(--text-muted);
   font-weight: 300;
 }
+
+/* ============================================ */
+/* ESTILOS PARA LA BARRA DE PROGRESO */
+/* ============================================ */
 
 #progress-row {
   display: flex;
