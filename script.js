@@ -271,7 +271,7 @@ function getAnswerFromHash(partKey, qNum) {
 
 let hashNavigationLocked = false;
 
-// Carga la sección basándose en la URL
+// Carga la sección basándose en la URL. El símbolo "===" significa que se está cargando una sección específica.
 function loadFromHash() {
   if (hashNavigationLocked) return;
 
@@ -519,7 +519,7 @@ let currentPreviewIndex = 0;
 // Letras para las opciones
 const letters = ['A', 'B', 'C', 'D'];
 
-// URL para enviar datos a Google Sheets (En caso de actualizar está en: línea 523, 709 y 740 y en SETUP.md)
+// URL para enviar datos a Google Sheets (En caso de actualizar, está en: línea 523, 709 y 740 y en SETUP.md)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo0UvJWgK-hGMpLPAyAzuz7D6InaGY1GGZMGfrYycEwmMBJNh1aSQ2UIA44DgX9Blp/exec';
 
 // Límite de caracteres para Task 1
@@ -599,7 +599,7 @@ function resetAllProgress() {
   const modalOk = getElement('confirm-ok');
   const modalCancel = getElement('confirm-cancel');
 
-  modalText.textContent = 'Reset all progress? This cannot be undone.';
+  modalText.textContent = 'Are you sure you want to reset all progress? This cannot be undone.';
 
   modal.classList.remove('hidden');
 
@@ -794,7 +794,7 @@ function hideChangeUserModal() {
   getElement('change-user-modal').classList.add('hidden');
 }
 
-// Actualiza la barra de progreso de la sección
+// Actualiza la barra de progreso de la sección.
 function updateSectionProgress() {
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
 
@@ -808,7 +808,7 @@ function updateSectionProgress() {
     };
     const barMap = {
       [WRITING_STEPS.TASK1_Q1]: 10,
-      [WRITING_STEPS.TASK1_Q2]: 30,
+      [WRITING_STEPS.TASK1_Q2]: 25,
       [WRITING_STEPS.TASK1_Q3]: 50,
       [WRITING_STEPS.TASK2]: 75,
       [WRITING_STEPS.PREVIEW]: 100
@@ -879,8 +879,8 @@ function renderCategorySelect() {
 
   const sections = [
     { key: 'WRITING', name: 'Writing', description: 'Task 1 (3 questions) and Task 2 (essay of 250 words)', parts: SECTION_PARTS.WRITING },
-    { key: 'LISTENING', name: 'Listening', description: 'Multiple choice questions with audio. Parts 1-3, 50 questions total.', parts: SECTION_PARTS.LISTENING },
-    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar', description: 'Grammar and reading comprehension. Parts 1-3, 50 questions total.', parts: SECTION_PARTS.READING_AND_GRAMMAR },
+    { key: 'LISTENING', name: 'Listening', description: 'Parts 1-3, 50 questions total.', parts: SECTION_PARTS.LISTENING },
+    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar', description: 'Parts 1-3, 51 questions total.', parts: SECTION_PARTS.READING_AND_GRAMMAR },
     { key: 'SPEAKING', name: 'Speaking', description: 'Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.', parts: SECTION_PARTS.SPEAKING }
   ];
 
@@ -1021,8 +1021,10 @@ function beginQuiz(section) {
     timerRemaining = SECTION_TIMES[currentSection];
   }
 
-  if (section === 'WRITING_TASK1' || section === 'WRITING_TASK2') {
-    beginWriting(section, saved, config);
+  if (section.startsWith('WRITING') || section === 'WRITING') {
+    const parts = SECTION_PARTS.WRITING;
+    const partKey = section.startsWith('WRITING_T') ? section : (parts && parts[0] ? parts[0].key : 'WRITING_TASK1');
+    beginWriting(partKey, saved, SECTION_CONFIG.WRITING);
     return;
   }
 
@@ -1051,15 +1053,15 @@ function beginQuiz(section) {
 }
 
 // Inicia la sección de Writing
-function beginWriting(section, saved, config) {
+function beginWriting(partKey, saved, config) {
   if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
     alert('La sección de Writing aún no tiene contenido.');
     return;
   }
 
-  currentPartKey = section;
-  const isTask2 = section === 'WRITING_TASK2';
-  const hasSavedProgress = saved && saved.currentPartKey === section;
+  currentPartKey = partKey;
+  const isTask2 = partKey.endsWith('TASK2');
+  const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
   if (hasSavedProgress && saved.writingGroupId) {
     const group = quizData.WRITING.groups.find(g => g.id === saved.writingGroupId);
@@ -1803,7 +1805,7 @@ function getWritingNextPartName() {
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
     const writingParts = SECTION_PARTS.WRITING;
     if (!writingParts) return 'Task 2';
-    const task2Part = writingParts.find(p => p.key === 'WRITING_TASK2');
+    const task2Part = writingParts.find(p => p.key.endsWith('TASK2'));
     return task2Part ? task2Part.name : 'Task 2';
   }
   return null;
