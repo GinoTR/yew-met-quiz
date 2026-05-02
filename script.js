@@ -319,7 +319,7 @@ function loadFromHash() {
         if (currentWritingStep !== WRITING_STEPS.TASK2) {
           saveCurrentWritingResponse();
           currentWritingStep = WRITING_STEPS.TASK2;
-          renderWritingStep();
+          renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
         }
       } else {
         const step = qStart - 1;
@@ -327,7 +327,7 @@ function loadFromHash() {
           if (currentWritingStep !== step) {
             saveCurrentWritingResponse();
             currentWritingStep = step;
-            renderWritingStep();
+            renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
           }
         }
       }
@@ -1088,7 +1088,7 @@ function beginWriting(partKey, saved, config) {
   setupInstructionsPanel();
   const partName = isTask2 ? 'Task 2' : 'Task 1';
   logActivity('INICIO', `WRITING ${partName} - Grupo: ${currentGroup.id}`);
-  renderWritingStep();
+  renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
   updatePrevButtonVisibility();
 
   const taskPart = isTask2 ? 'task2' : 'task1';
@@ -1625,51 +1625,6 @@ function navigateToPrevPart() {
   }
 }
 
-// Dibuja el paso actual de Writing
-function renderWritingStep() {
-  const container = getElement('quiz-container');
-  container.classList.remove('fade-out');
-  void container.offsetWidth;
-  container.classList.add('fade-out');
-  setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
-    void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
-  }, 300);
-
-  updateSectionProgress();
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('feedback-container').classList.add('hidden');
-  getElement('section-instructions-panel').classList.remove('hidden');
-
-  let html = '';
-
-  switch (currentWritingStep) {
-    case WRITING_STEPS.TASK1_Q1: html = renderWritingTask1(0); break;
-    case WRITING_STEPS.TASK1_Q2: html = renderWritingTask1(1); break;
-    case WRITING_STEPS.TASK1_Q3: html = renderWritingTask1(2); break;
-    case WRITING_STEPS.TASK2: html = renderWritingTask2(); break;
-    case WRITING_STEPS.PREVIEW: html = ''; break;
-  }
-
-  getElement('question-text').innerHTML = '';
-  getElement('options-container').innerHTML = html;
-  updatePrevButtonVisibility();
-
-  if (currentWritingStep === WRITING_STEPS.PREVIEW) {
-    getElement('controls').classList.add('hidden');
-  } else {
-    getElement('controls').classList.remove('hidden');
-    setupWritingTextareaEvents();
-  }
-
-  updatePrevButtonVisibility();
-}
-
 // Configura los eventos del área de texto de Writing
 function setupWritingTextareaEvents() {
   const textarea = document.getElementById('writing-textarea');
@@ -1687,53 +1642,6 @@ function setupWritingTextareaEvents() {
   });
 
   textarea.focus();
-}
-
-// Dibuja una pregunta de Task 1 de Writing
-function renderWritingTask1(qIndex) {
-  const question = currentGroup.task1[qIndex];
-  const existingResponse = sectionResponses[qIndex] || '';
-  const charCount = existingResponse.length;
-  const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
-
-  return `
-    <div class="writing-question">
-      <p class="writing-question-text">${question.text}</p>
-      <textarea
-        id="writing-textarea"
-        class="writing-textarea"
-        placeholder="Escribe tu respuesta aquí..."
-        maxlength="${TASK1_CHAR_LIMIT}"
-      >${existingResponse}</textarea>
-      <div class="char-counter ${showCounter ? 'visible' : ''}">
-        <span id="char-count">${charCount}</span> / ${TASK1_CHAR_LIMIT}
-      </div>
-    </div>
-  `;
-}
-
-// Dibuja la Task 2 de Writing (el essay)
-function renderWritingTask2() {
-  const task2 = currentGroup.task2;
-  const existingResponse = sectionResponses[3] || '';
-  const charCount = existingResponse.length;
-  const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
-
-  return `
-    <div class="writing-question">
-      <p class="writing-question-text">${task2.topic}</p>
-      <p class="writing-task-prompt">${task2.prompt}</p>
-      <textarea
-        id="writing-textarea"
-        class="writing-textarea writing-textarea-large"
-        placeholder="Escribe tu essay aquí..."
-        maxlength="${TASK2_CHAR_LIMIT}"
-      >${existingResponse}</textarea>
-      <div class="char-counter ${showCounter ? 'visible' : ''}">
-        <span id="char-count">${charCount}</span> / ${TASK2_CHAR_LIMIT}
-      </div>
-    </div>
-  `;
 }
 
 // Preview now handled by renderUnifiedPreview()
@@ -1798,6 +1706,271 @@ function isFirstQuestionOfSection() {
     return isFirstPartOfSection() && currentGroupIndex === 0;
   }
   return false;
+}
+
+// Dibuja un paso de cualquier sección de forma universal
+// inputType: 'textarea' (Writing), 'audio' (Speaking), 'mc' (Listening/Reading)
+function renderStep(section, partId, items, inputType) {
+  const container = getElement('quiz-container');
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+
+  if (section === 'SPEAKING') {
+    updateSpeakingProgress();
+  } else {
+    updateSectionProgress();
+  }
+
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('feedback-container').classList.add('hidden');
+  getElement('section-instructions-panel').classList.remove('hidden');
+
+  let html = '';
+
+  if (inputType === 'textarea') {
+    // Renderizado para Writing (Task 1 y Task 2)
+    if (section === 'WRITING') {
+      if (partId === WRITING_STEPS.TASK1_Q1 || partId === WRITING_STEPS.TASK1_Q2 || partId === WRITING_STEPS.TASK1_Q3) {
+        const qIndex = partId; // 0, 1, o 2
+        const question = items.task1[qIndex];
+        const existingResponse = sectionResponses[qIndex] || '';
+        const charCount = existingResponse.length;
+        const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
+        html = `
+          <div class="writing-question">
+            <p class="writing-question-text">${question.text}</p>
+            <textarea id="writing-textarea" class="writing-textarea" placeholder="Escribe tu respuesta aquí..." maxlength="${TASK1_CHAR_LIMIT}">${existingResponse}</textarea>
+            <div class="char-counter ${showCounter ? 'visible' : ''}">
+              <span id="char-count">${charCount}</span> / ${TASK1_CHAR_LIMIT}
+            </div>
+          </div>
+        `;
+      } else if (partId === WRITING_STEPS.TASK2) {
+        const task2 = items.task2;
+        const existingResponse = sectionResponses[3] || '';
+        const charCount = existingResponse.length;
+        const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
+        html = `
+          <div class="writing-question">
+            <p class="writing-question-text">${task2.topic}</p>
+            <p class="writing-task-prompt">${task2.prompt}</p>
+            <textarea id="writing-textarea" class="writing-textarea writing-textarea-large" placeholder="Escribe tu essay aquí..." maxlength="${TASK2_CHAR_LIMIT}">${existingResponse}</textarea>
+            <div class="char-counter ${showCounter ? 'visible' : ''}">
+              <span id="char-count">${charCount}</span> / ${TASK2_CHAR_LIMIT}
+            </div>
+          </div>
+        `;
+      }
+    }
+  } else if (inputType === 'audio') {
+    // Renderizado para Speaking
+    const task = items.tasks[speakingTaskIndex];
+    if (!task) return;
+    const hasResponse = speakingResponses[speakingTaskIndex] !== null && speakingResponses[speakingTaskIndex] !== undefined;
+    const partLabel = getPartLabel(currentPartKey);
+    html = '<div class="speaking-task-container">';
+    html += `<div class="speaking-task-header">`;
+    html += `<span class="speaking-task-badge">${partLabel}</span>`;
+    html += `<span class="speaking-task-label">Task ${task.number} of ${items.tasks.length}</span>`;
+    html += '</div>';
+    html += `<div class="speaking-prompt">${task.prompt}</div>`;
+    html += `<div class="speaking-time-info">You have ${task.timeLimit} seconds to talk.</div>`;
+    if (!hasResponse) {
+      html += '<button id="begin-speaking-btn" class="btn-begin-speaking">Begin speaking now</button>';
+      html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
+      html += '<div id="speaking-recorder" class="speaking-recorder hidden">';
+      html += '<div class="recorder-icon">🎙</div>';
+      html += '<div class="recorder-text">Recording</div>';
+      html += '<canvas id="audio-waveform" class="audio-waveform"></canvas>';
+      html += '</div>';
+    } else {
+      const duration = speakingResponses[speakingTaskIndex].duration;
+      html += `<div class="speaking-completed">✓ Response recorded (${duration}s)</div>`;
+      html += '<button id="playback-speaking-btn" class="btn-playback-speaking">▶ Play your recording</button>';
+      html += '<audio id="speaking-audio-playback" class="hidden"></audio>';
+      html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
+      html += '<div id="speaking-recorder" class="speaking-recorder hidden">';
+      html += '<div class="recorder-icon">🎙</div>';
+      html += '<div class="recorder-text">Recording</div>';
+      html += '<canvas id="audio-waveform" class="audio-waveform"></canvas>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  getElement('question-text').innerHTML = '';
+  getElement('options-container').innerHTML = html;
+
+  if (inputType === 'textarea') {
+    getElement('controls').classList.remove('hidden');
+    setupWritingTextareaEvents();
+  } else if (inputType === 'audio') {
+    getElement('controls').classList.remove('hidden');
+    getElement('question-text').classList.add('hidden');
+    const beginBtn = document.getElementById('begin-speaking-btn');
+    if (beginBtn) {
+      beginBtn.addEventListener('click', () => startSpeakingRecording(task));
+    }
+    const playbackBtn = document.getElementById('playback-speaking-btn');
+    if (playbackBtn) {
+      playbackBtn.addEventListener('click', () => playSpeakingRecording(speakingTaskIndex));
+    }
+  }
+
+  updatePrevButtonVisibility();
+}
+
+// Dibuja la vista previa de forma universal
+// inputType: 'textarea' (Writing), 'audio' (Speaking), 'mc' (Listening/Reading)
+function renderPreview(section, items, inputType) {
+  let html = '';
+
+  if (inputType === 'textarea') {
+    // Preview para Writing
+    if (!items) return '';
+    const task1 = items.task1 || [];
+    const task2 = items.task2;
+    const canEdit = timerRemaining > 0;
+
+    // Task 1 Questions
+    task1.forEach((q, i) => {
+      const response = sectionResponses[i] || '';
+      const hasResponse = response.length > 0;
+      const statusClass = hasResponse ? 'answered' : 'unanswered';
+      const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
+
+      html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}">`;
+      html += `<div class="preview-slide-header">Task 1 — Question ${i + 1} of 3</div>`;
+      html += `<div class="preview-question">`;
+      html += `<div class="preview-q-text"><span class="preview-q-num">Q${i + 1}.</span> ${q.text}</div>`;
+      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+      if (canEdit) {
+        html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}" style="margin-left:8px;">✏️ Edit</button>`;
+      }
+      html += `</div></div></div>`;
+    });
+
+    // Task 2
+    if (task2) {
+      const response = sectionResponses[3] || '';
+      const hasResponse = response.length > 0;
+      const statusClass = hasResponse ? 'answered' : 'unanswered';
+      const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
+
+      html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK2}">`;
+      html += `<div class="preview-slide-header">Task 2 — Essay</div>`;
+      html += `<div class="preview-question">`;
+      html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2.topic}</div>`;
+      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+      if (canEdit) {
+        html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK2}" style="margin-left:8px;">✏️ Edit</button>`;
+      }
+      html += `</div></div></div>`;
+    }
+
+  } else if (inputType === 'audio') {
+    // Preview para Speaking
+    if (!items || !items.tasks) return '';
+    const tasks = items.tasks || [];
+    const canEdit = timerRemaining > 0;
+
+    tasks.forEach((task, i) => {
+      const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
+      const duration = hasRecording ? speakingResponses[i].duration : null;
+      const statusClass = hasRecording ? 'correct' : 'unanswered';
+      const statusText = hasRecording ? `✓ Response recorded (${duration}s)` : 'Sin respuesta';
+
+      html += `<div class="preview-slide" data-speaking-task="${i}">`;
+      html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
+      html += `<div class="preview-question">`;
+      html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
+      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+      if (hasRecording) {
+        html += ` <button class="btn-preview-playback" data-task-idx="${i}" style="margin-left:8px;">▶ Play</button>`;
+        html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
+      }
+      if (canEdit) {
+        html += ` <button class="btn-preview-edit-speaking" data-task-idx="${i}" style="margin-left:8px;">✏️ Edit</button>`;
+      }
+      html += `</div></div></div>`;
+    });
+
+  } else if (inputType === 'mc') {
+    // Preview para Multiple Choice (Listening/Reading)
+    const allGroups = buildAllSectionGroups(currentSection);
+    let answeredCount = 0;
+    let totalQ = 0;
+
+    allGroups.forEach((grp) => {
+      const partLabel = grp.partLabel;
+      let headerText = `${partLabel}`;
+      if (grp.groupLabel) {
+        headerText += ` ${grp.groupLabel}`;
+      }
+      if (grp.article) {
+        headerText += ` — Article ${grp.article.letter}`;
+      } else if (grp.isConnector) {
+        headerText += ` — Connector`;
+      } else if (grp.audioGroupNumber) {
+        headerText += ` — Audio ${grp.audioGroupNumber}`;
+      }
+      const { start, end } = grp.questionRange;
+      headerText += ` — Questions ${start}${end !== start ? '-' + end : ''}`;
+
+      html += `<div class="preview-slide">`;
+      html += `<div class="preview-slide-header">${headerText}</div>`;
+
+      grp.questions.forEach(q => {
+        const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+        const isAnswered = answeredQuestions.has(questionIdx);
+        const displayNum = q.displayNumber || q.globalNumber;
+        const userAnswerIdx = groupSelectedAnswers[q.globalNumber];
+        totalQ++;
+        if (isAnswered) answeredCount++;
+
+        let statusClass = 'unanswered';
+        let answerDetail = '';
+
+        if (isAnswered && questionIdx >= 0) {
+          const sq = shuffledQuestions[questionIdx];
+          statusClass = 'answered';
+          if (userAnswerIdx !== undefined) {
+            const userLetter = letters[userAnswerIdx];
+            const correctLetter = letters[sq.correctAnswer];
+            if (userLetter === correctLetter) {
+              statusClass = 'correct';
+              answerDetail = ` — Your answer: ${userLetter}`;
+            } else {
+              statusClass = 'incorrect';
+              answerDetail = ` — Your answer: ${userLetter} (Correct: ${correctLetter})`;
+            }
+          }
+        }
+
+        html += `<div class="preview-question">`;
+        html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.text}</div>`;
+        html += `<div class="preview-q-answer ${statusClass}">${isAnswered ? 'Answered' : 'Sin respuesta'}${answerDetail}`;
+        if (isAnswered && canEdit) {
+          html += ` <button class="btn-preview-edit-mc" data-global-num="${q.globalNumber}" style="margin-left:8px;">✏️ Edit</button>`;
+        }
+        html += `</div></div>`;
+      });
+
+      html += `</div>`;
+    });
+  }
+
+  return html;
 }
 
 // Obtiene el nombre de la siguiente parte de Writing de forma dinámica
@@ -2154,9 +2327,9 @@ function beginSpeaking(partKey, saved = null) {
         };
       }
     });
-    renderSpeakingTask();
+    renderStep('SPEAKING', currentPartKey, speakingPart, 'audio');
   }).catch(() => {
-    renderSpeakingTask();
+    renderStep('SPEAKING', currentPartKey, speakingPart, 'audio');
   });
 
   updatePrevButtonVisibility();
@@ -2165,1350 +2338,4 @@ function beginSpeaking(partKey, saved = null) {
 }
 
 // Dibuja la tarea actual de Speaking
-function renderSpeakingTask() {
-  const task = speakingPart.tasks[speakingTaskIndex];
-  if (!task) return;
-
-  const container = getElement('quiz-container');
-  container.classList.remove('fade-out');
-  void container.offsetWidth;
-  container.classList.add('fade-out');
-  setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
-    void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
-  }, 300);
-
-  updateSpeakingProgress();
-
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('feedback-container').classList.add('hidden');
-
-  const hasResponse = speakingResponses[speakingTaskIndex] !== null && speakingResponses[speakingTaskIndex] !== undefined;
-  const partLabel = getPartLabel(currentPartKey);
-
-  let html = '<div class="speaking-task-container">';
-  html += `<div class="speaking-task-header">`;
-  html += `<span class="speaking-task-badge">${partLabel}</span>`;
-  html += `<span class="speaking-task-label">Task ${task.number} of ${speakingPart.tasks.length}</span>`;
-  html += `</div>`;
-  html += `<div class="speaking-prompt">${task.prompt}</div>`;
-  html += `<div class="speaking-time-info">You have ${task.timeLimit} seconds to talk.</div>`;
-
-  if (!hasResponse) {
-    html += `<button id="begin-speaking-btn" class="btn-begin-speaking">Begin speaking now</button>`;
-    html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
-    html += `<div id="speaking-recorder" class="speaking-recorder hidden">`;
-    html += `<div class="recorder-icon">🎙</div>`;
-    html += `<div class="recorder-text">Recording</div>`;
-    html += `<canvas id="audio-waveform" class="audio-waveform"></canvas>`;
-    html += `</div>`;
-  } else {
-    const duration = speakingResponses[speakingTaskIndex].duration;
-    html += `<div class="speaking-completed">✓ Response recorded (${duration}s)</div>`;
-    html += `<button id="playback-speaking-btn" class="btn-playback-speaking">▶ Play your recording</button>`;
-    html += `<audio id="speaking-audio-playback" class="hidden"></audio>`;
-    html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
-    html += `<div id="speaking-recorder" class="speaking-recorder hidden">`;
-    html += `<div class="recorder-icon">🎙</div>`;
-    html += `<div class="recorder-text">Recording</div>`;
-    html += `<canvas id="audio-waveform" class="audio-waveform"></canvas>`;
-    html += `</div>`;
-  }
-
-  html += '</div>';
-
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = html;
-  getElement('controls').classList.remove('hidden');
-
-  const beginBtn = document.getElementById('begin-speaking-btn');
-  if (beginBtn) {
-    beginBtn.addEventListener('click', () => startSpeakingRecording(task));
-  }
-
-  const playbackBtn = document.getElementById('playback-speaking-btn');
-  if (playbackBtn) {
-    playbackBtn.addEventListener('click', () => playSpeakingRecording(speakingTaskIndex));
-  }
-
-  updatePrevButtonVisibility();
-}
-
 // Empieza a grabar la respuesta de Speaking
-function startSpeakingRecording(task) {
-  const beginBtn = document.getElementById('begin-speaking-btn');
-  const timerEl = document.getElementById('speaking-timer');
-  const recorderEl = document.getElementById('speaking-recorder');
-  const timeDisplay = document.getElementById('speaking-time-display');
-
-  if (beginBtn) beginBtn.classList.add('hidden');
-  if (timerEl) timerEl.classList.remove('hidden');
-  if (recorderEl) recorderEl.classList.remove('hidden');
-
-  speakingTimerRemaining = task.timeLimit;
-  speakingAudioChunks = [];
-
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      speakingStream = stream;
-      speakingMediaRecorder = new MediaRecorder(stream);
-
-      speakingMediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0) {
-          speakingAudioChunks.push(event.data);
-        }
-      };
-
-      speakingMediaRecorder.onstop = () => {
-        const blob = new Blob(speakingAudioChunks, { type: 'audio/webm' });
-        const duration = task.timeLimit - speakingTimerRemaining;
-        speakingResponses[speakingTaskIndex] = { blob, duration, timestamp: Date.now() };
-        saveSpeakingAudio(speakingTaskIndex, blob, duration).catch(console.error);
-        saveProgress();
-        stopAudioVisualization();
-        renderSpeakingTask();
-      };
-
-      speakingMediaRecorder.start();
-      setupAudioVisualization(stream);
-
-      speakingTimerInterval = setInterval(() => {
-        speakingTimerRemaining--;
-        if (timeDisplay) timeDisplay.textContent = formatTime(speakingTimerRemaining);
-
-        if (speakingTimerRemaining <= 0) {
-          clearInterval(speakingTimerInterval);
-          if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
-            speakingMediaRecorder.stop();
-          }
-          if (speakingStream) {
-            speakingStream.getTracks().forEach(track => track.stop());
-          }
-        }
-      }, 1000);
-    })
-    .catch(err => {
-      console.error('Microphone access denied:', err);
-      alert('Microphone access is required for the speaking section.');
-      renderSpeakingTask();
-    });
-}
-
-// Configura la visualización de ondas de audio
-function setupAudioVisualization(stream) {
-  const canvas = document.getElementById('audio-waveform');
-  if (!canvas) return;
-
-  speakingAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const source = speakingAudioContext.createMediaStreamSource(stream);
-  speakingAnalyser = speakingAudioContext.createAnalyser();
-  speakingAnalyser.fftSize = 256;
-  source.connect(speakingAnalyser);
-
-  const bufferLength = speakingAnalyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-  const ctx = canvas.getContext('2d');
-
-  function draw() {
-    speakingAnimationId = requestAnimationFrame(draw);
-
-    speakingAnalyser.getByteFrequencyData(dataArray);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const barWidth = (canvas.width / bufferLength) * 2.5;
-    let x = 0;
-
-    for (let i = 0; i < bufferLength; i++) {
-      const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
-
-      const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
-      gradient.addColorStop(0, '#6366f1');
-      gradient.addColorStop(1, '#818cf8');
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-
-      x += barWidth;
-    }
-  }
-
-  draw();
-}
-
-// Detiene la visualización de ondas de audio
-function stopAudioVisualization() {
-  if (speakingAnimationId) {
-    cancelAnimationFrame(speakingAnimationId);
-    speakingAnimationId = null;
-  }
-  if (speakingAudioContext) {
-    speakingAudioContext.close();
-    speakingAudioContext = null;
-  }
-}
-
-// Detiene el micrófono de Speaking
-function stopSpeakingMic() {
-  if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
-    speakingMediaRecorder.stop();
-  }
-  if (speakingStream) {
-    speakingStream.getTracks().forEach(track => track.stop());
-    speakingStream = null;
-  }
-  if (speakingTimerInterval) {
-    clearInterval(speakingTimerInterval);
-    speakingTimerInterval = null;
-  }
-  stopAudioVisualization();
-}
-
-// Reproduce una grabación de Speaking
-function playSpeakingRecording(taskIndex) {
-  const response = speakingResponses[taskIndex];
-  if (!response || !response.blob) return;
-
-  const audioEl = document.getElementById('speaking-audio-playback');
-  const playbackBtn = document.getElementById('playback-speaking-btn');
-  if (!audioEl || !playbackBtn) return;
-
-  const url = URL.createObjectURL(response.blob);
-  audioEl.src = url;
-  audioEl.classList.remove('hidden');
-  audioEl.play();
-
-  playbackBtn.textContent = '⏸ Playing...';
-  playbackBtn.disabled = true;
-
-  audioEl.onended = () => {
-    URL.revokeObjectURL(url);
-    playbackBtn.textContent = '▶ Play your recording';
-    playbackBtn.disabled = false;
-    audioEl.classList.add('hidden');
-  };
-
-  audioEl.onerror = () => {
-    URL.revokeObjectURL(url);
-    playbackBtn.textContent = '▶ Play your recording';
-    playbackBtn.disabled = false;
-    audioEl.classList.add('hidden');
-  };
-}
-
-// Actualiza la barra de progreso de Speaking
-function updateSpeakingProgress() {
-  const badge = getElement('category-badge');
-  const progressText = getElement('progress-text');
-  const progressBar = getElement('progress-bar');
-
-  if (badge) badge.textContent = getSectionBadge(currentPartKey);
-  if (progressText) {
-    const partLabel = getPartLabel(currentPartKey);
-    progressText.textContent = partLabel || 'Speaking';
-  }
-  if (progressBar) {
-    const totalTasks = speakingPart.tasks.length;
-    const completed = speakingResponses.filter(r => r !== null && r !== undefined).length;
-    const percent = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
-    progressBar.style.width = `${percent}%`;
-  }
-}
-
-// Avanza al siguiente paso de Writing
-function nextSectionStep() {
-  if (currentSection !== 'WRITING') return;
-
-  saveCurrentWritingResponse();
-  saveProgress();
-
-  let taskPart = 'task1';
-  let qNum = 1;
-
-  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    if (currentWritingStep < WRITING_STEPS.TASK1_Q3) {
-      currentWritingStep++;
-      qNum = currentWritingStep + 1;
-    } else {
-      currentWritingStep = WRITING_STEPS.TASK2;
-      taskPart = 'task2';
-      qNum = 1;
-    }
-    renderWritingStep();
-    hashNavigationLocked = true;
-    updateWritingHash(taskPart, qNum);
-    hashNavigationLocked = false;
-    return;
-  }
-
-  if (currentWritingStep === WRITING_STEPS.TASK2) {
-    currentWritingStep = WRITING_STEPS.PREVIEW;
-    renderWritingStep();
-    hashNavigationLocked = true;
-    window.location.hash = '#/writing/preview';
-    hashNavigationLocked = false;
-    return;
-  }
-
-  if (currentWritingStep === WRITING_STEPS.PREVIEW) {
-    updatePrevButtonVisibility();
-    return;
-  }
-}
-
-async function submitWritingResponses() {
-  logActivity('FIN', `WRITING - Grupo: ${currentGroup.id} - Completado`);
-
-  for (let i = 0; i < sectionResponses.length; i++) {
-    await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, sectionResponses[i]);
-  }
-
-  showResults();
-}
-
-// Muestra los resultados de Writing
-function showWritingResults() {
-  pauseTimer();
-  window.location.hash = '#/writing/preview';
-
-  getElement('quiz-view').classList.add('hidden');
-  getElement('results-container').classList.remove('hidden');
-
-  const part1Count = currentGroup?.task1?.length || 0;
-  const part2Count = currentGroup?.task2 ? 1 : 0;
-  const totalParts = part1Count + part2Count;
-  const answered = sectionResponses.filter(r => r && r.length > 0).length;
-  const part1Answered = Math.min(answered, part1Count);
-  const part2Answered = answered > part1Count ? 1 : 0;
-  const totalAnswered = part1Answered + part2Answered;
-  const percentage = totalParts > 0 ? Math.round((totalAnswered / totalParts) * 100) : 0;
-
-  getElement('score-display').textContent = `${percentage}% (${totalAnswered}/${totalParts})`;
-
-  const breakdown = getElement('results-breakdown');
-  breakdown.innerHTML = `
-    <div class="result-category">
-      <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">${part1Answered}/${part1Count} completed • ${part2Answered}/${part2Count} completed</span>
-    </div>
-  `;
-
-  getElement('email-btn').classList.remove('hidden');
-}
-
-// Navega a la siguiente parte de la sección
-function navigateToNextPart() {
-  pauseTimer();
-  const nextPart = getNextPartKey();
-
-  if (!nextPart) {
-    goToPreview();
-    return;
-  }
-
-  saveProgress();
-
-  // Stop mic if leaving Speaking
-  if (currentSection === 'SPEAKING') {
-    stopSpeakingMic();
-  }
-
-  if (currentSection === 'SPEAKING') {
-    beginSpeaking(nextPart.key);
-    startTimer(currentSection);
-  } else {
-    beginMcPart(nextPart.key);
-    startTimer(currentSection);
-  }
-}
-
-// Navega a una parte específica de la sección
-function navigateToPart(partKey) {
-  if (!currentSection) return;
-
-  const targetSection = getSectionKey(partKey);
-  if (targetSection !== currentSection) return;
-  if (partKey === currentPartKey) return;
-
-  pauseTimer();
-  saveProgress();
-
-  if (targetSection === 'WRITING') {
-    beginQuiz(partKey);
-    startTimer(targetSection);
-  } else if (targetSection === 'SPEAKING') {
-    stopSpeakingMic();
-    beginSpeaking(partKey);
-    startTimer(targetSection);
-  } else {
-    beginMcPart(partKey);
-    startTimer(targetSection);
-  }
-}
-
-// Regresa a la pregunta anterior
-function previousQuestion() {
-  if (currentSection === 'WRITING') {
-    if (currentWritingStep > 0) {
-      if (currentWritingStep === WRITING_STEPS.PREVIEW) {
-        currentWritingStep = WRITING_STEPS.TASK2;
-      } else {
-        currentWritingStep--;
-      }
-      renderWritingStep();
-      const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-      const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
-      updateWritingHash(taskPart, qNum);
-      saveProgress();
-    }
-    return;
-  }
-
-  if (currentSection === 'SPEAKING') {
-    previousSpeakingTask();
-    return;
-  }
-
-  navigateToPrevGroup();
-  saveProgress();
-}
-
-// Avanza a la siguiente pregunta
-function nextQuestion() {
-  if (currentSection === 'WRITING') {
-    nextSectionStep();
-    return;
-  }
-
-  if (currentSection === 'SPEAKING') {
-    nextSpeakingTask();
-    return;
-  }
-
-  navigateToNextGroup();
-}
-
-// Va a la vista previa de la sección
-function goToPreview() {
-  pauseTimer();
-  if (!currentSection) return;
-
-  if (currentSection === 'WRITING') {
-    saveCurrentWritingResponse();
-  }
-  if (currentSection === 'SPEAKING') {
-    stopSpeakingMic();
-  }
-  saveProgress();
-
-  hashNavigationLocked = true;
-  const sectionHash = currentSection.toLowerCase().replace(/_/g, '-');
-  window.location.hash = `#/${sectionHash}/preview`;
-  hashNavigationLocked = false;
-
-  renderUnifiedPreview();
-}
-
-// Avanza a la siguiente tarea de Speaking
-function nextSpeakingTask() {
-  if (currentSection !== 'SPEAKING') return;
-
-  saveProgress();
-
-  if (speakingTaskIndex < speakingPart.tasks.length - 1) {
-    speakingTaskIndex++;
-    renderSpeakingTask();
-  } else {
-    goToPreview();
-  }
-}
-
-// Regresa a la tarea anterior de Speaking
-function previousSpeakingTask() {
-  if (currentSection !== 'SPEAKING') return;
-
-  if (speakingTaskIndex > 0) {
-    speakingTaskIndex--;
-    renderSpeakingTask();
-    saveProgress();
-  }
-}
-
-// Crea todos los grupos de preguntas de una sección
-function buildAllSectionGroups(section) {
-  const allGroups = [];
-  let sectionGlobalNum = 0;
-
-  if (section === 'LISTENING') {
-    const parts = quizData.LISTENING?.parts || [];
-    parts.forEach(part => {
-      const partId = part.id;
-      const partKey = `LISTENING_P${partId}`;
-      let partLocalNum = 0;
-      if (part.questions) {
-        part.questions.forEach(q => {
-          partLocalNum++;
-          sectionGlobalNum++;
-          const processed = processQuestion(q, section, partId, partLocalNum);
-          processed.partKey = partKey;
-          processed.displayNumber = sectionGlobalNum;
-          allGroups.push({
-            groupNumber: partLocalNum,
-            mainAudio: q.audio || null,
-            questionRange: { start: sectionGlobalNum, end: sectionGlobalNum },
-            partId: partId,
-            partKey: partKey,
-            audioGroupNumber: null,
-            partLabel: `Part ${partId}`,
-            questions: [processed]
-          });
-        });
-      } else if (part.audioGroups) {
-        part.audioGroups.forEach(audioGroup => {
-          const groupStartGlobal = sectionGlobalNum + 1;
-          const groupQuestions = audioGroup.questions.map(q => {
-            partLocalNum++;
-            sectionGlobalNum++;
-            const processed = processQuestion(q, section, partId, partLocalNum);
-            processed.groupNumber = audioGroup.number;
-            processed.mainAudio = audioGroup.mainAudio;
-            processed.extraAudio = q.extraAudio || null;
-            processed.partKey = partKey;
-            processed.displayNumber = sectionGlobalNum;
-            return processed;
-          });
-          allGroups.push({
-            groupNumber: audioGroup.number,
-            mainAudio: audioGroup.mainAudio,
-            questionRange: { start: groupStartGlobal, end: sectionGlobalNum },
-            partId: partId,
-            partKey: partKey,
-            audioGroupNumber: audioGroup.number,
-            partLabel: `Part ${partId}`,
-            questions: groupQuestions
-          });
-        });
-      }
-    });
-  } else if (section === 'READING_AND_GRAMMAR') {
-    const data = quizData.READING_AND_GRAMMAR?.parts || [];
-    data.forEach((part, idx) => {
-      const partId = idx + 1;
-      const partKey = `READING_P${partId}`;
-      let partLocalNum = 0;
-      if (part.questions) {
-        part.questions.forEach(q => {
-          partLocalNum++;
-          sectionGlobalNum++;
-          const processed = processQuestion(q, section, partId, partLocalNum);
-          processed.partKey = partKey;
-          processed.displayNumber = sectionGlobalNum;
-          allGroups.push({
-            groupNumber: partLocalNum,
-            mainAudio: null,
-            questionRange: { start: sectionGlobalNum, end: sectionGlobalNum },
-            partId: partId,
-            partKey: partKey,
-            audioGroupNumber: null,
-            partLabel: `Part ${partId}`,
-            questions: [processed]
-          });
-        });
-      } else if (part.readingGroups) {
-        part.readingGroups.forEach(rg => {
-          const groupStartLocal = partLocalNum + 1;
-          const groupQuestions = rg.questions.map(q => {
-            partLocalNum++;
-            sectionGlobalNum++;
-            const processed = processQuestion(q, section, partId, partLocalNum);
-            processed.groupNumber = rg.number;
-            processed.partKey = partKey;
-            processed.displayNumber = sectionGlobalNum;
-            return processed;
-          });
-          const groupData = {
-            groupNumber: rg.number,
-            mainAudio: null,
-            questionRange: { start: sectionGlobalNum - rg.questions.length + 1, end: sectionGlobalNum },
-            partId: partId,
-            partKey: partKey,
-            audioGroupNumber: null,
-            partLabel: `Part ${partId}`,
-            groupLabel: rg.groupLabel,
-            questions: groupQuestions
-          };
-          if (rg.article) {
-            groupData.article = rg.article;
-          }
-          if (rg.isConnector) {
-            groupData.isConnector = true;
-            groupData.connectorArticles = rg.connectorArticles;
-          }
-          allGroups.push(groupData);
-        });
-      }
-    });
-  }
-
-  return allGroups;
-}
-
-// Dibuja la vista previa unificada
-function renderUnifiedPreview() {
-  sectionPreviewMode = true;
-
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
-
-  const container = getElement('quiz-container');
-  container.classList.remove('fade-out');
-  void container.offsetWidth;
-  container.classList.add('fade-out');
-  setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
-    void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
-  }, 300);
-
-  getElement('category-badge').textContent = getSectionBadge(currentPartKey);
-  getElement('progress-text').textContent = 'Preview';
-  getElement('progress-bar').style.width = '100%';
-
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-
-  let html = '<div class="preview-section"><h3>Revisa tus respuestas</h3>';
-  html += '<div class="preview-scroll-container">';
-
-  if (currentSection === 'WRITING') {
-    html += renderWritingPreviewItems();
-  } else if (currentSection === 'SPEAKING') {
-    html += renderSpeakingPreviewItems();
-  } else {
-    html += renderMCPreviewItems();
-  }
-
-  html += '</div>';
-  html += `<div class="preview-summary">${getPreviewSummary()}</div>`;
-  html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
-  html += '</div>';
-
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = html;
-  getElement('controls').classList.add('hidden');
-
-  // Attach event listeners
-  attachPreviewItemListeners();
-}
-
-// Dibuja los elementos de vista previa para Writing
-function renderWritingPreviewItems() {
-  if (!currentGroup) return '';
-  const task1 = currentGroup.task1 || [];
-  const task2 = currentGroup.task2;
-  let html = '';
-
-  // Task 1 Questions
-  task1.forEach((q, i) => {
-    const response = sectionResponses[i] || '';
-    const hasResponse = response.length > 0;
-    const statusClass = hasResponse ? 'answered' : 'unanswered';
-    const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
-    const canEdit = timerRemaining > 0;
-
-    html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}">`;
-    html += `<div class="preview-slide-header">Task 1 — Question ${i + 1} of 3</div>`;
-    html += `<div class="preview-question">`;
-    html += `<div class="preview-q-text"><span class="preview-q-num">Q${i + 1}.</span> ${q.text}</div>`;
-    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-    if (canEdit) {
-      html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}" style="margin-left:8px;">✏️ Edit</button>`;
-    }
-    html += `</div></div></div>`;
-  });
-
-  // Task 2
-  if (task2) {
-    const response = sectionResponses[3] || '';
-    const hasResponse = response.length > 0;
-    const statusClass = hasResponse ? 'answered' : 'unanswered';
-    const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
-    const canEdit = timerRemaining > 0;
-
-    html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK2}">`;
-    html += `<div class="preview-slide-header">Task 2 — Essay</div>`;
-    html += `<div class="preview-question">`;
-    html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2.topic}</div>`;
-    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-    if (canEdit) {
-      html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK2}" style="margin-left:8px;">✏️ Edit</button>`;
-    }
-    html += `</div></div></div>`;
-  }
-
-  return html;
-}
-
-// Dibuja los elementos de vista previa para Speaking
-function renderSpeakingPreviewItems() {
-  if (!speakingPart) return '';
-  const tasks = speakingPart.tasks || [];
-  let html = '';
-
-  tasks.forEach((task, i) => {
-    const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
-    const duration = hasRecording ? speakingResponses[i].duration : null;
-    const statusClass = hasRecording ? 'correct' : 'unanswered';
-    const statusText = hasRecording ? `✓ Response recorded (${duration}s)` : 'Sin respuesta';
-    const canEdit = timerRemaining > 0;
-
-    html += `<div class="preview-slide" data-speaking-task="${i}">`;
-    html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
-    html += `<div class="preview-question">`;
-    html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
-    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-    if (hasRecording) {
-      html += ` <button class="btn-preview-playback" data-task-idx="${i}" style="margin-left:8px;">▶ Play</button>`;
-      html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
-    }
-    if (canEdit) {
-      html += ` <button class="btn-preview-edit-speaking" data-task-idx="${i}" style="margin-left:8px;">✏️ Edit</button>`;
-    }
-    html += `</div></div></div>`;
-  });
-
-  return html;
-}
-
-// Dibuja los elementos de vista previa para preguntas de opción múltiple
-function renderMCPreviewItems() {
-  const allGroups = buildAllSectionGroups(currentSection);
-  let html = '';
-  let answeredCount = 0;
-  let totalQ = 0;
-
-  allGroups.forEach((grp) => {
-    const partLabel = grp.partLabel;
-    let headerText = `${partLabel}`;
-    if (grp.groupLabel) {
-      headerText += ` ${grp.groupLabel}`;
-    }
-    if (grp.article) {
-      headerText += ` — Article ${grp.article.letter}`;
-    } else if (grp.isConnector) {
-      headerText += ` — Connector`;
-    } else if (grp.audioGroupNumber) {
-      headerText += ` — Audio ${grp.audioGroupNumber}`;
-    }
-    const { start, end } = grp.questionRange;
-    headerText += ` — Questions ${start}${end !== start ? '-' + end : ''}`;
-
-    html += `<div class="preview-slide">`;
-    html += `<div class="preview-slide-header">${headerText}</div>`;
-
-    grp.questions.forEach(q => {
-      const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-      const isAnswered = answeredQuestions.has(questionIdx);
-      const displayNum = q.displayNumber || q.globalNumber;
-      const userAnswerIdx = groupSelectedAnswers[q.globalNumber];
-      totalQ++;
-      if (isAnswered) answeredCount++;
-
-      let statusClass = 'unanswered';
-      let answerDetail = '';
-
-      if (isAnswered && questionIdx >= 0) {
-        const sq = shuffledQuestions[questionIdx];
-        statusClass = 'answered';
-        if (userAnswerIdx !== undefined) {
-          const userLetter = letters[userAnswerIdx];
-          const isCorrect = userAnswerIdx === sq.correctShuffledIndex;
-          statusClass = isCorrect ? 'correct' : 'incorrect';
-          const correctLetter = letters[sq.correctShuffledIndex];
-          const userText = sq.options ? sq.options[userAnswerIdx] : userLetter;
-          const correctText = sq.options ? sq.options[sq.correctShuffledIndex] : correctLetter;
-          answerDetail = isCorrect
-            ? `✓ Your answer: ${userLetter}. ${userText}`
-            : `✗ Your answer: ${userLetter}. ${userText} — Correct: ${correctLetter}. ${correctText}`;
-        }
-      }
-
-      html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.question}</div>`;
-      html += `<div class="preview-q-answer ${statusClass}">`;
-      html += answerDetail || 'Sin responder';
-      html += `</div></div>`;
-    });
-
-    html += '</div>';
-  });
-
-  // Store for summary
-  renderMCPreviewItems.answeredCount = answeredCount;
-  renderMCPreviewItems.totalQ = totalQ;
-
-  return html;
-}
-
-// Obtiene el resumen de la vista previa
-function getPreviewSummary() {
-  if (currentSection === 'WRITING') {
-    const total = 4;
-    const answered = sectionResponses.filter(r => r && r.length > 0).length;
-    return `${answered}/${total} answered`;
-  } else if (currentSection === 'SPEAKING') {
-    const total = speakingPart ? speakingPart.tasks.length : 0;
-    const answered = speakingResponses.filter(r => r !== null && r !== undefined).length;
-    return `${answered}/${total} answered`;
-  } else {
-    const answered = renderMCPreviewItems.answeredCount || 0;
-    const total = renderMCPreviewItems.totalQ || 0;
-    return `${answered}/${total} answered`;
-  }
-}
-
-// Agrega los eventos a los elementos de la vista previa
-function attachPreviewItemListeners() {
-  // MC items are NOT editable — no click handler to navigate back
-
-  // Writing edit buttons
-  document.querySelectorAll('.btn-preview-edit').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const step = parseInt(btn.dataset.writingStep);
-      editWritingFromPreview(step);
-    });
-  });
-
-  // Speaking playback buttons
-  document.querySelectorAll('.btn-preview-playback').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const taskIdx = parseInt(btn.dataset.taskIdx);
-      playSpeakingPreviewRecording(taskIdx, btn);
-    });
-  });
-
-  // Speaking edit buttons
-  document.querySelectorAll('.btn-preview-edit-speaking').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const taskIdx = parseInt(btn.dataset.taskIdx);
-      editSpeakingTask(taskIdx);
-    });
-  });
-}
-
-// Edita una respuesta de Writing desde la vista previa
-function editWritingFromPreview(step) {
-  saveCurrentWritingResponse();
-
-  currentWritingStep = step;
-  sectionPreviewMode = false;
-  renderWritingStep();
-
-  const taskPart = step === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
-  const qNum = step === WRITING_STEPS.TASK2 ? 1 : step + 1;
-  updateWritingHash(taskPart, qNum);
-}
-
-// Reproduce una grabación desde la vista previa
-function playSpeakingPreviewRecording(taskIdx, btn) {
-  const response = speakingResponses[taskIdx];
-  if (!response || !response.blob) return;
-
-  const audioEl = document.getElementById(`preview-audio-${taskIdx}`);
-  if (!audioEl) return;
-
-  const url = URL.createObjectURL(response.blob);
-  audioEl.src = url;
-  audioEl.play();
-
-  btn.textContent = '⏸ Playing...';
-  btn.disabled = true;
-
-  audioEl.onended = () => {
-    URL.revokeObjectURL(url);
-    btn.textContent = '▶ Play recording';
-    btn.disabled = false;
-  };
-
-  audioEl.onerror = () => {
-    URL.revokeObjectURL(url);
-    btn.textContent = '▶ Play recording';
-    btn.disabled = false;
-  };
-}
-
-// Navega a una pregunta específica
-function navigateToQuestion(globalNum) {
-  sectionPreviewMode = false;
-  const qIndex = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
-  if (qIndex === -1) return;
-
-  const targetGroupIndex = questionGroups.findIndex(g =>
-    g.questionRange.start <= globalNum && g.questionRange.end >= globalNum
-  );
-  if (targetGroupIndex === -1) return;
-
-  currentGroupIndex = targetGroupIndex;
-  currentGroup = questionGroups[currentGroupIndex];
-  currentQuestionIndex = qIndex;
-  groupChecked = false;
-
-  loadQuestion();
-  renderQuestion();
-  updateNavigationButtons();
-  updateTranscriptionVisibility();
-  resumeTimer();
-}
-
-// Edita una tarea de Speaking
-function editSpeakingTask(taskIdx) {
-  speakingTaskIndex = taskIdx;
-  sectionPreviewMode = false;
-  renderSpeakingTask();
-  resumeTimer();
-}
-
-// Envía desde la vista previa
-function submitFromPreview() {
-  pauseTimer();
-  saveProgress();
-  showResults();
-}
-
-// Muestra los resultados finales
-function showResults() {
-  pauseTimer();
-
-  hashNavigationLocked = true;
-  if (currentSection) {
-    const sectionHash = currentSection.toLowerCase().replace(/_/g, '-');
-    window.location.hash = `#/${sectionHash}/results`;
-  }
-  hashNavigationLocked = false;
-
-  getElement('quiz-view').classList.add('hidden');
-  getElement('results-container').classList.remove('hidden');
-
-  const breakdown = getElement('results-breakdown');
-  breakdown.innerHTML = '';
-
-  let totalScore = 0;
-  let totalParts = 0;
-
-  const order = ['WRITING', 'LISTENING', 'READING_AND_GRAMMAR', 'SPEAKING'];
-  order.forEach(cat => {
-    const catData = quizData[cat];
-    let displayScore = '';
-    let catName = SECTION_DISPLAY[cat] || cat;
-
-    if (cat === 'WRITING') {
-      const part1Count = (catData?.groups && catData.groups[0]?.task1?.length) || 0;
-      const part2Count = (catData?.groups && catData.groups[0]?.task2) ? 1 : 0;
-      totalParts += part1Count + part2Count;
-      const answered = sectionResponses.filter(r => r && r.length > 0).length;
-      totalScore += Math.min(answered, part1Count);
-      totalScore += answered > part1Count ? 1 : 0;
-
-      const part1Answered = Math.min(answered, part1Count);
-      const part2Answered = answered > part1Count ? 1 : 0;
-      displayScore = `${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}`;
-    } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
-      let count = 0;
-      if (catData && catData.parts) {
-        catData.parts.forEach(p => {
-          if (p.questions) count += p.questions.length;
-          if (p.audioGroups) p.audioGroups.forEach(g => { count += g.questions.length; });
-          if (p.readingGroups) p.readingGroups.forEach(g => { count += g.questions.length; });
-        });
-      }
-      totalParts += count;
-      totalScore += score[cat] || 0;
-      displayScore = count > 0 ? `${score[cat] || 0}/${count}` : '0/0';
-    } else if (cat === 'SPEAKING') {
-      const totalTasks = (catData?.parts && catData.parts.reduce((sum, p) => sum + (p.tasks?.length || 0), 0)) || 0;
-      totalParts += totalTasks;
-      const answered = speakingResponses.filter(r => r).length;
-      totalScore += answered;
-      displayScore = `${answered}/${totalTasks}`;
-    }
-
-    const div = document.createElement('div');
-    div.className = 'result-category';
-    div.innerHTML = `
-      <span class="result-category-name">${catName}</span>
-      <span class="result-category-score">${displayScore}</span>
-    `;
-    breakdown.appendChild(div);
-  });
-
-  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
-  getElement('score-display').textContent = `${percentage}% (${totalScore}/${totalParts})`;
-
-  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalParts})`);
-  clearProgress();
-  getElement('email-btn').classList.remove('hidden');
-}
-
-// Envía los resultados por correo electrónico
-function sendEmail() {
-  let listeningCount = 0;
-  let readingCount = 0;
-
-  if (quizData.LISTENING && quizData.LISTENING.parts) {
-    quizData.LISTENING.parts.forEach(p => {
-      if (p.questions) listeningCount += p.questions.length;
-      if (p.audioGroups) p.audioGroups.forEach(g => { listeningCount += g.questions.length; });
-    });
-  }
-
-  if (quizData.READING_AND_GRAMMAR && quizData.READING_AND_GRAMMAR.parts) {
-    quizData.READING_AND_GRAMMAR.parts.forEach(item => {
-      if (item.questions) readingCount += item.questions.length;
-      if (item.readingGroups) item.readingGroups.forEach(g => { readingCount += g.questions.length; });
-    });
-  }
-
-  const writingPart1 = (currentGroup?.task1 && currentGroup.task1.length) || 0;
-  const writingPart2 = currentGroup?.task2 ? 1 : 0;
-  const part1Answered = sectionResponses.filter((r, i) => r && r.length > 0 && i < writingPart1).length;
-  const part2Answered = (sectionResponses[writingPart1] && sectionResponses[writingPart1].length > 0) ? 1 : 0;
-  const speakingTaskCount = (quizData.SPEAKING && quizData.SPEAKING.parts && quizData.SPEAKING.parts.reduce((sum, p) => sum + (p.tasks?.length || 0), 0)) || 0;
-  const speakingAnswered = speakingResponses.filter(r => r).length;
-
-  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + speakingAnswered;
-  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingTaskCount;
-  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
-
-  const subject = 'Resultados MET Quiz - Your English World';
-  const speakingDetails = speakingResponses
-    .map((r, i) => r ? `  Task ${i + 1}: ${r.duration}s recorded` : `  Task ${i + 1}: No response`)
-    .join('\n');
-
-  const body = `Resultados del Test MET
-======================
-Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
-
-Desglose por sección:
-- WRITING: ${part1Answered}/${writingPart1} • ${part2Answered}/${writingPart2}
-- LISTENING: ${score.LISTENING || 0}/${listeningCount}
-- READING & GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
-- SPEAKING: ${speakingAnswered}/${speakingTaskCount}
-${speakingDetails}
-
----
-Enviado desde Your English World Quiz`;
-
-  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailto;
-}
-
-async function continueFromSaved() {
-  const saved = loadProgress();
-  if (!saved) return;
-  currentSection = saved.currentSection;
-  currentQuestionIndex = saved.currentIndex;
-  score = saved.score;
-  answeredQuestions = new Set(saved.answeredQuestions);
-  if (!currentSection || currentSection === 'WRITING') return;
-  const sourceData = quizData[currentSection];
-  if (!sourceData) return;
-
-  const allQuestions = [];
-  if (sourceData.parts) {
-    sourceData.parts.forEach((exercise, exerciseIndex) => {
-      if (exercise.questions) {
-        exercise.questions.forEach((q, qIndex) => {
-          const qCopy = Object.assign({}, q);
-          qCopy.exerciseIndex = exerciseIndex;
-          qCopy.questionIndex = qIndex;
-          qCopy.category = currentSection;
-          qCopy.audio = exercise.audio || null;
-          allQuestions.push(qCopy);
-        });
-      }
-      if (exercise.audioGroups) {
-        exercise.audioGroups.forEach(group => {
-          group.questions.forEach((q, qIndex) => {
-            const qCopy = Object.assign({}, q);
-            qCopy.exerciseIndex = exerciseIndex;
-            qCopy.questionIndex = qIndex;
-            qCopy.category = currentSection;
-            qCopy.mainAudio = group.mainAudio;
-            qCopy.extraAudio = q.extraAudio || null;
-            allQuestions.push(qCopy);
-          });
-        });
-      }
-    });
-  }
-
-  shuffledQuestions = saved.questionsOrder.map(order => {
-    const original = allQuestions.find(
-      q => q.exerciseIndex === order.exerciseIndex && q.questionIndex === order.questionIndex
-    );
-    if (!original) return null;
-    const shuffled = shuffleOptions(original);
-    shuffled.exerciseIndex = original.exerciseIndex;
-    shuffled.questionIndex = original.questionIndex;
-    return shuffled;
-  }).filter(item => item !== null);
-
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  loadQuestion();
-  resumeTimer();
-}
-
-// Inicializa los escuchadores de eventos
-function initEventListeners() {
-  getElement('next-btn')?.addEventListener('click', nextQuestion);
-  getElement('prev-btn')?.addEventListener('click', previousQuestion);
-  getElement('check-btn')?.addEventListener('click', checkCurrentGroup);
-  getElement('submit-section-btn')?.addEventListener('click', () => {
-    if (currentSection === 'WRITING') {
-      submitWritingResponses();
-    } else {
-      showResults();
-    }
-  });
-  getElement('email-btn')?.addEventListener('click', sendEmail);
-  getElement('results-home-btn')?.addEventListener('click', goHome);
-  getElement('home-btn')?.addEventListener('click', goHome);
-
-  getElement('reset-all-btn')?.addEventListener('click', resetAllProgress);
-  getElement('reset-btn')?.addEventListener('click', resetSectionProgress);
-
-  getElement('time-home-btn')?.addEventListener('click', () => {
-    stopTimer();
-    hideTimeModal();
-    goHome();
-  });
-
-  getElement('time-preview-btn')?.addEventListener('click', () => {
-    stopTimer();
-    hideTimeModal();
-    goToPreview();
-  });
-
-  getElement('skip-btn')?.addEventListener('click', () => {
-    if (currentSection === 'WRITING') {
-      saveCurrentWritingResponse();
-      const nextPartName = getWritingNextPartName();
-      // Si estamos en Task 1, saltar a Task 2
-      if (nextPartName === 'Task 2') {
-        currentWritingStep = WRITING_STEPS.TASK2;
-        renderWritingStep();
-        updateWritingHash('task2', 1);
-      }
-      // Si estamos en Task 2, ir a Preview
-      else if (nextPartName === 'Preview') {
-        currentWritingStep = WRITING_STEPS.PREVIEW;
-        goToPreview();
-      }
-      // Fallback: intentar navegar por partKey
-      else if (nextPartName) {
-        navigateToPart(nextPartName);
-      } else {
-        goToPreview();
-      }
-    } else if (currentSection === 'SPEAKING') {
-      const nextPart = getNextPartKey();
-      if (nextPart) {
-        beginSpeaking(nextPart.key);
-        startTimer(currentSection);
-      } else {
-        goToPreview();
-      }
-    } else {
-      navigateToNextPart();
-    }
-  });
-
-  document.querySelectorAll('.user-link').forEach(el => {
-    el.addEventListener('click', showChangeUserModal);
-  });
-
-  getElement('back-home-btn').addEventListener('click', () => {
-    getElement('back-modal').classList.add('hidden');
-    goHome();
-  });
-
-  getElement('back-prev-btn').addEventListener('click', () => {
-    getElement('back-modal').classList.add('hidden');
-    previousQuestion();
-  });
-
-  window.addEventListener('popstate', () => {
-    if (window.location.hash && window.location.hash.length > 1) {
-      loadFromHash();
-    } else {
-      goHome();
-    }
-  });
-
-  getElement('registration-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = getElement('reg-name').value.trim();
-    const username = getElement('reg-email-username').value.trim();
-    let domain = getElement('reg-email-domain').value.trim();
-
-    if (!isValidName(name)) {
-      alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
-      return;
-    }
-
-    if (!username) {
-      alert('Por favor ingresa tu nombre de usuario');
-      return;
-    }
-
-    if (!domain) {
-      domain = 'gmail.com';
-    }
-
-    const email = username + '@' + domain;
-
-    if (name && email) {
-      saveUser({ name, email });
-      hideRegistrationModal();
-      logActivity('REGISTRO', `Nuevo usuario: ${name}`);
-      if (pendingSection) {
-        beginQuiz(pendingSection);
-        pendingSection = null;
-      }
-    }
-  });
-
-  getElement('reg-cancel').addEventListener('click', hideRegistrationModal);
-
-  getElement('help-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = getElement('help-text').value.trim();
-    if (text) {
-      logActivity('CONSULTA', text);
-      hideHelpModal();
-      alert('¡Consulta enviada! Te responderemos pronto.');
-    }
-  });
-
-  getElement('help-cancel').addEventListener('click', hideHelpModal);
-  getElement('help-btn-home').addEventListener('click', showHelpModal);
-  getElement('help-btn-quiz').addEventListener('click', showHelpModal);
-
-  getElement('change-user-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = getElement('change-name').value.trim();
-    const username = getElement('change-email-username').value.trim();
-    let domain = getElement('change-email-domain').value.trim();
-
-    if (!isValidName(name)) {
-      alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
-      return;
-    }
-
-    if (!username) {
-      alert('Por favor ingresa tu nombre de usuario');
-      return;
-    }
-
-    if (!domain) {
-      domain = 'gmail.com';
-    }
-
-    const email = username + '@' + domain;
-
-    if (name && email) {
-      saveUser({ name, email });
-      hideChangeUserModal();
-      logActivity('CAMBIO_USUARIO', `Usuario cambió a: ${name}`);
-    }
-  });
-
-  getElement('change-cancel').addEventListener('click', hideChangeUserModal);
-
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.classList.add('hidden');
-      }
-    });
-  });
-}
-
-// Regresa a la página de inicio
-function goHome() {
-  stopTimer();
-  stopSpeakingMic();
-
-  if (currentSection === 'WRITING') {
-    saveCurrentWritingResponse();
-  }
-  saveProgress();
-
-  getElement('email-btn')?.classList.remove('hidden');
-  getElement('quiz-view')?.classList.add('hidden');
-  getElement('results-container')?.classList.add('hidden');
-  getElement('category-select')?.classList.remove('hidden');
-  getElement('section-instructions-panel')?.classList.add('hidden');
-  getElement('back-modal')?.classList.add('hidden');
-  getElement('confirm-modal')?.classList.add('hidden');
-  getElement('time-modal')?.classList.add('hidden');
-
-  window.history.pushState('', document.title, window.location.pathname);
-  renderCategorySelect();
-}
-
-// Inicializa la aplicación
-async function init() {
-  loadUser();
-  updateUserDisplay();
-  initTheme();
-  initEventListeners();
-
-  const loaded = await loadAllData();
-
-  if (window.location.hash && window.location.hash.length > 1 && window.location.hash !== '#/') {
-    loadFromHash();
-  } else {
-    renderCategorySelect();
-  }
-}
-
-// Inicializa el tema (claro/oscuro)
-function initTheme() {
-  const themeSwitch = document.getElementById('theme-switch');
-  const savedTheme = localStorage.getItem('metQuizTheme') || 'light';
-  
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    if (themeSwitch) themeSwitch.checked = true;
-  }
-  
-  if (themeSwitch) {
-    themeSwitch.addEventListener('change', function() {
-      if (this.checked) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('metQuizTheme', 'dark');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('metQuizTheme', 'light');
-      }
-    });
-  }
-}
-
-// Permite exportar funciones si se usa en Node.js
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { quizData, loadGroup, loadAllData };
-}
-
-init();

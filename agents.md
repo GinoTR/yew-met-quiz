@@ -198,8 +198,10 @@ Use generic names that apply to all sections:
 - `showWritingResults()` - handles Writing only
 
 Use section-specific names only where the functionality IS section-specific:
-- `renderWritingTask1()`, `renderWritingTask2()` - specific to Writing
-- `.writing-textarea` - specific ID/CSS class
+- `renderStep(section, partId, items, inputType)` - universal function replacing renderWritingStep, renderWritingTask1, renderWritingTask2, renderSpeakingTask
+- `renderPreview(section, items, inputType)` - universal function replacing renderWritingPreviewItems, renderSpeakingPreviewItems, renderMCPreviewItems
+- `.writing-textarea` - specific CSS class (to be unified in future)
+- `.speaking-task-container` - specific CSS class (to be unified in future)
 
 ### Navigation and Buttons in MET Quiz
 
