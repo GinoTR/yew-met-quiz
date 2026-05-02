@@ -20,8 +20,8 @@
     <label class="theme-toggle" for="theme-switch">
       <input type="checkbox" id="theme-switch">
       <span class="theme-slider"></span>
-      <span class="theme-icon sun">☀️</span>
-      <span class="theme-icon moon">🌙</span>
+      <span class="theme-icon sun">⚪</span>
+      <span class="theme-icon moon">⚫</span>
     </label>
   </div>
 
@@ -201,13 +201,17 @@
         <div id="feedback-container" class="hidden"></div>
       </div>
 
-      <div id="controls">
-        <div class="controls-row controls-row-main">
-          <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
-          <div class="controls-center">
-            <button id="next-btn" class="btn btn-primary">Siguiente</button>
-            <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
+        <div id="controls">
+          <div class="controls-row controls-row-main">
+            <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
+            <div class="controls-center">
+              <button id="next-btn" class="btn btn-primary">Siguiente</button>
+              <button id="check-btn" class="btn btn-primary hidden">COMPROBAR</button>
+              <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
+            </div>
+            <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
           </div>
+        </div>
           <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
         </div>
         <div class="controls-row controls-row-secondary hidden" id="controls-secondary">

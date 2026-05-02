@@ -269,18 +269,20 @@ function loadFromHash() {
 
   if (section.startsWith('WRITING') && currentSection === 'WRITING') {
     if (qStart !== null) {
-      const step = qStart - 1;
-      if (step >= WRITING_STEPS.TASK1_Q1 && step <= WRITING_STEPS.TASK1_Q3) {
-        if (currentWritingStep !== step) {
-          saveCurrentWritingResponse();
-          currentWritingStep = step;
-          renderWritingStep();
-        }
-      } else if (qStart === 4) {
+      if (taskPart === 'task2') {
         if (currentWritingStep !== WRITING_STEPS.TASK2) {
           saveCurrentWritingResponse();
           currentWritingStep = WRITING_STEPS.TASK2;
           renderWritingStep();
+        }
+      } else {
+        const step = qStart - 1;
+        if (step >= WRITING_STEPS.TASK1_Q1 && step <= WRITING_STEPS.TASK1_Q3) {
+          if (currentWritingStep !== step) {
+            saveCurrentWritingResponse();
+            currentWritingStep = step;
+            renderWritingStep();
+          }
         }
       }
     }
@@ -906,18 +908,24 @@ function beginQuiz(section) {
     return;
   }
 
-  if (section.startsWith('LISTENING_P')) {
-    beginMcPart(section, saved);
+  if (section.startsWith('LISTENING') || section === 'LISTENING') {
+    const parts = SECTION_PARTS.LISTENING;
+    const partKey = section.startsWith('LISTENING_P') ? section : (parts && parts[0] ? parts[0].key : 'LISTENING_P1');
+    beginMcPart(partKey, saved);
     return;
   }
 
-  if (section.startsWith('READING_P')) {
-    beginMcPart(section, saved);
+  if (section.startsWith('READING') || section === 'READING_AND_GRAMMAR') {
+    const parts = SECTION_PARTS.READING_AND_GRAMMAR;
+    const partKey = section.startsWith('READING_P') ? section : (parts && parts[0] ? parts[0].key : 'READING_P1');
+    beginMcPart(partKey, saved);
     return;
   }
 
-  if (section.startsWith('SPEAKING_P')) {
-    beginSpeaking(section, saved);
+  if (section.startsWith('SPEAKING') || section === 'SPEAKING') {
+    const parts = SECTION_PARTS.SPEAKING;
+    const partKey = section.startsWith('SPEAKING_P') ? section : (parts && parts[0] ? parts[0].key : 'SPEAKING_P1');
+    beginSpeaking(partKey, saved);
     return;
   }
 
@@ -980,7 +988,8 @@ function beginMcPart(partKey, saved = null) {
   if (section === 'LISTENING') {
     partData = quizData.LISTENING?.parts?.find(p => p.id === config.partId);
   } else if (section === 'READING_AND_GRAMMAR') {
-    partData = quizData.READING_AND_GRAMMAR?.parts?.[config.partId - 1] || null;
+    const parts = quizData.READING_AND_GRAMMAR?.parts || [];
+    partData = parts[config.partId - 1] || null;
   }
 
   if (!partData) return false;
@@ -1249,19 +1258,6 @@ function renderGroupQuestions(grp) {
 
   html += '</div>';
 
-  if (!isSingleQuestion) {
-    const allAnswered = grp.questions.every(q => {
-      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-      return answeredQuestions.has(qi);
-    });
-    if (!allAnswered && grp.questions.some(q => {
-      const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-      return groupSelectedAnswers[q.globalNumber] !== undefined;
-    })) {
-      html += `<button id="check-group-btn" class="btn btn-primary" style="margin-top:16px;">COMPROBAR</button>`;
-    }
-  }
-
   getElement('options-container').innerHTML = html;
 
   document.querySelectorAll('.group-q-options .option:not(.disabled)').forEach(opt => {
@@ -1334,6 +1330,8 @@ function selectGroupOption(globalNum, optionIdx, element) {
       checkBtn.style.display = '';
     }
   }
+
+  updatePrevButtonVisibility();
 }
 
 function checkSingleQuestion(globalNum) {
@@ -1438,9 +1436,6 @@ function checkCurrentGroup() {
   pauseTimer();
   saveProgress();
 
-  const checkGroupBtn = document.getElementById('check-group-btn');
-  if (checkGroupBtn) checkGroupBtn.style.display = 'none';
-
   updatePrevButtonVisibility();
 }
 
@@ -1522,7 +1517,7 @@ function renderWritingStep() {
     case WRITING_STEPS.TASK1_Q2: html = renderWritingTask1(1); break;
     case WRITING_STEPS.TASK1_Q3: html = renderWritingTask1(2); break;
     case WRITING_STEPS.TASK2: html = renderWritingTask2(); break;
-    case WRITING_STEPS.PREVIEW: html = renderWritingPreview(); break;
+    case WRITING_STEPS.PREVIEW: html = ''; break;
   }
 
   getElement('question-text').innerHTML = '';
@@ -1530,9 +1525,7 @@ function renderWritingStep() {
   updatePrevButtonVisibility();
 
   if (currentWritingStep === WRITING_STEPS.PREVIEW) {
-    getElement('controls').classList.remove('hidden');
-    getElement('section-instructions-panel').classList.add('hidden');
-    setupCarouselEvents();
+    getElement('controls').classList.add('hidden');
   } else {
     getElement('controls').classList.remove('hidden');
     setupWritingTextareaEvents();
@@ -1604,88 +1597,7 @@ function renderWritingTask2() {
   `;
 }
 
-function renderWritingPreview() {
-  currentPreviewIndex = 0;
-  return renderCarouselSlide();
-}
-
-function renderCarouselSlide() {
-  const task1 = currentGroup.task1;
-  const task2 = currentGroup.task2;
-
-  const slides = [
-    { title: 'Task 1: Pregunta 1 de 3', question: task1[0].text, response: sectionResponses[0] || 'Sin respuesta' },
-    { title: 'Task 1: Pregunta 2 de 3', question: task1[1].text, response: sectionResponses[1] || 'Sin respuesta' },
-    { title: 'Task 1: Pregunta 3 de 3', question: task1[2].text, response: sectionResponses[2] || 'Sin respuesta' },
-    { title: 'Task 2: Ensayo', question: `${task2.topic}\n\n${task2.prompt}`, response: sectionResponses[3] || 'Sin respuesta' }
-  ];
-
-  const slide = slides[currentPreviewIndex];
-  const responseDisplay = slide.response === 'Sin respuesta'
-    ? 'Sin respuesta'
-    : slide.response.length > 200
-      ? slide.response.substring(0, 200) + '...'
-      : slide.response;
-
-  return `
-    <div class="carousel-container">
-      <h3 class="carousel-title">Revisa tus respuestas</h3>
-      <div class="carousel-viewer">
-        <button id="carousel-prev" class="carousel-btn carousel-btn-left">&lt;</button>
-        <div class="carousel-slide">
-          <div class="slide-header">${slide.title}</div>
-          <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
-          <div class="slide-response">${responseDisplay.replace(/\n/g, '<br>')}</div>
-        </div>
-        <button id="carousel-next" class="carousel-btn carousel-btn-right">&gt;</button>
-      </div>
-      <div class="edit-section">
-        <span id="edit-response-text" class="edit-link">Editar esta respuesta</span>
-      </div>
-      <div class="carousel-indicators">
-        ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function setupCarouselEvents() {
-  const prevBtn = document.getElementById('carousel-prev');
-  const nextBtn = document.getElementById('carousel-next');
-  const editText = document.getElementById('edit-response-text');
-  const indicators = document.querySelectorAll('.indicator');
-
-  if (prevBtn) prevBtn.addEventListener('click', () => navigateCarousel(-1));
-  if (nextBtn) nextBtn.addEventListener('click', () => navigateCarousel(1));
-  if (editText) editText.addEventListener('click', editCurrentResponse);
-
-  indicators.forEach(ind => {
-    ind.addEventListener('click', () => {
-      currentPreviewIndex = parseInt(ind.dataset.index);
-      updateCarouselDisplay();
-    });
-  });
-
-  document.addEventListener('keydown', handleCarouselKeydown);
-}
-
-function editCurrentResponse() {
-  document.removeEventListener('keydown', handleCarouselKeydown);
-  saveCurrentWritingResponse();
-
-  switch (currentPreviewIndex) {
-    case 0: currentWritingStep = WRITING_STEPS.TASK1_Q1; break;
-    case 1: currentWritingStep = WRITING_STEPS.TASK1_Q2; break;
-    case 2: currentWritingStep = WRITING_STEPS.TASK1_Q3; break;
-    case 3: currentWritingStep = WRITING_STEPS.TASK2; break;
-  }
-
-  renderWritingStep();
-
-  const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
-  const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
-  updateWritingHash(taskPart, qNum);
-}
+// Preview now handled by renderUnifiedPreview()
 
 function getNextPartKey() {
   const parts = SECTION_PARTS[currentSection];
@@ -1745,7 +1657,10 @@ function isFirstQuestionOfSection() {
 
 function getWritingNextPartName() {
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    return 'WRITING_TASK2';
+    const writingParts = SECTION_PARTS.WRITING;
+    if (!writingParts) return 'Task 2';
+    const task2Part = writingParts.find(p => p.key === 'WRITING_TASK2');
+    return task2Part ? task2Part.name : 'Task 2';
   }
   return null;
 }
@@ -1891,7 +1806,8 @@ function updatePrevButtonVisibility() {
       const anySelected = grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
       if (anySelected && !allChecked) {
         checkBtn.classList.remove('hidden');
-        if (controlsSecondary) controlsSecondary.classList.remove('hidden');
+      } else {
+        checkBtn.classList.add('hidden');
       }
     }
 
@@ -1908,53 +1824,6 @@ function updatePrevButtonVisibility() {
         skipBtn.classList.add('btn-secondary');
       }
     }
-  }
-}
-
-function handleCarouselKeydown(e) {
-  if (currentSection !== 'WRITING' || currentWritingStep !== WRITING_STEPS.PREVIEW) {
-    document.removeEventListener('keydown', handleCarouselKeydown);
-    return;
-  }
-
-  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
-    navigateCarousel(-1);
-  } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
-    navigateCarousel(1);
-  }
-}
-
-function navigateCarousel(direction) {
-  const totalSlides = 4;
-  currentPreviewIndex = (currentPreviewIndex + direction + totalSlides) % totalSlides;
-  updateCarouselDisplay();
-}
-
-function updateCarouselDisplay() {
-  const slideContainer = document.querySelector('.carousel-slide');
-  const indicators = document.querySelectorAll('.indicator');
-
-  if (slideContainer) {
-    const task1 = currentGroup.task1;
-    const task2 = currentGroup.task2;
-
-    const slides = [
-      { title: 'Task 1: Pregunta 1 de 3', question: task1[0].text, response: sectionResponses[0] || 'Sin respuesta' },
-      { title: 'Task 1: Pregunta 2 de 3', question: task1[1].text, response: sectionResponses[1] || 'Sin respuesta' },
-      { title: 'Task 1: Pregunta 3 de 3', question: task1[2].text, response: sectionResponses[2] || 'Sin respuesta' },
-      { title: 'Task 2: Ensayo', question: `${task2.topic}\n\n${task2.prompt}`, response: sectionResponses[3] || 'Sin respuesta' }
-    ];
-
-    const slide = slides[currentPreviewIndex];
-    slideContainer.innerHTML = `
-      <div class="slide-header">${slide.title}</div>
-      <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
-      <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
-    `;
-
-    indicators.forEach((ind, i) => {
-      ind.classList.toggle('active', i === currentPreviewIndex);
-    });
   }
 }
 
@@ -2734,7 +2603,7 @@ function renderUnifiedPreview() {
   } else if (currentSection === 'SPEAKING') {
     html += renderSpeakingPreviewItems();
   } else {
-    html += renderMCpreviewItems();
+    html += renderMCPreviewItems();
   }
 
   html += '</div>';
@@ -2941,7 +2810,6 @@ function attachPreviewItemListeners() {
 }
 
 function editWritingFromPreview(step) {
-  document.removeEventListener('keydown', handleCarouselKeydown);
   saveCurrentWritingResponse();
 
   currentWritingStep = step;
@@ -2951,41 +2819,6 @@ function editWritingFromPreview(step) {
   const taskPart = step === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
   const qNum = step === WRITING_STEPS.TASK2 ? 1 : step + 1;
   updateWritingHash(taskPart, qNum);
-}
-
-function renderSpeakingPreviewFallback() {
-  getElement('category-badge').textContent = 'SPEAKING';
-  getElement('progress-text').textContent = `Preview`;
-  getElement('progress-bar').style.width = '100%';
-
-  let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
-  html += '<div class="preview-scroll-container">';
-
-  if (speakingPart && speakingPart.tasks) {
-    speakingPart.tasks.forEach((task, i) => {
-      const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
-      const duration = hasRecording ? speakingResponses[i].duration : null;
-
-      html += `<div class="preview-slide">`;
-      html += `<div class="preview-slide-header">Task ${task.number}</div>`;
-      html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text">${task.prompt}</div>`;
-
-      if (hasRecording) {
-        html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
-      } else {
-        html += `<div class="preview-q-answer unanswered">Sin respuesta<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
-      }
-
-      html += `</div></div>`;
-    });
-  }
-
-  html += '</div></div>';
-
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = html;
-  getElement('controls').classList.add('hidden');
 }
 
 function playSpeakingPreviewRecording(taskIdx, btn) {
@@ -3042,39 +2875,6 @@ function editSpeakingTask(taskIdx) {
   sectionPreviewMode = false;
   renderSpeakingTask();
   resumeTimer();
-}
-
-function renderSpeakingPreviewFallback() {
-  getElement('category-badge').textContent = 'SPEAKING';
-  getElement('progress-text').textContent = `Preview`;
-  getElement('progress-bar').style.width = '100%';
-
-  let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
-  html += '<div class="preview-scroll-container">';
-
-  speakingPart.tasks.forEach((task, i) => {
-    const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
-    const duration = hasRecording ? speakingResponses[i].duration : null;
-
-    html += `<div class="preview-slide">`;
-    html += `<div class="preview-slide-header">Task ${task.number}</div>`;
-    html += `<div class="preview-question">`;
-    html += `<div class="preview-q-text">${task.prompt}</div>`;
-
-    if (hasRecording) {
-      html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
-    } else {
-      html += `<div class="preview-q-answer unanswered">Sin respuesta<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
-    }
-
-    html += `</div></div>`;
-  });
-
-  html += '</div></div>';
-
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = html;
-  getElement('controls').classList.add('hidden');
 }
 
 function submitFromPreview() {
@@ -3436,8 +3236,6 @@ function goHome() {
     saveCurrentWritingResponse();
   }
   saveProgress();
-
-  document.removeEventListener('keydown', handleCarouselKeydown);
 
   getElement('email-btn')?.classList.remove('hidden');
   getElement('quiz-view')?.classList.add('hidden');

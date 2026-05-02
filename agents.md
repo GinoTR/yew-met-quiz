@@ -264,3 +264,22 @@ Home (progress percentage):
 - Calculation: considers all answered questions (correct or wrong).
 - Skipped/not answered questions are not counted.
 - Example: if a section has 10 questions and the user answered 7 (even if 3 are wrong), progress shows 70%.
+
+### Syntax Validation Rule (Node.js + npm)
+
+Prerequisites:
+- Node.js LTS installed on Windows.
+- npm available in PATH (verify with `node -v` and `npm -v`).
+
+Workflow:
+1. Before committing any code, run:
+   - `npm run lint` → validates syntax with ESLint.
+   - `npm run format` → formats code with Prettier.
+2. Commits must be blocked if syntax errors are detected.
+   - Husky pre-commit hook enforces this rule automatically.
+3. OpenCode must not commit changes until lint and format pass successfully.
+4. Push to remote repository only after all commits are validated locally.
+
+Notes:
+- "Tools for Native Modules" is not required during Node.js installation for this project.
+- ESLint + Prettier ensure consistent style and prevent errors like `Unexpected token '}'`.
