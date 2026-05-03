@@ -79,15 +79,17 @@
 /* Estilo del cuerpo de la página */
 /* Centra todo el contenido en la pantalla */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  min-height:100vh;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Contenedor principal de la página */
@@ -102,15 +104,15 @@ body {
   .container {
     max-width: 900px;
   }
-  
+
   #quiz-container {
     padding: 35px;
   }
-  
+
   .writing-textarea {
     min-height: 200px;
   }
-  
+
   .writing-textarea-large {
     min-height: 400px;
   }
@@ -1757,7 +1759,7 @@ h1 {
   border-radius: 10px;
   padding: 16px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .preview-slide-header {
@@ -1872,7 +1874,9 @@ h1 {
   font-weight: 600;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn-submit-preview:hover {
@@ -1897,7 +1901,7 @@ h1 {
 }
 
 .magazine-article::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1957,12 +1961,12 @@ h1 {
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--text-primary);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
   text-align: justify;
 }
 
 .magazine-body br + br {
-  content: '';
+  content: "";
   display: block;
   margin: 8px 0;
 }
@@ -1981,18 +1985,18 @@ h1 {
     padding: 12px;
   }
 
-.reading-passage {
-  background: var(--bg-secondary);
-  border-left: 4px solid #6366f1;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text-primary);
-  max-height: 300px;
-  overflow-y: auto;
-}
+  .reading-passage {
+    background: var(--bg-secondary);
+    border-left: 4px solid #6366f1;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    max-height: 300px;
+    overflow-y: auto;
+  }
 
   .group-q-text {
     font-size: 0.95rem;
@@ -2122,7 +2126,9 @@ h1 {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 
@@ -2214,8 +2220,13 @@ h1 {
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   @media (max-width: 768px) {

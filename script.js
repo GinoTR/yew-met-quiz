@@ -984,7 +984,10 @@ function updateSectionProgress() {
 
   // Universal logic using SECTION_PARTS
   const sectionParts = SECTION_PARTS[currentSection];
-  if (sectionParts && (currentSection === "WRITING" || currentSection === "SPEAKING")) {
+  if (
+    sectionParts &&
+    (currentSection === "WRITING" || currentSection === "SPEAKING")
+  ) {
     // Find current item index in SECTION_PARTS
     const currentItemIndex = sectionParts.findIndex((item) => {
       return item.partKey === currentPartKey;
@@ -993,7 +996,7 @@ function updateSectionProgress() {
     if (currentItemIndex >= 0) {
       const item = sectionParts[currentItemIndex];
       const partLabel = item.partLabel;
-      
+
       if (currentSection === "WRITING") {
         const itemText =
           item.totalInPart > 1
@@ -1001,7 +1004,8 @@ function updateSectionProgress() {
             : `${partLabel}: Essay`;
         getElement("progress-text").textContent = itemText;
       } else if (currentSection === "SPEAKING") {
-        getElement("progress-text").textContent = `${partLabel}: Task ${item.itemNum}/${item.totalInPart}`;
+        getElement("progress-text").textContent =
+          `${partLabel}: Task ${item.itemNum}/${item.totalInPart}`;
       }
 
       const percent = ((currentItemIndex + 1) / sectionParts.length) * 100;
@@ -2753,6 +2757,27 @@ function getNextPartKey() {
       ? sectionParts[currentIndex + 1]
       : null;
   }
+}
+
+// Navigate to next part
+function navigateToNextPart() {
+  pauseTimer();
+  saveProgress();
+
+  const nextPart = getNextPartKey();
+  if (!nextPart) {
+    goToPreview();
+    return;
+  }
+
+  if (currentSection === "WRITING") {
+    beginWriting(nextPart.partKey);
+  } else if (currentSection === "SPEAKING") {
+    beginSpeaking(nextPart.partKey);
+  } else {
+    beginMcPart(nextPart.key);
+  }
+  startTimer(currentSection);
 }
 
 // Get previous part key
