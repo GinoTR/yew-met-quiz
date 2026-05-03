@@ -248,11 +248,51 @@ const SECTION_PARTS = {
   ],
   // Speaking tiene 2 partes, 5 tareas total (3 en Part 1, 2 en Part 2)
   SPEAKING: [
-    { inputType: 'audio', task: 1, number: 1, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 1, totalInPart: 3 },
-    { inputType: 'audio', task: 1, number: 2, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 2, totalInPart: 3 },
-    { inputType: 'audio', task: 1, number: 3, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 3, totalInPart: 3 },
-    { inputType: 'audio', task: 2, number: 1, partKey: 'SPEAKING_P2', partLabel: 'Part 2', itemNum: 1, totalInPart: 2 },
-    { inputType: 'audio', task: 2, number: 2, partKey: 'SPEAKING_P2', partLabel: 'Part 2', itemNum: 2, totalInPart: 2 }
+    {
+      inputType: "audio",
+      task: 1,
+      number: 1,
+      partKey: "SPEAKING_P1",
+      partLabel: "Part 1",
+      itemNum: 1,
+      totalInPart: 3,
+    },
+    {
+      inputType: "audio",
+      task: 1,
+      number: 2,
+      partKey: "SPEAKING_P1",
+      partLabel: "Part 1",
+      itemNum: 2,
+      totalInPart: 3,
+    },
+    {
+      inputType: "audio",
+      task: 1,
+      number: 3,
+      partKey: "SPEAKING_P1",
+      partLabel: "Part 1",
+      itemNum: 3,
+      totalInPart: 3,
+    },
+    {
+      inputType: "audio",
+      task: 2,
+      number: 1,
+      partKey: "SPEAKING_P2",
+      partLabel: "Part 2",
+      itemNum: 1,
+      totalInPart: 2,
+    },
+    {
+      inputType: "audio",
+      task: 2,
+      number: 2,
+      partKey: "SPEAKING_P2",
+      partLabel: "Part 2",
+      itemNum: 2,
+      totalInPart: 2,
+    },
   ],
 };
 
@@ -944,8 +984,8 @@ function updateSectionProgress() {
 
   // Universal logic using SECTION_PARTS
   const sectionParts = SECTION_PARTS[currentSection];
-  if (sectionParts && currentSection === "WRITING") {
-    // Find current item index in SECTION_PARTS.WRITING
+  if (sectionParts && (currentSection === "WRITING" || currentSection === "SPEAKING")) {
+    // Find current item index in SECTION_PARTS
     const currentItemIndex = sectionParts.findIndex((item) => {
       return item.partKey === currentPartKey;
     });
@@ -953,11 +993,16 @@ function updateSectionProgress() {
     if (currentItemIndex >= 0) {
       const item = sectionParts[currentItemIndex];
       const partLabel = item.partLabel;
-      const itemText =
-        item.totalInPart > 1
-          ? `${partLabel}: Q${item.itemNum}/${item.totalInPart}`
-          : `${partLabel}: Essay`;
-      getElement("progress-text").textContent = itemText;
+      
+      if (currentSection === "WRITING") {
+        const itemText =
+          item.totalInPart > 1
+            ? `${partLabel}: Q${item.itemNum}/${item.totalInPart}`
+            : `${partLabel}: Essay`;
+        getElement("progress-text").textContent = itemText;
+      } else if (currentSection === "SPEAKING") {
+        getElement("progress-text").textContent = `${partLabel}: Task ${item.itemNum}/${item.totalInPart}`;
+      }
 
       const percent = ((currentItemIndex + 1) / sectionParts.length) * 100;
       getElement("progress-bar").style.width = percent + "%";
@@ -1546,7 +1591,11 @@ function updateSpeakingTimerDisplay() {
     timerDisplay.textContent = `Time: ${formatTime(speakingTimerRemaining)}`;
   }
 
-  if (speakingTimerRemaining > 0 && speakingMediaRecorder && speakingMediaRecorder.state === "recording") {
+  if (
+    speakingTimerRemaining > 0 &&
+    speakingMediaRecorder &&
+    speakingMediaRecorder.state === "recording"
+  ) {
     speakingTimerRemaining--;
     setTimeout(updateSpeakingTimerDisplay, 1000);
   }
@@ -2237,12 +2286,8 @@ function updatePrevButtonVisibility() {
       skipBtn.classList.add("btn-secondary");
     }
   } else if (currentSection === "SPEAKING") {
-    const pastTasks = speakingTaskIndex >= speakingPart.tasks.length;
-
-    if (pastTasks) {
-      // Should be in preview mode
-      return;
-    }
+    const sectionParts = SECTION_PARTS.SPEAKING;
+    const isLastItem = currentItemIndex >= sectionParts.length - 1;
 
     // NEXT/FINISH button
     if (nextBtn) {
@@ -2261,7 +2306,7 @@ function updatePrevButtonVisibility() {
     if (skipBtn && !isLastQ) {
       skipBtn.classList.remove("hidden");
       const targetName = nextPart
-        ? `Skip to ${nextPart.name}`
+        ? `Skip to ${nextPart.partLabel}`
         : "Skip to Preview";
       skipBtn.textContent = targetName;
       if (isLastPart) {
@@ -2513,35 +2558,43 @@ function beginSpeaking(partKey, saved = null) {
 function goToPreview() {
   sectionPreviewMode = true;
   const sectionParts = SECTION_PARTS[currentSection];
-  renderPreview(currentSection, sectionParts, currentSection === 'SPEAKING' ? 'audio' : (currentSection === 'WRITING' ? 'textarea' : 'mc'));
+  renderPreview(
+    currentSection,
+    sectionParts,
+    currentSection === "SPEAKING"
+      ? "audio"
+      : currentSection === "WRITING"
+        ? "textarea"
+        : "mc",
+  );
 }
 
 // Universal preview renderer
 function renderPreview(section, items, inputType) {
-  const container = getElement('quiz-container');
-  container.innerHTML = '';
-  container.classList.remove('fade-out');
+  const container = getElement("quiz-container");
+  container.innerHTML = "";
+  container.classList.remove("fade-out");
   void container.offsetWidth;
-  container.classList.add('fade-out');
+  container.classList.add("fade-out");
   setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
+    container.classList.remove("fade-out");
+    container.style.animation = "none";
     void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
+    container.style.animation = "fadeIn 0.5s ease";
   }, 300);
 
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = '';
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('feedback-container').classList.add('hidden');
+  getElement("question-text").classList.add("hidden");
+  getElement("options-container").innerHTML = "";
+  getElement("audio-container").classList.add("hidden");
+  getElement("transcription-toggle").classList.add("hidden");
+  getElement("transcription-text").classList.add("hidden");
+  getElement("reading-text").classList.add("hidden");
+  getElement("feedback-container").classList.add("hidden");
 
   let html = '<div class="preview-scroll-container">';
   html += `<h3>Preview - ${SECTION_DISPLAY[section] || section}</h3>`;
 
-  if (inputType === 'textarea' && section === 'WRITING') {
+  if (inputType === "textarea" && section === "WRITING") {
     items.forEach((item, idx) => {
       const response = sectionResponses[item.itemNum - 1];
       const hasResponse = response && response.length > 0;
@@ -2551,23 +2604,25 @@ function renderPreview(section, items, inputType) {
         const group = currentGroup;
         html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
       }
-      html += `<div class="preview-q-answer ${hasResponse ? 'answered' : 'unanswered'}">`;
-      html += hasResponse ? response.substring(0, 200) + (response.length > 200 ? '...' : '') : 'Not answered';
-      html += '</div></div>';
+      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
+      html += hasResponse
+        ? response.substring(0, 200) + (response.length > 200 ? "..." : "")
+        : "Not answered";
+      html += "</div></div>";
     });
-  } else if (inputType === 'audio' && section === 'SPEAKING') {
+  } else if (inputType === "audio" && section === "SPEAKING") {
     items.forEach((item, idx) => {
       const response = speakingResponses[item.itemNum - 1];
       const hasResponse = response && response.blob;
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
-      html += `<div class="preview-q-answer ${hasResponse ? 'answered' : 'unanswered'}">`;
+      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
       if (hasResponse) {
         html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play Recording (${response.duration}s)</button>`;
       } else {
-        html += 'Not answered';
+        html += "Not answered";
       }
-      html += '</div></div>';
+      html += "</div></div>";
     });
   } else {
     // MC sections
@@ -2577,18 +2632,19 @@ function renderPreview(section, items, inputType) {
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${part.name}</div>`;
       html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
-      html += '</div>';
+      html += "</div>";
     });
   }
 
-  html += '</div>';
+  html += "</div>";
   html += '<div class="preview-submit-container">';
-  html += '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
-  html += '</div>';
+  html +=
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
+  html += "</div>";
 
-  getElement('options-container').innerHTML = html;
+  getElement("options-container").innerHTML = html;
 
-  const confirmBtn = getElement('preview-confirm-btn');
+  const confirmBtn = getElement("preview-confirm-btn");
   if (confirmBtn) {
     confirmBtn.onclick = () => showResults();
   }
@@ -2607,38 +2663,39 @@ function playSpeakingPreview(taskIndex) {
 
 // Show final results
 function showResults() {
-  getElement('quiz-view').classList.add('hidden');
-  getElement('results-container').classList.remove('hidden');
-  getElement('category-select').classList.add('hidden');
+  getElement("quiz-view").classList.add("hidden");
+  getElement("results-container").classList.remove("hidden");
+  getElement("category-select").classList.add("hidden");
 
   // Calculate total score
   const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
   const totalParts = Object.values(score).length;
   const percentage = Math.round((totalScore / totalParts) * 100);
 
-  getElement('score-display').textContent = `${percentage}% (${totalScore}/${totalParts})`;
+  getElement("score-display").textContent =
+    `${percentage}% (${totalScore}/${totalParts})`;
 
   // Render breakdown
-  let html = '';
-  const sections = ['WRITING', 'LISTENING', 'READING_AND_GRAMMAR', 'SPEAKING'];
-  sections.forEach(sec => {
+  let html = "";
+  const sections = ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"];
+  sections.forEach((sec) => {
     html += '<div class="result-category">';
     html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
     html += `<span class="result-category-score">${score[sec]}</span>`;
-    html += '</div>';
+    html += "</div>";
   });
-  getElement('results-breakdown').innerHTML = html;
+  getElement("results-breakdown").innerHTML = html;
 
-  logActivity('RESULTS', `Final score: ${percentage}%`);
+  logActivity("RESULTS", `Final score: ${percentage}%`);
 
   stopTimer();
 }
 
 // Check if first question of section
 function isFirstQuestionOfSection() {
-  if (currentSection === 'WRITING') {
+  if (currentSection === "WRITING") {
     return currentItemIndex === 0;
-  } else if (currentSection === 'SPEAKING') {
+  } else if (currentSection === "SPEAKING") {
     return currentItemIndex === 0;
   } else {
     return currentGroupIndex === 0;
@@ -2650,9 +2707,9 @@ function isLastQuestionOfSection() {
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return true;
 
-  if (currentSection === 'WRITING') {
+  if (currentSection === "WRITING") {
     return currentItemIndex >= sectionParts.length - 1;
-  } else if (currentSection === 'SPEAKING') {
+  } else if (currentSection === "SPEAKING") {
     return currentItemIndex >= sectionParts.length - 1;
   } else {
     return currentGroupIndex >= questionGroups.length - 1;
@@ -2664,7 +2721,10 @@ function isLastPartOfSection() {
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return true;
 
-  const currentPart = sectionParts[currentSection === 'WRITING' ? currentItemIndex : currentGroupIndex];
+  const currentPart =
+    sectionParts[
+      currentSection === "WRITING" ? currentItemIndex : currentGroupIndex
+    ];
   if (!currentPart) return true;
 
   const currentPartKey = currentPart.partKey;
@@ -2677,15 +2737,21 @@ function getNextPartKey() {
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return null;
 
-  if (currentSection === 'WRITING') {
-    return currentItemIndex < sectionParts.length - 1 ? sectionParts[currentItemIndex + 1] : null;
-  } else if (currentSection === 'SPEAKING') {
-    return currentItemIndex < sectionParts.length - 1 ? sectionParts[currentItemIndex + 1] : null;
+  if (currentSection === "WRITING") {
+    return currentItemIndex < sectionParts.length - 1
+      ? sectionParts[currentItemIndex + 1]
+      : null;
+  } else if (currentSection === "SPEAKING") {
+    return currentItemIndex < sectionParts.length - 1
+      ? sectionParts[currentItemIndex + 1]
+      : null;
   } else {
-    const currentPart = sectionParts.find(p => p.key === currentPartKey);
+    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
     if (!currentPart) return null;
     const currentIndex = sectionParts.indexOf(currentPart);
-    return currentIndex < sectionParts.length - 1 ? sectionParts[currentIndex + 1] : null;
+    return currentIndex < sectionParts.length - 1
+      ? sectionParts[currentIndex + 1]
+      : null;
   }
 }
 
@@ -2694,12 +2760,12 @@ function getPrevPartKey() {
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return null;
 
-  if (currentSection === 'WRITING') {
+  if (currentSection === "WRITING") {
     return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
-  } else if (currentSection === 'SPEAKING') {
+  } else if (currentSection === "SPEAKING") {
     return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
   } else {
-    const currentPart = sectionParts.find(p => p.key === currentPartKey);
+    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
     if (!currentPart) return null;
     const currentIndex = sectionParts.indexOf(currentPart);
     return currentIndex > 0 ? sectionParts[currentIndex - 1] : null;
@@ -2711,9 +2777,9 @@ function navigateToPart(partKey) {
   pauseTimer();
   saveProgress();
 
-  if (currentSection === 'WRITING') {
+  if (currentSection === "WRITING") {
     beginWriting(partKey);
-  } else if (currentSection === 'SPEAKING') {
+  } else if (currentSection === "SPEAKING") {
     beginSpeaking(partKey);
   } else {
     beginMcPart(partKey);
@@ -2722,11 +2788,11 @@ function navigateToPart(partKey) {
 
 // Stop speaking microphone
 function stopSpeakingMic() {
-  if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
     speakingMediaRecorder.stop();
   }
   if (speakingStream) {
-    speakingStream.getTracks().forEach(track => track.stop());
+    speakingStream.getTracks().forEach((track) => track.stop());
     speakingStream = null;
   }
   if (speakingAnimationId) {
