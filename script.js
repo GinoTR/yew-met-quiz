@@ -1116,7 +1116,7 @@ function renderCategorySelect() {
       key: "WRITING",
       name: "Writing",
       description: "Task 1 (3 questions) and Task 2 (essay of 250 words)",
-      parts: SECTION_PARTS.WRITING,
+      parts: [SECTION_CONFIG.WRITING_TASK1, SECTION_CONFIG.WRITING_TASK2],
     },
     {
       key: "LISTENING",
@@ -1135,7 +1135,7 @@ function renderCategorySelect() {
       name: "Speaking",
       description:
         "Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.",
-      parts: SECTION_PARTS.SPEAKING,
+      parts: [SECTION_CONFIG.SPEAKING_P1, SECTION_CONFIG.SPEAKING_P2],
     },
   ];
 
@@ -1156,10 +1156,7 @@ function renderCategorySelect() {
     const partsContainer = document.createElement("div");
     partsContainer.className = "home-card-parts";
 
-    // Get unique parts for Writing and Speaking (group by partKey)
-    const uniqueParts = getUniquePartsForSection(sec.key, sec.parts);
-
-    uniqueParts.forEach((part) => {
+    sec.parts.forEach((part) => {
       const hasContent = hasSectionContent(part.key);
       const saved = loadProgress();
       const partProgress = getPartProgress(part.key, saved);
@@ -1171,7 +1168,7 @@ function renderCategorySelect() {
 
       const partTitle = document.createElement("div");
       partTitle.className = "home-card-part-title";
-      partTitle.textContent = part.name;
+      partTitle.textContent = part.name || part.partLabel;
       partBtn.appendChild(partTitle);
 
       if (!hasContent) {
@@ -1191,22 +1188,6 @@ function renderCategorySelect() {
     card.appendChild(partsContainer);
     container.appendChild(card);
   });
-}
-
-// Get unique parts for a section (groups Writing tasks and Speaking parts)
-function getUniquePartsForSection(sectionKey, parts) {
-  if (sectionKey === "WRITING" || sectionKey === "SPEAKING") {
-    const seen = new Set();
-    const unique = [];
-    parts.forEach((part) => {
-      if (!seen.has(part.partKey)) {
-        seen.add(part.partKey);
-        unique.push(part);
-      }
-    });
-    return unique;
-  }
-  return parts;
 }
 
 // Revisa si una sección ya tiene contenido disponible
