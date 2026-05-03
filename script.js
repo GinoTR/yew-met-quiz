@@ -119,10 +119,12 @@ const WARNING_TIME = 5 * 60;
 // Lista de partes para cada sección (para navegación)
 // Define qué partes tiene cada sección (Task 1, Task 2, Part 1, etc.)
 const SECTION_PARTS = {
-  // Writing tiene 2 partes: Task 1 y Task 2
+  // Writing: 3 Task 1 questions + 1 Task 2 essay (universal items)
   WRITING: [
-    { key: 'WRITING_TASK1', name: 'Task 1', time: 45 * 60 },
-    { key: 'WRITING_TASK2', name: 'Task 2', time: 45 * 60 }
+    { inputType: 'textarea', task: 1, number: 1, partKey: 'WRITING_TASK1', partLabel: 'Task 1', itemNum: 1, totalInPart: 3 },
+    { inputType: 'textarea', task: 1, number: 2, partKey: 'WRITING_TASK1', partLabel: 'Task 1', itemNum: 2, totalInPart: 3 },
+    { inputType: 'textarea', task: 1, number: 3, partKey: 'WRITING_TASK1', partLabel: 'Task 1', itemNum: 3, totalInPart: 3 },
+    { inputType: 'textarea', task: 2, number: 1, partKey: 'WRITING_TASK2', partLabel: 'Task 2', itemNum: 1, totalInPart: 1, isEssay: true }
   ],
   // Listening tiene 3 partes
   LISTENING: [
@@ -164,11 +166,6 @@ function formatHash(partKey, groupIndex) {
   }
 
   return `#/${sectionName}-${partName}/g${groupIndex}`;
-}
-
-// Crea el texto de la URL para Writing (task1 o task2)
-function formatWritingHash(taskPart, qNum) {
-  return `#/writing-${taskPart}/q${qNum.toString().padStart(2, '0')}`;
 }
 
 // Actualiza la URL con el hash de la parte actual
@@ -313,26 +310,29 @@ function loadFromHash() {
     return;
   }
 
-  if (section.startsWith('WRITING') && currentSection === 'WRITING') {
+  // Universal logic: handle navigation based on SECTION_PARTS
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (sectionParts && currentSection === getSectionKey(section)) {
     if (qStart !== null) {
-      if (taskPart === 'task2') {
-        if (currentWritingStep !== WRITING_STEPS.TASK2) {
-          saveCurrentWritingResponse();
-          currentWritingStep = WRITING_STEPS.TASK2;
-          renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
+      // Find the item in SECTION_PARTS that matches this question number
+      const targetItem = sectionParts.find(item => {
+        if (item.inputType === 'textarea') {
+          // For Writing: qStart corresponds to item number
+          return qStart === item.itemNum;
         }
-      } else {
-        const step = qStart - 1;
-        if (step >= WRITING_STEPS.TASK1_Q1 && step <= WRITING_STEPS.TASK1_Q3) {
-          if (currentWritingStep !== step) {
-            saveCurrentWritingResponse();
-            currentWritingStep = step;
-            renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
-          }
-        }
+        return false;
+      });
+
+      if (targetItem && currentPartKey !== targetItem.partKey) {
+        navigateToPart(targetItem.partKey);
+        return;
+      } else if (targetItem) {
+        // Same part, just render the step
+        const itemIndex = sectionParts.indexOf(targetItem);
+        renderStep(currentSection, itemIndex, currentGroup, targetItem.inputType);
+        return;
       }
     }
-    return;
   }
 
   if (currentPartKey === section && qStart !== null && questionGroups.length > 0) {
@@ -383,7 +383,7 @@ function startTimer(section) {
   if (saved && saved.section === section && saved.timerEnd && saved.timerEnd > now) {
     timerRemaining = Math.floor((saved.timerEnd - now) / 1000);
   } else {
-    timerRemaining = SECTION_TIMES[section] || SECTION_TIMES.WRITING;
+    timerRemaining = SECTION_TIMES[section];
     if (saved) {
       saved.timerEnd = null;
       localStorage.setItem('metQuizProgress', JSON.stringify(saved));
@@ -511,8 +511,8 @@ let sectionResponses = [];
 let groupSelectedAnswers = {};
 // Si el grupo ya fue revisado
 let groupChecked = false;
-// Paso actual de Writing
-let currentWritingStep = 0;
+// Índice del item actual basado en SECTION_PARTS
+let currentItemIndex = 0;
 // Índice de vista previa
 let currentPreviewIndex = 0;
 
@@ -526,15 +526,6 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo0UvJWgK-hGMp
 const TASK1_CHAR_LIMIT = 750;
 // Límite de caracteres para Task 2
 const TASK2_CHAR_LIMIT = 3500;
-
-// Pasos del Writing (qué parte se está haciendo)
-const WRITING_STEPS = {
-  TASK1_Q1: 0,
-  TASK1_Q2: 1,
-  TASK1_Q3: 2,
-  TASK2: 3,
-  PREVIEW: 4
-};
 
 // Mezcla aleatoriamente los elementos de un arreglo
 function shuffleArray(array) {
@@ -572,7 +563,7 @@ function saveProgress() {
     answersByPart: answersByPart,
     timerRemaining: timerRemaining,
     questionsOrder: shuffledQuestions.map(q => ({ exerciseIndex: q.exerciseIndex, questionIndex: q.questionIndex })),
-    writingStep: currentWritingStep,
+    itemIndex: currentItemIndex,
     writingResponses: sectionResponses,
     writingGroupId: currentGroup?.id || null,
     speakingTaskIndex: speakingTaskIndex,
@@ -611,7 +602,7 @@ function resetAllProgress() {
     answeredQuestions = new Set();
     sectionResponses = [];
     speakingResponses = [];
-    currentWritingStep = 0;
+    currentItemIndex = 0;
     currentQuestionIndex = 0;
     renderCategorySelect();
   };
@@ -639,7 +630,7 @@ function resetSectionProgress() {
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
     answeredQuestions = new Set();
     sectionResponses = [];
-    currentWritingStep = 0;
+    currentItemIndex = 0;
     currentQuestionIndex = 0;
     beginQuiz(currentSection);
   };
@@ -719,37 +710,6 @@ async function logActivity(action, detail = '') {
   }
 }
 
-async function logWritingResponse(questionNum, task, response) {
-  if (!currentUser || !currentGroup) return;
-
-  const data = {
-    timestamp: new Date().toISOString(),
-    name: currentUser.name,
-    email: currentUser.email,
-    category: 'WRITING',
-    action: 'RESPUESTA',
-    detail: JSON.stringify({
-      groupId: currentGroup.id,
-      task: task,
-      question: questionNum,
-      response: response
-    })
-  };
-
-  try {
-    if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbzo0UvJWgK-hGMpLPAyAzuz7D6InaGY1GGZMGfrYycEwmMBJNh1aSQ2UIA44DgX9Blp/exec') {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    }
-  } catch (error) {
-    console.log('Writing response logged locally:', data);
-  }
-}
-
 // Muestra la ventana para registrar usuario
 function showRegistrationModal() {
   const modal = getElement('registration-modal');
@@ -798,24 +758,29 @@ function hideChangeUserModal() {
 function updateSectionProgress() {
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
 
-  if (currentSection === 'WRITING') {
-    const progressMap = {
-      [WRITING_STEPS.TASK1_Q1]: 'Task 1: Q1/3',
-      [WRITING_STEPS.TASK1_Q2]: 'Task 1: Q2/3',
-      [WRITING_STEPS.TASK1_Q3]: 'Task 1: Q3/3',
-      [WRITING_STEPS.TASK2]: 'Task 2: Essay',
-      [WRITING_STEPS.PREVIEW]: 'Revisar'
-    };
-    const barMap = {
-      [WRITING_STEPS.TASK1_Q1]: 10,
-      [WRITING_STEPS.TASK1_Q2]: 25,
-      [WRITING_STEPS.TASK1_Q3]: 50,
-      [WRITING_STEPS.TASK2]: 75,
-      [WRITING_STEPS.PREVIEW]: 100
-    };
-    getElement('progress-text').textContent = progressMap[currentWritingStep] || '';
-    getElement('progress-bar').style.width = (barMap[currentWritingStep] || 0) + '%';
-  } else if (questionGroups.length > 0) {
+  // Universal logic using SECTION_PARTS
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (sectionParts && currentSection === 'WRITING') {
+    // Find current item index in SECTION_PARTS.WRITING
+    const currentItemIndex = sectionParts.findIndex(item => {
+      return item.partKey === currentPartKey;
+    });
+
+    if (currentItemIndex >= 0) {
+      const item = sectionParts[currentItemIndex];
+      const partLabel = item.partLabel;
+      const itemText = item.totalInPart > 1
+        ? `${partLabel}: Q${item.itemNum}/${item.totalInPart}`
+        : `${partLabel}: Essay`;
+      getElement('progress-text').textContent = itemText;
+
+      const percent = ((currentItemIndex + 1) / sectionParts.length) * 100;
+      getElement('progress-bar').style.width = percent + '%';
+    }
+    return;
+  }
+
+  if (questionGroups.length > 0) {
     const grp = questionGroups[currentGroupIndex];
     const { start, end } = grp.questionRange;
     const totalQ = shuffledQuestions.length;
@@ -1060,7 +1025,6 @@ function beginWriting(partKey, saved, config) {
   }
 
   currentPartKey = partKey;
-  const isTask2 = partKey.endsWith('TASK2');
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
   if (hasSavedProgress && saved.writingGroupId) {
@@ -1068,16 +1032,16 @@ function beginWriting(partKey, saved, config) {
     if (group) {
       currentGroup = group;
       sectionResponses = saved.writingResponses || [];
-      currentWritingStep = saved.writingStep || (isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1);
+      currentItemIndex = saved.itemIndex || 0;
     } else {
       currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
       sectionResponses = [];
-      currentWritingStep = isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1;
+      currentItemIndex = 0;
     }
   } else {
     currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
     sectionResponses = [];
-    currentWritingStep = isTask2 ? WRITING_STEPS.TASK2 : WRITING_STEPS.TASK1_Q1;
+    currentItemIndex = 0;
   }
   currentPreviewIndex = 0;
 
@@ -1086,14 +1050,21 @@ function beginWriting(partKey, saved, config) {
   getElement('results-container').classList.add('hidden');
 
   setupInstructionsPanel();
-  const partName = isTask2 ? 'Task 2' : 'Task 1';
-  logActivity('INICIO', `WRITING ${partName} - Grupo: ${currentGroup.id}`);
-  renderStep('WRITING', currentWritingStep, currentGroup, 'textarea');
+  logActivity('INICIO', `WRITING - Grupo: ${currentGroup.id}`);
+
+  // Find the item index in SECTION_PARTS.WRITING that matches the partKey
+  const sectionParts = SECTION_PARTS.WRITING;
+  const itemIndex = sectionParts.findIndex(item => item.partKey === partKey);
+  if (itemIndex >= 0) {
+    currentItemIndex = itemIndex;
+  }
+
+  renderStep('WRITING', currentItemIndex, currentGroup, 'textarea');
   updatePrevButtonVisibility();
 
-  const taskPart = isTask2 ? 'task2' : 'task1';
+  // Update hash using universal format
   hashNavigationLocked = true;
-  updateWritingHash(taskPart, 1);
+  updateHash(partKey, currentItemIndex);
   hashNavigationLocked = false;
 
   startTimer('WRITING');
@@ -1664,10 +1635,46 @@ function getPrevPartKey() {
   return parts[currentIndex - 1];
 }
 
+// Navega a una parte específica de la sección
+function navigateToPart(partKey) {
+  pauseTimer();
+  saveProgress();
+
+  if (currentSection === 'WRITING') {
+    beginWriting(partKey, loadProgress(), SECTION_CONFIG[partKey]);
+    startTimer(currentSection);
+  } else if (currentSection === 'SPEAKING') {
+    beginSpeaking(partKey, loadProgress());
+    startTimer(currentSection);
+  } else {
+    beginMcPart(partKey, loadProgress());
+    startTimer(currentSection);
+  }
+}
+
+// Va a la vista previa de la sección
+function goToPreview() {
+  sectionPreviewMode = true;
+  currentPreviewIndex = 0;
+
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+
+  setupInstructionsPanel();
+  renderPreview(currentSection, currentGroup, 'textarea');
+  updatePrevButtonVisibility();
+
+  hashNavigationLocked = true;
+  window.location.hash = `#/${currentSection.toLowerCase()}/preview`;
+  hashNavigationLocked = false;
+}
+
 // Revisa si es la primera parte de la sección
 function isFirstPartOfSection() {
   if (currentSection === 'WRITING') {
-    return currentWritingStep <= WRITING_STEPS.TASK1_Q3;
+    const sectionParts = SECTION_PARTS.WRITING;
+    return currentItemIndex <= 2; // Task 1 has items 0, 1, 2
   }
   return getPrevPartKey() === null;
 }
@@ -1675,7 +1682,8 @@ function isFirstPartOfSection() {
 // Revisa si es la última parte de la sección
 function isLastPartOfSection() {
   if (currentSection === 'WRITING') {
-    return currentWritingStep >= WRITING_STEPS.TASK2;
+    const sectionParts = SECTION_PARTS.WRITING;
+    return currentItemIndex >= sectionParts.length - 1;
   }
   return getNextPartKey() === null;
 }
@@ -1683,7 +1691,8 @@ function isLastPartOfSection() {
 // Revisa si es la última pregunta de la sección
 function isLastQuestionOfSection() {
   if (currentSection === 'WRITING') {
-    return currentWritingStep === WRITING_STEPS.TASK2;
+    const sectionParts = SECTION_PARTS.WRITING;
+    return currentItemIndex === sectionParts.length - 1;
   }
   if (currentSection === 'SPEAKING') {
     return isLastPartOfSection() && speakingTaskIndex >= speakingPart.tasks.length - 1;
@@ -1697,7 +1706,7 @@ function isLastQuestionOfSection() {
 // Revisa si es la primera pregunta de la sección
 function isFirstQuestionOfSection() {
   if (currentSection === 'WRITING') {
-    return currentWritingStep === WRITING_STEPS.TASK1_Q1;
+    return currentItemIndex === 0;
   }
   if (currentSection === 'SPEAKING') {
     return isFirstPartOfSection() && speakingTaskIndex === 0;
@@ -1710,7 +1719,7 @@ function isFirstQuestionOfSection() {
 
 // Dibuja un paso de cualquier sección de forma universal
 // inputType: 'textarea' (Writing), 'audio' (Speaking), 'mc' (Listening/Reading)
-function renderStep(section, partId, items, inputType) {
+function renderStep(section, itemIndex, items, inputType) {
   const container = getElement('quiz-container');
   container.classList.remove('fade-out');
   void container.offsetWidth;
@@ -1738,35 +1747,41 @@ function renderStep(section, partId, items, inputType) {
   let html = '';
 
   if (inputType === 'textarea') {
-    // Renderizado para Writing (Task 1 y Task 2)
-    if (section === 'WRITING') {
-      if (partId === WRITING_STEPS.TASK1_Q1 || partId === WRITING_STEPS.TASK1_Q2 || partId === WRITING_STEPS.TASK1_Q3) {
-        const qIndex = partId; // 0, 1, o 2
-        const question = items.task1[qIndex];
-        const existingResponse = sectionResponses[qIndex] || '';
-        const charCount = existingResponse.length;
-        const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
-        html = `
-          <div class="writing-question">
-            <p class="writing-question-text">${question.text}</p>
-            <textarea id="writing-textarea" class="writing-textarea" placeholder="Escribe tu respuesta aquí..." maxlength="${TASK1_CHAR_LIMIT}">${existingResponse}</textarea>
-            <div class="char-counter ${showCounter ? 'visible' : ''}">
-              <span id="char-count">${charCount}</span> / ${TASK1_CHAR_LIMIT}
-            </div>
-          </div>
-        `;
-      } else if (partId === WRITING_STEPS.TASK2) {
-        const task2 = items.task2;
-        const existingResponse = sectionResponses[3] || '';
-        const charCount = existingResponse.length;
-        const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
+    // Universal textarea rendering using SECTION_PARTS items
+    const sectionParts = SECTION_PARTS[section];
+    if (!sectionParts || !sectionParts[itemIndex]) return;
+
+    const item = sectionParts[itemIndex];
+    const existingResponse = sectionResponses[itemIndex] || '';
+    const charCount = existingResponse.length;
+    const charLimit = item.isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+    const showCounter = charCount > charLimit * 0.9;
+
+    if (item.task === 2 || item.isEssay) {
+      // Task 2 (essay)
+      const task2 = items.task2;
+      if (task2) {
         html = `
           <div class="writing-question">
             <p class="writing-question-text">${task2.topic}</p>
             <p class="writing-task-prompt">${task2.prompt}</p>
-            <textarea id="writing-textarea" class="writing-textarea writing-textarea-large" placeholder="Escribe tu essay aquí..." maxlength="${TASK2_CHAR_LIMIT}">${existingResponse}</textarea>
+            <textarea id="writing-textarea" class="writing-textarea writing-textarea-large" placeholder="Escribe tu essay aquí..." maxlength="${charLimit}">${existingResponse}</textarea>
             <div class="char-counter ${showCounter ? 'visible' : ''}">
-              <span id="char-count">${charCount}</span> / ${TASK2_CHAR_LIMIT}
+              <span id="char-count">${charCount}</span> / ${charLimit}
+            </div>
+          </div>
+        `;
+      }
+    } else {
+      // Task 1 questions
+      const question = items.task1 ? items.task1[item.itemNum - 1] : null;
+      if (question) {
+        html = `
+          <div class="writing-question">
+            <p class="writing-question-text">${question.text}</p>
+            <textarea id="writing-textarea" class="writing-textarea" placeholder="Escribe tu respuesta aquí..." maxlength="${charLimit}">${existingResponse}</textarea>
+            <div class="char-counter ${showCounter ? 'visible' : ''}">
+              <span id="char-count">${charCount}</span> / ${charLimit}
             </div>
           </div>
         `;
@@ -1836,47 +1851,36 @@ function renderPreview(section, items, inputType) {
   let html = '';
 
   if (inputType === 'textarea') {
-    // Preview para Writing
-    if (!items) return '';
-    const task1 = items.task1 || [];
-    const task2 = items.task2;
+    // Universal preview using SECTION_PARTS items
+    const sectionParts = SECTION_PARTS[section];
+    if (!sectionParts) return '';
+
     const canEdit = timerRemaining > 0;
 
-    // Task 1 Questions
-    task1.forEach((q, i) => {
-      const response = sectionResponses[i] || '';
+    sectionParts.forEach((item, itemIndex) => {
+      const response = sectionResponses[itemIndex] || '';
       const hasResponse = response.length > 0;
       const statusClass = hasResponse ? 'answered' : 'unanswered';
       const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
 
-      html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}">`;
-      html += `<div class="preview-slide-header">Task 1 — Question ${i + 1} of 3</div>`;
+      html += `<div class="preview-slide" data-item-index="${itemIndex}">`;
+      html += `<div class="preview-slide-header">${item.partLabel} — ${item.isEssay ? 'Essay' : `Question ${item.itemNum} of ${item.totalInPart}`}</div>`;
       html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text"><span class="preview-q-num">Q${i + 1}.</span> ${q.text}</div>`;
+
+      if (item.isEssay) {
+        const task2 = items.task2;
+        html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2 ? task2.topic : ''}</div>`;
+      } else {
+        const question = items.task1 ? items.task1[item.itemNum - 1] : null;
+        html += `<div class="preview-q-text"><span class="preview-q-num">Q${item.itemNum}.</span> ${question ? question.text : ''}</div>`;
+      }
+
       html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
       if (canEdit) {
-        html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}" style="margin-left:8px;">✏️ Edit</button>`;
+        html += ` <button class="btn-preview-edit" data-item-index="${itemIndex}" style="margin-left:8px;">✏️ Edit</button>`;
       }
       html += `</div></div></div>`;
     });
-
-    // Task 2
-    if (task2) {
-      const response = sectionResponses[3] || '';
-      const hasResponse = response.length > 0;
-      const statusClass = hasResponse ? 'answered' : 'unanswered';
-      const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
-
-      html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK2}">`;
-      html += `<div class="preview-slide-header">Task 2 — Essay</div>`;
-      html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2.topic}</div>`;
-      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-      if (canEdit) {
-        html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK2}" style="margin-left:8px;">✏️ Edit</button>`;
-      }
-      html += `</div></div></div>`;
-    }
 
   } else if (inputType === 'audio') {
     // Preview para Speaking
@@ -1975,15 +1979,17 @@ function renderPreview(section, items, inputType) {
 
 // Obtiene el nombre de la siguiente parte de Writing de forma dinámica
 function getWritingNextPartName() {
-  // Si estamos en Task 1, el siguiente es Task 2
-  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    const writingParts = SECTION_PARTS.WRITING;
-    if (!writingParts) return 'Task 2';
-    const task2Part = writingParts.find(p => p.key.endsWith('TASK2'));
+  // Based on currentItemIndex in SECTION_PARTS.WRITING
+  const sectionParts = SECTION_PARTS.WRITING;
+  if (!sectionParts) return 'Task 2';
+
+  if (currentItemIndex <= 2) {
+    // Currently in Task 1 (items 0, 1, 2)
+    const task2Part = sectionParts.find(p => p.key.endsWith('TASK2'));
     return task2Part ? task2Part.name : 'Task 2';
   }
-  // Si estamos en Task 2, el siguiente es Preview
-  if (currentWritingStep === WRITING_STEPS.TASK2) {
+  // Currently in Task 2 (item 3)
+  if (currentItemIndex === 3) {
     return 'Preview';
   }
   return null;
@@ -2036,12 +2042,8 @@ function updatePrevButtonVisibility() {
   }
 
   if (currentSection === 'WRITING') {
-    const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-
-    if (isPreview) {
-      // Handled above in sectionPreviewMode check
-      return;
-    }
+    // For Writing, we don't have a PREVIEW step in currentItemIndex
+    // sectionPreviewMode handles preview
 
     // NEXT/FINISH button
     if (nextBtn) {
@@ -2150,24 +2152,6 @@ function updatePrevButtonVisibility() {
       }
     }
   }
-}
-
-// Guarda la respuesta actual de Writing
-function saveCurrentWritingResponse() {
-  const textarea = document.getElementById('writing-textarea');
-  if (!textarea) return;
-
-  const value = textarea.value;
-
-  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    sectionResponses[currentWritingStep] = value;
-    logWritingResponse(currentWritingStep + 1, 1, value);
-  } else if (currentWritingStep === WRITING_STEPS.TASK2) {
-    sectionResponses[3] = value;
-    logWritingResponse(1, 2, value);
-  }
-
-  saveProgress();
 }
 
 // Variables para la sección de Speaking
