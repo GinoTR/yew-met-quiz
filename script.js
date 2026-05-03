@@ -1100,934 +1100,1004 @@ async function loadAllData() {
     console.error("Error loading data:", error);
     return false;
   }
+}
 
-  // Muestra la pantalla de inicio con las categorías
-  function renderCategorySelect() {
-    getElement("quiz-view").classList.add("hidden");
-    getElement("results-container").classList.add("hidden");
-    getElement("category-select").classList.remove("hidden");
+// Muestra la pantalla de inicio con las categorías
+function renderCategorySelect() {
+  getElement("quiz-view").classList.add("hidden");
+  getElement("results-container").classList.add("hidden");
+  getElement("category-select").classList.remove("hidden");
 
-    const container = getElement("category-buttons");
-    container.innerHTML = "";
+  const container = getElement("category-buttons");
+  container.innerHTML = "";
 
-    const sections = [
-      {
-        key: "WRITING",
-        name: "Writing",
-        description: "Task 1 (3 questions) and Task 2 (essay of 250 words)",
-        parts: SECTION_PARTS.WRITING,
-      },
-      {
-        key: "LISTENING",
-        name: "Listening",
-        description: "Parts 1-3, 50 questions total.",
-        parts: SECTION_PARTS.LISTENING,
-      },
-      {
-        key: "READING_AND_GRAMMAR",
-        name: "Reading & Grammar",
-        description: "Parts 1-3, 51 questions total.",
-        parts: SECTION_PARTS.READING_AND_GRAMMAR,
-      },
-      {
-        key: "SPEAKING",
-        name: "Speaking",
-        description:
-          "Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.",
-        parts: SECTION_PARTS.SPEAKING,
-      },
-    ];
+  const sections = [
+    {
+      key: "WRITING",
+      name: "Writing",
+      description: "Task 1 (3 questions) and Task 2 (essay of 250 words)",
+      parts: SECTION_PARTS.WRITING,
+    },
+    {
+      key: "LISTENING",
+      name: "Listening",
+      description: "Parts 1-3, 50 questions total.",
+      parts: SECTION_PARTS.LISTENING,
+    },
+    {
+      key: "READING_AND_GRAMMAR",
+      name: "Reading & Grammar",
+      description: "Parts 1-3, 51 questions total.",
+      parts: SECTION_PARTS.READING_AND_GRAMMAR,
+    },
+    {
+      key: "SPEAKING",
+      name: "Speaking",
+      description:
+        "Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.",
+      parts: SECTION_PARTS.SPEAKING,
+    },
+  ];
 
-    sections.forEach((sec) => {
-      const card = document.createElement("div");
-      card.className = "home-card";
+  sections.forEach((sec) => {
+    const card = document.createElement("div");
+    card.className = "home-card";
 
-      const titleEl = document.createElement("div");
-      titleEl.className = "home-card-title";
-      titleEl.textContent = sec.name;
-      card.appendChild(titleEl);
+    const titleEl = document.createElement("div");
+    titleEl.className = "home-card-title";
+    titleEl.textContent = sec.name;
+    card.appendChild(titleEl);
 
-      const descEl = document.createElement("div");
-      descEl.className = "home-card-subtitle";
-      descEl.textContent = sec.description;
-      card.appendChild(descEl);
+    const descEl = document.createElement("div");
+    descEl.className = "home-card-subtitle";
+    descEl.textContent = sec.description;
+    card.appendChild(descEl);
 
-      const partsContainer = document.createElement("div");
-      partsContainer.className = "home-card-parts";
+    const partsContainer = document.createElement("div");
+    partsContainer.className = "home-card-parts";
 
-      sec.parts.forEach((part) => {
-        const config = SECTION_CONFIG[part.key];
-        const hasContent = hasSectionContent(part.key);
-        const saved = loadProgress();
-        const partProgress = getPartProgress(part.key, saved);
-        const percent = partProgress.percent;
-        const label = percent > 0 ? `${percent}%` : "";
+    sec.parts.forEach((part) => {
+      const config = SECTION_CONFIG[part.key];
+      const hasContent = hasSectionContent(part.key);
+      const saved = loadProgress();
+      const partProgress = getPartProgress(part.key, saved);
+      const percent = partProgress.percent;
+      const label = percent > 0 ? `${percent}%` : "";
 
-        const partBtn = document.createElement("div");
-        partBtn.className = "home-card-part" + (!hasContent ? " disabled" : "");
+      const partBtn = document.createElement("div");
+      partBtn.className = "home-card-part" + (!hasContent ? " disabled" : "");
 
-        const partTitle = document.createElement("div");
-        partTitle.className = "home-card-part-title";
-        partTitle.textContent = part.name;
-        partBtn.appendChild(partTitle);
+      const partTitle = document.createElement("div");
+      partTitle.className = "home-card-part-title";
+      partTitle.textContent = part.name;
+      partBtn.appendChild(partTitle);
 
-        if (!hasContent) {
-          partBtn.classList.add("coming-soon");
-        } else {
-          const progressEl = document.createElement("div");
-          progressEl.className = "home-card-part-progress";
-          progressEl.textContent = label;
-          partBtn.appendChild(progressEl);
-
-          partBtn.addEventListener("click", () => startFromSection(part.key));
-        }
-
-        partsContainer.appendChild(partBtn);
-      });
-
-      card.appendChild(partsContainer);
-      container.appendChild(card);
-    });
-  }
-
-  // Revisa si una sección ya tiene contenido disponible
-  function hasSectionContent(partKey) {
-    const section = getSectionKey(partKey);
-    if (section === "WRITING")
-      return (
-        quizData.WRITING &&
-        quizData.WRITING.groups &&
-        quizData.WRITING.groups.length > 0
-      );
-    if (section === "LISTENING")
-      return (
-        quizData.LISTENING &&
-        quizData.LISTENING.parts &&
-        quizData.LISTENING.parts.length > 0
-      );
-    if (section === "READING_AND_GRAMMAR")
-      return (
-        quizData.READING_AND_GRAMMAR &&
-        quizData.READING_AND_GRAMMAR.parts &&
-        quizData.READING_AND_GRAMMAR.parts.length > 0
-      );
-    if (section === "SPEAKING")
-      return (
-        quizData.SPEAKING &&
-        quizData.SPEAKING.parts &&
-        quizData.SPEAKING.parts.length > 0
-      );
-    return false;
-  }
-
-  // Obtiene el progreso de una parte específica
-  function getPartProgress(partKey, saved) {
-    if (!saved) return { answered: 0, total: 0, percent: 0 };
-
-    const section = getSectionKey(partKey);
-    const config = SECTION_CONFIG[partKey];
-
-    // MC sections (LISTENING, READING_AND_GRAMMAR)
-    if (section === "LISTENING" || section === "READING_AND_GRAMMAR") {
-      const total = config ? config.items : 0;
-      if (!saved.answersByPart || !saved.answersByPart[partKey]) {
-        return { answered: 0, total, percent: 0 };
-      }
-      const answered = saved.answersByPart[partKey].length;
-      const percent =
-        answered > 0 && total > 0 ? Math.round((answered / total) * 100) : 0;
-      return { answered, total, percent };
-    }
-
-    // WRITING section
-    if (section === "WRITING") {
-      const total = 4; // 3 Task 1 questions + 1 Task 2
-      const writingResponses = saved.writingResponses || [];
-      const answered = writingResponses.filter((r) => r && r.length > 0).length;
-      const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
-      return { answered, total, percent };
-    }
-
-    // SPEAKING section
-    if (section === "SPEAKING") {
-      const total = config ? config.items : 5; // Default to 5 tasks
-      const speakingResponses = saved.speakingResponses || [];
-      const answered = speakingResponses.filter(
-        (r) => r !== null && r !== undefined,
-      ).length;
-      const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
-      return { answered, total, percent };
-    }
-
-    return { answered: 0, total: 0, percent: 0 };
-  }
-
-  // Inicia el quiz desde una sección específica
-  function startFromSection(section) {
-    pendingSection = section;
-
-    if (!currentUser) {
-      showRegistrationModal();
-      return;
-    }
-
-    beginQuiz(section);
-  }
-
-  // Comienza el quiz para una sección
-  function beginQuiz(section) {
-    const saved = loadProgress();
-    const config = SECTION_CONFIG[section];
-
-    sectionPreviewMode = false;
-    currentPartKey = section;
-    currentSection = getSectionKey(section) || section;
-    currentPartQuestionIndex = 0;
-    currentQuestionIndex = 0;
-    selectedOptionIndex = null;
-    currentAudioSrc = null;
-    currentAudioElement = null;
-
-    if (saved) {
-      score = saved.score || {
-        WRITING: 0,
-        LISTENING: 0,
-        READING_AND_GRAMMAR: 0,
-        SPEAKING: 0,
-      };
-      answersByPart = saved.answersByPart || {};
-      timerRemaining = saved.timerRemaining || SECTION_TIMES[currentSection];
-    } else {
-      score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-      answersByPart = {};
-      timerRemaining = SECTION_TIMES[currentSection];
-    }
-
-    if (section.startsWith("WRITING") || section === "WRITING") {
-      const parts = SECTION_PARTS.WRITING;
-      const partKey = section.startsWith("WRITING_T")
-        ? section
-        : parts && parts[0]
-          ? parts[0].key
-          : "WRITING_TASK1";
-      beginWriting(partKey, saved);
-      return;
-    }
-
-    if (section.startsWith("LISTENING") || section === "LISTENING") {
-      const parts = SECTION_PARTS.LISTENING;
-      const partKey = section.startsWith("LISTENING_P")
-        ? section
-        : parts && parts[0]
-          ? parts[0].key
-          : "LISTENING_P1";
-      beginMcPart(partKey, saved);
-      return;
-    }
-
-    if (section.startsWith("READING") || section === "READING_AND_GRAMMAR") {
-      const parts = SECTION_PARTS.READING_AND_GRAMMAR;
-      const partKey = section.startsWith("READING_P")
-        ? section
-        : parts && parts[0]
-          ? parts[0].key
-          : "READING_P1";
-      beginMcPart(partKey, saved);
-      return;
-    }
-
-    if (section.startsWith("SPEAKING") || section === "SPEAKING") {
-      const parts = SECTION_PARTS.SPEAKING;
-      const partKey = section.startsWith("SPEAKING_P")
-        ? section
-        : parts && parts[0]
-          ? parts[0].key
-          : "SPEAKING_P1";
-      beginSpeaking(partKey, saved);
-      return;
-    }
-
-    alert("Esta sección aún no tiene contenido.");
-  }
-
-  // Inicia la sección de Writing (universal para textarea inputType)
-  function beginWriting(partKey, saved) {
-    if (
-      !quizData.WRITING ||
-      !quizData.WRITING.groups ||
-      quizData.WRITING.groups.length === 0
-    ) {
-      alert("La sección de Writing aún no tiene contenido.");
-      return;
-    }
-
-    currentPartKey = partKey;
-    const hasSavedProgress = saved && saved.currentPartKey === partKey;
-
-    if (hasSavedProgress && saved.writingGroupId) {
-      const group = quizData.WRITING.groups.find(
-        (g) => g.id === saved.writingGroupId,
-      );
-      if (group) {
-        currentGroup = group;
-        sectionResponses = saved.writingResponses || [];
-        currentItemIndex = saved.itemIndex || 0;
+      if (!hasContent) {
+        partBtn.classList.add("coming-soon");
       } else {
-        currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
-        sectionResponses = [];
-        currentItemIndex = 0;
+        const progressEl = document.createElement("div");
+        progressEl.className = "home-card-part-progress";
+        progressEl.textContent = label;
+        partBtn.appendChild(progressEl);
+
+        partBtn.addEventListener("click", () => startFromSection(part.key));
       }
+
+      partsContainer.appendChild(partBtn);
+    });
+
+    card.appendChild(partsContainer);
+    container.appendChild(card);
+  });
+}
+
+// Revisa si una sección ya tiene contenido disponible
+function hasSectionContent(partKey) {
+  const section = getSectionKey(partKey);
+  if (section === "WRITING")
+    return (
+      quizData.WRITING &&
+      quizData.WRITING.groups &&
+      quizData.WRITING.groups.length > 0
+    );
+  if (section === "LISTENING")
+    return (
+      quizData.LISTENING &&
+      quizData.LISTENING.parts &&
+      quizData.LISTENING.parts.length > 0
+    );
+  if (section === "READING_AND_GRAMMAR")
+    return (
+      quizData.READING_AND_GRAMMAR &&
+      quizData.READING_AND_GRAMMAR.parts &&
+      quizData.READING_AND_GRAMMAR.parts.length > 0
+    );
+  if (section === "SPEAKING")
+    return (
+      quizData.SPEAKING &&
+      quizData.SPEAKING.parts &&
+      quizData.SPEAKING.parts.length > 0
+    );
+  return false;
+}
+
+// Obtiene el progreso de una parte específica
+function getPartProgress(partKey, saved) {
+  if (!saved) return { answered: 0, total: 0, percent: 0 };
+
+  const section = getSectionKey(partKey);
+  const config = SECTION_CONFIG[partKey];
+
+  // MC sections (LISTENING, READING_AND_GRAMMAR)
+  if (section === "LISTENING" || section === "READING_AND_GRAMMAR") {
+    const total = config ? config.items : 0;
+    if (!saved.answersByPart || !saved.answersByPart[partKey]) {
+      return { answered: 0, total, percent: 0 };
+    }
+    const answered = saved.answersByPart[partKey].length;
+    const percent =
+      answered > 0 && total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  // WRITING section
+  if (section === "WRITING") {
+    const total = 4; // 3 Task 1 questions + 1 Task 2
+    const writingResponses = saved.writingResponses || [];
+    const answered = writingResponses.filter((r) => r && r.length > 0).length;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  // SPEAKING section
+  if (section === "SPEAKING") {
+    const total = config ? config.items : 5; // Default to 5 tasks
+    const speakingResponses = saved.speakingResponses || [];
+    const answered = speakingResponses.filter(
+      (r) => r !== null && r !== undefined,
+    ).length;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  return { answered: 0, total: 0, percent: 0 };
+}
+
+// Inicia el quiz desde una sección específica
+function startFromSection(section) {
+  pendingSection = section;
+
+  if (!currentUser) {
+    showRegistrationModal();
+    return;
+  }
+
+  beginQuiz(section);
+}
+
+// Comienza el quiz para una sección
+function beginQuiz(section) {
+  const saved = loadProgress();
+  const config = SECTION_CONFIG[section];
+
+  sectionPreviewMode = false;
+  currentPartKey = section;
+  currentSection = getSectionKey(section) || section;
+  currentPartQuestionIndex = 0;
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  currentAudioSrc = null;
+  currentAudioElement = null;
+
+  if (saved) {
+    score = saved.score || {
+      WRITING: 0,
+      LISTENING: 0,
+      READING_AND_GRAMMAR: 0,
+      SPEAKING: 0,
+    };
+    answersByPart = saved.answersByPart || {};
+    timerRemaining = saved.timerRemaining || SECTION_TIMES[currentSection];
+  } else {
+    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answersByPart = {};
+    timerRemaining = SECTION_TIMES[currentSection];
+  }
+
+  if (section.startsWith("WRITING") || section === "WRITING") {
+    const parts = SECTION_PARTS.WRITING;
+    const partKey = section.startsWith("WRITING_T")
+      ? section
+      : parts && parts[0]
+        ? parts[0].key
+        : "WRITING_TASK1";
+    beginWriting(partKey, saved);
+    return;
+  }
+
+  if (section.startsWith("LISTENING") || section === "LISTENING") {
+    const parts = SECTION_PARTS.LISTENING;
+    const partKey = section.startsWith("LISTENING_P")
+      ? section
+      : parts && parts[0]
+        ? parts[0].key
+        : "LISTENING_P1";
+    beginMcPart(partKey, saved);
+    return;
+  }
+
+  if (section.startsWith("READING") || section === "READING_AND_GRAMMAR") {
+    const parts = SECTION_PARTS.READING_AND_GRAMMAR;
+    const partKey = section.startsWith("READING_P")
+      ? section
+      : parts && parts[0]
+        ? parts[0].key
+        : "READING_P1";
+    beginMcPart(partKey, saved);
+    return;
+  }
+
+  if (section.startsWith("SPEAKING") || section === "SPEAKING") {
+    const parts = SECTION_PARTS.SPEAKING;
+    const partKey = section.startsWith("SPEAKING_P")
+      ? section
+      : parts && parts[0]
+        ? parts[0].key
+        : "SPEAKING_P1";
+    beginSpeaking(partKey, saved);
+    return;
+  }
+
+  alert("Esta sección aún no tiene contenido.");
+}
+
+// Inicia la sección de Writing (universal para textarea inputType)
+function beginWriting(partKey, saved) {
+  if (
+    !quizData.WRITING ||
+    !quizData.WRITING.groups ||
+    quizData.WRITING.groups.length === 0
+  ) {
+    alert("La sección de Writing aún no tiene contenido.");
+    return;
+  }
+
+  currentPartKey = partKey;
+  const hasSavedProgress = saved && saved.currentPartKey === partKey;
+
+  if (hasSavedProgress && saved.writingGroupId) {
+    const group = quizData.WRITING.groups.find(
+      (g) => g.id === saved.writingGroupId,
+    );
+    if (group) {
+      currentGroup = group;
+      sectionResponses = saved.writingResponses || [];
+      currentItemIndex = saved.itemIndex || 0;
     } else {
       currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
       sectionResponses = [];
       currentItemIndex = 0;
     }
-    currentPreviewIndex = 0;
+  } else {
+    currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    sectionResponses = [];
+    currentItemIndex = 0;
+  }
+  currentPreviewIndex = 0;
 
-    getElement("category-select").classList.add("hidden");
-    getElement("quiz-view").classList.remove("hidden");
-    getElement("results-container").classList.add("hidden");
+  getElement("category-select").classList.add("hidden");
+  getElement("quiz-view").classList.remove("hidden");
+  getElement("results-container").classList.add("hidden");
 
-    setupInstructionsPanel();
-    logActivity("INICIO", `WRITING - Grupo: ${currentGroup.id}`);
+  setupInstructionsPanel();
+  logActivity("INICIO", `WRITING - Grupo: ${currentGroup.id}`);
 
-    // Find the item index in SECTION_PARTS.WRITING that matches the partKey
-    const sectionParts = SECTION_PARTS.WRITING;
-    const itemIndex = sectionParts.findIndex(
-      (item) => item.partKey === partKey,
-    );
-    if (itemIndex >= 0) {
-      currentItemIndex = itemIndex;
-    }
-
-    renderStep("WRITING", currentItemIndex, currentGroup, "textarea");
-    updatePrevButtonVisibility();
-
-    // Update hash using universal format
-    hashNavigationLocked = true;
-    updateHash(partKey, currentItemIndex);
-    hashNavigationLocked = false;
-
-    startTimer("WRITING");
+  // Find the item index in SECTION_PARTS.WRITING that matches the partKey
+  const sectionParts = SECTION_PARTS.WRITING;
+  const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
+  if (itemIndex >= 0) {
+    currentItemIndex = itemIndex;
   }
 
-  // Universal step renderer for Writing (textarea) and Speaking (audio)
-  function renderStep(section, itemIndex, partData, inputType) {
-    const container = getElement("quiz-container");
+  renderStep("WRITING", currentItemIndex, currentGroup, "textarea");
+  updatePrevButtonVisibility();
+
+  // Update hash using universal format
+  hashNavigationLocked = true;
+  updateHash(partKey, currentItemIndex);
+  hashNavigationLocked = false;
+
+  startTimer("WRITING");
+}
+
+// Universal step renderer for Writing (textarea) and Speaking (audio)
+function renderStep(section, itemIndex, partData, inputType) {
+  const container = getElement("quiz-container");
+  container.classList.remove("fade-out");
+  void container.offsetWidth;
+  container.classList.add("fade-out");
+  setTimeout(() => {
     container.classList.remove("fade-out");
+    container.style.animation = "none";
     void container.offsetWidth;
-    container.classList.add("fade-out");
-    setTimeout(() => {
-      container.classList.remove("fade-out");
-      container.style.animation = "none";
-      void container.offsetWidth;
-      container.style.animation = "fadeIn 0.5s ease";
-    }, 300);
+    container.style.animation = "fadeIn 0.5s ease";
+  }, 300);
 
-    updateSectionProgress();
+  updateSectionProgress();
 
-    getElement("transcription-toggle").innerHTML = "";
-    getElement("transcription-toggle").classList.add("hidden");
-    getElement("transcription-text").classList.add("hidden");
-    getElement("reading-text").classList.add("hidden");
-    getElement("feedback-container").classList.add("hidden");
-    getElement("controls").classList.remove("hidden");
+  getElement("transcription-toggle").innerHTML = "";
+  getElement("transcription-toggle").classList.add("hidden");
+  getElement("transcription-text").classList.add("hidden");
+  getElement("reading-text").classList.add("hidden");
+  getElement("feedback-container").classList.add("hidden");
+  getElement("controls").classList.remove("hidden");
 
-    const sectionParts = SECTION_PARTS[section];
-    const currentItem = sectionParts ? sectionParts[itemIndex] : null;
+  const sectionParts = SECTION_PARTS[section];
+  const currentItem = sectionParts ? sectionParts[itemIndex] : null;
 
-    if (inputType === "textarea" && section === "WRITING") {
-      renderWritingStep(currentItem, partData);
-    } else if (inputType === "audio" && section === "SPEAKING") {
-      renderSpeakingStep(currentItem, partData);
-    }
-
-    updatePrevButtonVisibility();
-    resumeTimer();
+  if (inputType === "textarea" && section === "WRITING") {
+    renderWritingStep(currentItem, partData);
+  } else if (inputType === "audio" && section === "SPEAKING") {
+    renderSpeakingStep(currentItem, partData);
   }
 
-  // Render Writing step (textarea input)
-  function renderWritingStep(item, group) {
-    if (!item) return;
+  updatePrevButtonVisibility();
+  resumeTimer();
+}
 
-    const container = getElement("options-container");
-    const isEssay = item.isEssay || false;
-    const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+// Render Writing step (textarea input)
+function renderWritingStep(item, group) {
+  if (!item) return;
 
-    let html = '<div class="writing-question">';
-    html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
+  const container = getElement("options-container");
+  const isEssay = item.isEssay || false;
+  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
 
-    if (isEssay) {
-      const groupData = group;
-      html += `<div class="writing-task-prompt">${groupData.task2.topic}</div>`;
-      html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.task2.prompt}</div>`;
-    } else {
-      const taskData = group.task1.find((t) => t.number === item.itemNum);
-      if (taskData) {
-        html += `<div class="writing-task-prompt">${taskData.text}</div>`;
-      }
+  let html = '<div class="writing-question">';
+  html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
+
+  if (isEssay) {
+    const groupData = group;
+    html += `<div class="writing-task-prompt">${groupData.task2.topic}</div>`;
+    html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.task2.prompt}</div>`;
+  } else {
+    const taskData = group.task1.find((t) => t.number === item.itemNum);
+    if (taskData) {
+      html += `<div class="writing-task-prompt">${taskData.text}</div>`;
     }
-
-    const savedResponse = sectionResponses[item.itemNum - 1] || "";
-    html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
-    html += `<div class="char-counter" id="char-count-container">`;
-    html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
-    html += `</div></div>`;
-
-    getElement("question-text").classList.add("hidden");
-    container.innerHTML = html;
-
-    setTimeout(() => setupTextareaEvents(), 0);
   }
 
-  // Render Speaking step (audio input)
-  function renderSpeakingStep(item, partData) {
-    if (!item) return;
+  const savedResponse = sectionResponses[item.itemNum - 1] || "";
+  html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
+  html += `<div class="char-counter" id="char-count-container">`;
+  html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
+  html += `</div></div>`;
 
-    const container = getElement("options-container");
-    const taskIndex = item.itemNum - 1;
-    const task = partData.task[taskIndex];
+  getElement("question-text").classList.add("hidden");
+  container.innerHTML = html;
 
-    if (!task) return;
+  setTimeout(() => setupTextareaEvents(), 0);
+}
 
-    let html = '<div class="speaking-task-container">';
-    html += `<div class="writing-question-text">${item.partLabel} - Task ${item.itemNum}</div>`;
-    html += `<div class="writing-task-prompt">${task.prompt}</div>`;
-    html += `<div class="speaking-timer" id="speaking-timer-display">Time: ${formatTime(task.timeLimit)}</div>`;
-    html += `<div class="speaking-controls">`;
-    html += `<button id="start-recording-btn" class="btn btn-primary">Begin speaking now</button>`;
-    html += `<button id="stop-recording-btn" class="btn btn-secondary hidden">Stop recording</button>`;
-    html += `</div>`;
-    html += `<div id="recording-status" class="hidden"></div>`;
-    html += `<audio id="playback-audio" controls class="hidden"></audio>`;
-    html += `</div>`;
+// Render Speaking step (audio input)
+function renderSpeakingStep(item, partData) {
+  if (!item) return;
 
-    getElement("question-text").classList.add("hidden");
-    container.innerHTML = html;
+  const container = getElement("options-container");
+  const taskIndex = item.itemNum - 1;
+  const task = partData.task[taskIndex];
 
-    setupSpeakingEvents(taskIndex, task.timeLimit);
+  if (!task) return;
+
+  let html = '<div class="speaking-task-container">';
+  html += `<div class="writing-question-text">${item.partLabel} - Task ${item.itemNum}</div>`;
+  html += `<div class="writing-task-prompt">${task.prompt}</div>`;
+  html += `<div class="speaking-timer" id="speaking-timer-display">Time: ${formatTime(task.timeLimit)}</div>`;
+  html += `<div class="speaking-controls">`;
+  html += `<button id="start-recording-btn" class="btn btn-primary">Begin speaking now</button>`;
+  html += `<button id="stop-recording-btn" class="btn btn-secondary hidden">Stop recording</button>`;
+  html += `</div>`;
+  html += `<div id="recording-status" class="hidden"></div>`;
+  html += `<audio id="playback-audio" controls class="hidden"></audio>`;
+  html += `</div>`;
+
+  getElement("question-text").classList.add("hidden");
+  container.innerHTML = html;
+
+  setupSpeakingEvents(taskIndex, task.timeLimit);
+}
+
+// Setup Speaking recording events
+function setupSpeakingEvents(taskIndex, timeLimit) {
+  const startBtn = getElement("start-recording-btn");
+  const stopBtn = getElement("stop-recording-btn");
+  const statusEl = getElement("recording-status");
+  const playbackAudio = getElement("playback-audio");
+
+  if (startBtn) {
+    startBtn.onclick = () => startSpeakingrecording(taskIndex, timeLimit);
+  }
+  if (stopBtn) {
+    stopBtn.onclick = () => stopSpeakingrecording(taskIndex);
   }
 
-  // Setup Speaking recording events
-  function setupSpeakingEvents(taskIndex, timeLimit) {
-    const startBtn = getElement("start-recording-btn");
-    const stopBtn = getElement("stop-recording-btn");
-    const statusEl = getElement("recording-status");
-    const playbackAudio = getElement("playback-audio");
-
-    if (startBtn) {
-      startBtn.onclick = () => startSpeakingrecording(taskIndex, timeLimit);
-    }
-    if (stopBtn) {
-      stopBtn.onclick = () => stopSpeakingrecording(taskIndex);
-    }
-
-    // Load saved recording if exists
-    getSpeakingAudio(taskIndex).then((record) => {
-      if (record && record.blob) {
-        speakingResponses[taskIndex] = {
-          blob: record.blob,
-          duration: record.duration,
-          timestamp: record.timestamp,
-        };
-        if (playbackAudio) {
-          playbackAudio.src = URL.createObjectURL(record.blob);
-          playbackAudio.classList.remove("hidden");
-        }
-        if (statusEl) {
-          statusEl.textContent = "recording saved";
-          statusEl.classList.remove("hidden");
-        }
-      }
-    });
-  }
-
-  // Start Speaking recording
-  async function startSpeakingrecording(taskIndex, timeLimit) {
-    const startBtn = getElement("start-recording-btn");
-    const stopBtn = getElement("stop-recording-btn");
-    const statusEl = getElement("recording-status");
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      speakingStream = stream;
-      speakingMediaRecorder = new MediaRecorder(stream);
-      speakingAudioChunks = [];
-
-      speakingMediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) speakingAudioChunks.push(event.data);
+  // Load saved recording if exists
+  getSpeakingAudio(taskIndex).then((record) => {
+    if (record && record.blob) {
+      speakingResponses[taskIndex] = {
+        blob: record.blob,
+        duration: record.duration,
+        timestamp: record.timestamp,
       };
-
-      speakingMediaRecorder.onstop = () => {
-        const blob = new Blob(speakingAudioChunks, { type: "audio/webm" });
-        const duration = timeLimit - speakingTimerRemaining;
-        speakingResponses[taskIndex] = {
-          blob,
-          duration,
-          timestamp: Date.now(),
-        };
-        saveSpeakingAudio(taskIndex, blob, duration);
-
-        const playbackAudio = getElement("playback-audio");
-        if (playbackAudio) {
-          playbackAudio.src = URL.createObjectURL(blob);
-          playbackAudio.classList.remove("hidden");
-        }
-
-        if (statusEl) {
-          statusEl.textContent = "recording saved";
-          statusEl.classList.remove("hidden");
-        }
-
-        if (startBtn) startBtn.classList.remove("hidden");
-        if (stopBtn) stopBtn.classList.add("hidden");
-
-        saveProgress();
-        updatePrevButtonVisibility();
-      };
-
-      speakingMediaRecorder.start();
-      speakingTimerRemaining = timeLimit;
-      updateSpeakingTimerDisplay();
-
-      if (startBtn) startBtn.classList.add("hidden");
-      if (stopBtn) stopBtn.classList.remove("hidden");
+      if (playbackAudio) {
+        playbackAudio.src = URL.createObjectURL(record.blob);
+        playbackAudio.classList.remove("hidden");
+      }
       if (statusEl) {
-        statusEl.textContent = "recording...";
+        statusEl.textContent = "recording saved";
         statusEl.classList.remove("hidden");
       }
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      alert("Could not access microphone. Please check permissions.");
     }
-  }
+  });
+}
 
-  // Stop Speaking recording
-  function stopSpeakingrecording(taskIndex) {
-    if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
-      speakingMediaRecorder.stop();
-      if (speakingStream) {
-        speakingStream.getTracks().forEach((track) => track.stop());
-        speakingStream = null;
-      }
-    }
-  }
+// Start Speaking recording
+async function startSpeakingrecording(taskIndex, timeLimit) {
+  const startBtn = getElement("start-recording-btn");
+  const stopBtn = getElement("stop-recording-btn");
+  const statusEl = getElement("recording-status");
 
-  // Update Speaking timer display
-  function updateSpeakingTimerDisplay() {
-    const timerDisplay = getElement("speaking-timer-display");
-    if (timerDisplay) {
-      timerDisplay.textContent = `Time: ${formatTime(speakingTimerRemaining)}`;
-    }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    speakingStream = stream;
+    speakingMediaRecorder = new MediaRecorder(stream);
+    speakingAudioChunks = [];
 
-    if (
-      speakingTimerRemaining > 0 &&
-      speakingMediaRecorder &&
-      speakingMediaRecorder.state === "recording"
-    ) {
-      speakingTimerRemaining--;
-      setTimeout(updateSpeakingTimerDisplay, 1000);
-    }
-  }
-
-  // Inicia una parte de preguntas de opción múltiple (Listening o Reading)
-  function beginMcPart(partKey, saved = null) {
-    const config = SECTION_CONFIG[partKey];
-    if (!config || !config.partId) return false;
-
-    const section = getSectionKey(partKey);
-    let partData = null;
-
-    if (section === "LISTENING") {
-      partData = quizData.LISTENING?.parts?.find((p) => p.id === config.partId);
-    } else if (section === "READING_AND_GRAMMAR") {
-      const parts = quizData.READING_AND_GRAMMAR?.parts || [];
-      partData = parts[config.partId - 1] || null;
-    }
-
-    if (!partData) return false;
-
-    currentPartKey = partKey;
-    currentGroupIndex = 0;
-    currentQuestionIndex = 0;
-    selectedOptionIndex = null;
-    currentAudioSrc = null;
-    currentAudioElement = null;
-    if (!saved || saved.currentPartKey !== partKey)
-      answeredQuestions = new Set();
-
-    buildQuestionGroups(partData, section, config.partId);
-
-    getElement("category-select").classList.add("hidden");
-    getElement("quiz-view").classList.remove("hidden");
-    getElement("results-container").classList.add("hidden");
-
-    setupInstructionsPanel();
-    logActivity("INICIO", `${section} Part ${config.partId}`);
-    loadGroup();
-    updatePrevButtonVisibility();
-    startTimer(section);
-    return true;
-  }
-
-  // Procesa una pregunta individual para el quiz
-  function processQuestion(q, section, partId, globalNum) {
-    const sectionLabel = SECTION_DISPLAY[section];
-    const optionsCopy = [...q.options];
-    const correctCopy = q.correct;
-    return {
-      ...q,
-      shuffledOptions: optionsCopy,
-      correctShuffledIndex: correctCopy,
-      category: `${sectionLabel} P${partId}`,
-      globalNumber: globalNum,
+    speakingMediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) speakingAudioChunks.push(event.data);
     };
+
+    speakingMediaRecorder.onstop = () => {
+      const blob = new Blob(speakingAudioChunks, { type: "audio/webm" });
+      const duration = timeLimit - speakingTimerRemaining;
+      speakingResponses[taskIndex] = {
+        blob,
+        duration,
+        timestamp: Date.now(),
+      };
+      saveSpeakingAudio(taskIndex, blob, duration);
+
+      const playbackAudio = getElement("playback-audio");
+      if (playbackAudio) {
+        playbackAudio.src = URL.createObjectURL(blob);
+        playbackAudio.classList.remove("hidden");
+      }
+
+      if (statusEl) {
+        statusEl.textContent = "recording saved";
+        statusEl.classList.remove("hidden");
+      }
+
+      if (startBtn) startBtn.classList.remove("hidden");
+      if (stopBtn) stopBtn.classList.add("hidden");
+
+      saveProgress();
+      updatePrevButtonVisibility();
+    };
+
+    speakingMediaRecorder.start();
+    speakingTimerRemaining = timeLimit;
+    updateSpeakingTimerDisplay();
+
+    if (startBtn) startBtn.classList.add("hidden");
+    if (stopBtn) stopBtn.classList.remove("hidden");
+    if (statusEl) {
+      statusEl.textContent = "recording...";
+      statusEl.classList.remove("hidden");
+    }
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    alert("Could not access microphone. Please check permissions.");
+  }
+}
+
+// Stop Speaking recording
+function stopSpeakingrecording(taskIndex) {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
+    speakingMediaRecorder.stop();
+    if (speakingStream) {
+      speakingStream.getTracks().forEach((track) => track.stop());
+      speakingStream = null;
+    }
+  }
+}
+
+// Update Speaking timer display
+function updateSpeakingTimerDisplay() {
+  const timerDisplay = getElement("speaking-timer-display");
+  if (timerDisplay) {
+    timerDisplay.textContent = `Time: ${formatTime(speakingTimerRemaining)}`;
   }
 
-  // Crea los grupos de preguntas para una parte
-  function buildQuestionGroups(partData, section, partId) {
-    questionGroups = [];
-    shuffledQuestions = [];
-    let globalNum = 0;
+  if (
+    speakingTimerRemaining > 0 &&
+    speakingMediaRecorder &&
+    speakingMediaRecorder.state === "recording"
+  ) {
+    speakingTimerRemaining--;
+    setTimeout(updateSpeakingTimerDisplay, 1000);
+  }
+}
 
-    if (partData.questions) {
-      partData.questions.forEach((q) => {
+// Inicia una parte de preguntas de opción múltiple (Listening o Reading)
+function beginMcPart(partKey, saved = null) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return false;
+
+  const section = getSectionKey(partKey);
+  let partData = null;
+
+  if (section === "LISTENING") {
+    partData = quizData.LISTENING?.parts?.find((p) => p.id === config.partId);
+  } else if (section === "READING_AND_GRAMMAR") {
+    const parts = quizData.READING_AND_GRAMMAR?.parts || [];
+    partData = parts[config.partId - 1] || null;
+  }
+
+  if (!partData) return false;
+
+  currentPartKey = partKey;
+  currentGroupIndex = 0;
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  currentAudioSrc = null;
+  currentAudioElement = null;
+  if (!saved || saved.currentPartKey !== partKey) answeredQuestions = new Set();
+
+  buildQuestionGroups(partData, section, config.partId);
+
+  getElement("category-select").classList.add("hidden");
+  getElement("quiz-view").classList.remove("hidden");
+  getElement("results-container").classList.add("hidden");
+
+  setupInstructionsPanel();
+  logActivity("INICIO", `${section} Part ${config.partId}`);
+  loadGroup();
+  updatePrevButtonVisibility();
+  startTimer(section);
+  return true;
+}
+
+// Procesa una pregunta individual para el quiz
+function processQuestion(q, section, partId, globalNum) {
+  const sectionLabel = SECTION_DISPLAY[section];
+  const optionsCopy = [...q.options];
+  const correctCopy = q.correct;
+  return {
+    ...q,
+    shuffledOptions: optionsCopy,
+    correctShuffledIndex: correctCopy,
+    category: `${sectionLabel} P${partId}`,
+    globalNumber: globalNum,
+  };
+}
+
+// Crea los grupos de preguntas para una parte
+function buildQuestionGroups(partData, section, partId) {
+  questionGroups = [];
+  shuffledQuestions = [];
+  let globalNum = 0;
+
+  if (partData.questions) {
+    partData.questions.forEach((q) => {
+      globalNum++;
+      const processed = processQuestion(q, section, partId, globalNum);
+      shuffledQuestions.push(processed);
+      questionGroups.push({
+        groupNumber: globalNum,
+        mainAudio: q.audio || null,
+        questionRange: { start: globalNum, end: globalNum },
+        questions: [processed],
+      });
+    });
+  } else if (partData.audioGroups) {
+    partData.audioGroups.forEach((audioGroup) => {
+      const startNum = globalNum + 1;
+      const groupQuestions = audioGroup.questions.map((q) => {
         globalNum++;
         const processed = processQuestion(q, section, partId, globalNum);
-        shuffledQuestions.push(processed);
-        questionGroups.push({
-          groupNumber: globalNum,
-          mainAudio: q.audio || null,
-          questionRange: { start: globalNum, end: globalNum },
-          questions: [processed],
-        });
+        processed.groupNumber = audioGroup.number;
+        processed.mainAudio = audioGroup.mainAudio;
+        processed.extraAudio = q.extraAudio || null;
+        return processed;
       });
-    } else if (partData.audioGroups) {
-      partData.audioGroups.forEach((audioGroup) => {
-        const startNum = globalNum + 1;
-        const groupQuestions = audioGroup.questions.map((q) => {
-          globalNum++;
-          const processed = processQuestion(q, section, partId, globalNum);
-          processed.groupNumber = audioGroup.number;
-          processed.mainAudio = audioGroup.mainAudio;
-          processed.extraAudio = q.extraAudio || null;
-          return processed;
-        });
-        shuffledQuestions.push(...groupQuestions);
-        questionGroups.push({
-          groupNumber: audioGroup.number,
-          mainAudio: audioGroup.mainAudio,
-          questionRange: { start: startNum, end: globalNum },
-          questions: groupQuestions,
-        });
+      shuffledQuestions.push(...groupQuestions);
+      questionGroups.push({
+        groupNumber: audioGroup.number,
+        mainAudio: audioGroup.mainAudio,
+        questionRange: { start: startNum, end: globalNum },
+        questions: groupQuestions,
       });
-    } else if (partData.readingGroups) {
-      partData.readingGroups.forEach((rg) => {
-        const startNum = globalNum + 1;
-        const groupQuestions = rg.questions.map((q) => {
-          globalNum++;
-          const processed = processQuestion(q, section, partId, globalNum);
-          processed.groupNumber = rg.number;
-          processed.mainAudio = null;
-          return processed;
-        });
-        const groupObj = {
-          groupNumber: rg.number,
-          mainAudio: null,
-          questionRange: { start: startNum, end: globalNum },
-          questions: groupQuestions,
-        };
-        if (rg.article) {
-          groupObj.article = rg.article;
-        }
-        if (rg.isConnector) {
-          groupObj.isConnector = true;
-          groupObj.connectorArticles = rg.connectorArticles;
-        }
-        shuffledQuestions.push(...groupQuestions);
-        questionGroups.push(groupObj);
+    });
+  } else if (partData.readingGroups) {
+    partData.readingGroups.forEach((rg) => {
+      const startNum = globalNum + 1;
+      const groupQuestions = rg.questions.map((q) => {
+        globalNum++;
+        const processed = processQuestion(q, section, partId, globalNum);
+        processed.groupNumber = rg.number;
+        processed.mainAudio = null;
+        return processed;
       });
-    }
-  }
-
-  // Configura el panel de instrucciones
-  function setupInstructionsPanel() {
-    const contentEl = getElement("instructions-content");
-    const contentPara = contentEl.querySelector("p");
-    const sectionData = quizData[currentSection];
-
-    if (contentPara && sectionData && sectionData.instructions) {
-      contentPara.innerHTML = sectionData.instructions.replace(/\n/g, "<br>");
-      getElement("section-instructions-panel").classList.remove("hidden");
-    } else {
-      getElement("section-instructions-panel").classList.add("hidden");
-    }
-
-    const toggleBtn = getElement("toggle-instructions");
-    if (toggleBtn) {
-      toggleBtn.onclick = function () {
-        const icon = this.querySelector(".toggle-icon");
-        if (contentEl.classList.contains("hidden")) {
-          contentEl.classList.remove("hidden");
-          icon.textContent = "^";
-        } else {
-          contentEl.classList.add("hidden");
-          icon.textContent = "v";
-        }
+      const groupObj = {
+        groupNumber: rg.number,
+        mainAudio: null,
+        questionRange: { start: startNum, end: globalNum },
+        questions: groupQuestions,
       };
-    }
+      if (rg.article) {
+        groupObj.article = rg.article;
+      }
+      if (rg.isConnector) {
+        groupObj.isConnector = true;
+        groupObj.connectorArticles = rg.connectorArticles;
+      }
+      shuffledQuestions.push(...groupQuestions);
+      questionGroups.push(groupObj);
+    });
+  }
+}
+
+// Configura el panel de instrucciones
+function setupInstructionsPanel() {
+  const contentEl = getElement("instructions-content");
+  const contentPara = contentEl.querySelector("p");
+  const sectionData = quizData[currentSection];
+
+  if (contentPara && sectionData && sectionData.instructions) {
+    contentPara.innerHTML = sectionData.instructions.replace(/\n/g, "<br>");
+    getElement("section-instructions-panel").classList.remove("hidden");
+  } else {
+    getElement("section-instructions-panel").classList.add("hidden");
   }
 
-  // Obtiene la ruta correcta del archivo de audio
-  function getAudioPath(audioSrc) {
-    if (!audioSrc) return "";
-    if (audioSrc.startsWith("data/") || audioSrc.startsWith("http"))
-      return audioSrc;
-    if (currentPartKey && currentPartKey.startsWith("LISTENING_P")) {
-      const partNum = currentPartKey.replace("LISTENING_P", "");
-      return `data/audios/listening-p${partNum}/${audioSrc}`;
-    }
-    return `data/audios/${audioSrc}`;
+  const toggleBtn = getElement("toggle-instructions");
+  if (toggleBtn) {
+    toggleBtn.onclick = function () {
+      const icon = this.querySelector(".toggle-icon");
+      if (contentEl.classList.contains("hidden")) {
+        contentEl.classList.remove("hidden");
+        icon.textContent = "^";
+      } else {
+        contentEl.classList.add("hidden");
+        icon.textContent = "v";
+      }
+    };
   }
+}
 
-  // Carga un grupo de preguntas en pantalla
-  function loadGroup() {
-    sectionPreviewMode = false;
-    const grp = questionGroups[currentGroupIndex];
-    if (!grp) return;
+// Obtiene la ruta correcta del archivo de audio
+function getAudioPath(audioSrc) {
+  if (!audioSrc) return "";
+  if (audioSrc.startsWith("data/") || audioSrc.startsWith("http"))
+    return audioSrc;
+  if (currentPartKey && currentPartKey.startsWith("LISTENING_P")) {
+    const partNum = currentPartKey.replace("LISTENING_P", "");
+    return `data/audios/listening-p${partNum}/${audioSrc}`;
+  }
+  return `data/audios/${audioSrc}`;
+}
 
-    groupSelectedAnswers = {};
-    groupChecked = false;
+// Carga un grupo de preguntas en pantalla
+function loadGroup() {
+  sectionPreviewMode = false;
+  const grp = questionGroups[currentGroupIndex];
+  if (!grp) return;
 
-    const container = getElement("quiz-container");
+  groupSelectedAnswers = {};
+  groupChecked = false;
+
+  const container = getElement("quiz-container");
+  container.classList.remove("fade-out");
+  void container.offsetWidth;
+  container.classList.add("fade-out");
+  setTimeout(() => {
     container.classList.remove("fade-out");
+    container.style.animation = "none";
     void container.offsetWidth;
-    container.classList.add("fade-out");
-    setTimeout(() => {
-      container.classList.remove("fade-out");
-      container.style.animation = "none";
-      void container.offsetWidth;
-      container.style.animation = "fadeIn 0.5s ease";
-    }, 300);
+    container.style.animation = "fadeIn 0.5s ease";
+  }, 300);
 
-    updateSectionProgress();
+  updateSectionProgress();
 
-    getElement("transcription-toggle").innerHTML = "";
-    getElement("transcription-toggle").classList.add("hidden");
-    getElement("transcription-text").classList.add("hidden");
-    getElement("reading-text").classList.add("hidden");
-    getElement("feedback-container").classList.add("hidden");
-    getElement("controls").classList.remove("hidden");
+  getElement("transcription-toggle").innerHTML = "";
+  getElement("transcription-toggle").classList.add("hidden");
+  getElement("transcription-text").classList.add("hidden");
+  getElement("reading-text").classList.add("hidden");
+  getElement("feedback-container").classList.add("hidden");
+  getElement("controls").classList.remove("hidden");
 
-    if (grp.mainAudio) {
-      const audioPath = getAudioPath(grp.mainAudio);
-      let audioHTML = `<audio id="main-audio" controls src="${audioPath}"></audio>`;
-      const hasExtra = grp.questions.some((q) => q.extraAudio);
-      if (hasExtra) {
-        grp.questions.forEach((q, idx) => {
-          if (q.extraAudio) {
-            audioHTML += `<audio id="extra-audio-${idx}" controls src="${getAudioPath(q.extraAudio)}" class="extra-audio" style="display:none"></audio>`;
-          }
-        });
-      }
-      getElement("audio-container").innerHTML = audioHTML;
-      currentAudioSrc = grp.mainAudio;
-      currentAudioElement = document.getElementById("main-audio");
-      getElement("audio-container").classList.remove("hidden");
-    } else {
-      getElement("audio-container").classList.add("hidden");
-      currentAudioSrc = null;
-      currentAudioElement = null;
+  if (grp.mainAudio) {
+    const audioPath = getAudioPath(grp.mainAudio);
+    let audioHTML = `<audio id="main-audio" controls src="${audioPath}"></audio>`;
+    const hasExtra = grp.questions.some((q) => q.extraAudio);
+    if (hasExtra) {
+      grp.questions.forEach((q, idx) => {
+        if (q.extraAudio) {
+          audioHTML += `<audio id="extra-audio-${idx}" controls src="${getAudioPath(q.extraAudio)}" class="extra-audio" style="display:none"></audio>`;
+        }
+      });
     }
-
-    renderGroupQuestions(grp);
-    updateHash(currentPartKey, currentGroupIndex);
-    saveProgress();
-    updatePrevButtonVisibility();
-    resumeTimer();
+    getElement("audio-container").innerHTML = audioHTML;
+    currentAudioSrc = grp.mainAudio;
+    currentAudioElement = document.getElementById("main-audio");
+    getElement("audio-container").classList.remove("hidden");
+  } else {
+    getElement("audio-container").classList.add("hidden");
+    currentAudioSrc = null;
+    currentAudioElement = null;
   }
 
-  // Dibuja las preguntas del grupo en pantalla
-  function renderGroupQuestions(grp) {
-    getElement("question-text").classList.add("hidden");
+  renderGroupQuestions(grp);
+  updateHash(currentPartKey, currentGroupIndex);
+  saveProgress();
+  updatePrevButtonVisibility();
+  resumeTimer();
+}
 
-    const isSingleQuestion = grp.questions.length === 1;
+// Dibuja las preguntas del grupo en pantalla
+function renderGroupQuestions(grp) {
+  getElement("question-text").classList.add("hidden");
 
-    let html = '<div class="question-group">';
+  const isSingleQuestion = grp.questions.length === 1;
 
-    if (grp.isConnector && grp.connectorArticles) {
-      grp.connectorArticles.forEach((art) => {
-        html += renderMagazineArticle(art);
-      });
-    } else if (grp.article) {
-      html += renderMagazineArticle(grp.article);
+  let html = '<div class="question-group">';
+
+  if (grp.isConnector && grp.connectorArticles) {
+    grp.connectorArticles.forEach((art) => {
+      html += renderMagazineArticle(art);
+    });
+  } else if (grp.article) {
+    html += renderMagazineArticle(grp.article);
+  }
+
+  grp.questions.forEach((q, idx) => {
+    if (q.passage && !grp.article && !grp.isConnector) {
+      html += `<div class="reading-passage">${q.passage.replace(/\n/g, "<br>")}</div>`;
     }
 
-    grp.questions.forEach((q, idx) => {
-      if (q.passage && !grp.article && !grp.isConnector) {
-        html += `<div class="reading-passage">${q.passage.replace(/\n/g, "<br>")}</div>`;
-      }
+    const globalNum = q.globalNumber;
+    const questionIdx = shuffledQuestions.findIndex(
+      (sq) => sq.globalNumber === globalNum,
+    );
+    const isAnswered = answeredQuestions.has(questionIdx);
+    const savedAnswer = isAnswered
+      ? getAnswerFromHash(currentPartKey, globalNum)
+      : null;
 
-      const globalNum = q.globalNumber;
-      const questionIdx = shuffledQuestions.findIndex(
-        (sq) => sq.globalNumber === globalNum,
-      );
-      const isAnswered = answeredQuestions.has(questionIdx);
-      const savedAnswer = isAnswered
-        ? getAnswerFromHash(currentPartKey, globalNum)
-        : null;
-
-      html += `<div class="group-question-item" data-global="${globalNum}">`;
-      html += `<div class="group-q-header">
+    html += `<div class="group-question-item" data-global="${globalNum}">`;
+    html += `<div class="group-q-header">
       <span class="group-q-number">Pregunta ${globalNum}</span>`;
-      if (q.extraAudio) {
-        html += `<audio controls src="${getAudioPath(q.extraAudio)}" class="extra-audio-inline"></audio>`;
-      }
-      html += `</div>`;
-      html += `<div class="group-q-text">${q.question}</div>`;
-      html += `<div class="group-q-options">`;
+    if (q.extraAudio) {
+      html += `<audio controls src="${getAudioPath(q.extraAudio)}" class="extra-audio-inline"></audio>`;
+    }
+    html += `</div>`;
+    html += `<div class="group-q-text">${q.question}</div>`;
+    html += `<div class="group-q-options">`;
 
-      q.shuffledOptions.forEach((opt, i) => {
-        let classes = "option";
-        if (isAnswered) {
-          classes += " disabled";
-          if (i === q.correctShuffledIndex) {
-            classes += " correct";
-          } else if (savedAnswer && letters[i] === savedAnswer) {
-            classes += " incorrect";
-          }
+    q.shuffledOptions.forEach((opt, i) => {
+      let classes = "option";
+      if (isAnswered) {
+        classes += " disabled";
+        if (i === q.correctShuffledIndex) {
+          classes += " correct";
+        } else if (savedAnswer && letters[i] === savedAnswer) {
+          classes += " incorrect";
         }
-        html += `<div class="${classes}" data-global="${globalNum}" data-option="${i}" ${isAnswered ? 'style="pointer-events:none"' : ""}>
+      }
+      html += `<div class="${classes}" data-global="${globalNum}" data-option="${i}" ${isAnswered ? 'style="pointer-events:none"' : ""}>
         <span class="option-letter">${letters[i]}</span><span>${opt}</span>
       </div>`;
-      });
-
-      html += `</div>`;
-
-      if (isSingleQuestion && !isAnswered) {
-        html += `<button class="check-single-btn" data-global="${globalNum}">COMPROBAR</button>`;
-      }
-
-      html += `<div class="group-q-feedback ${isAnswered ? "" : "hidden"}" data-global="${globalNum}">`;
-      if (isAnswered && savedAnswer) {
-        const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
-        if (isCorrect) {
-          html += "¡Correcto!";
-        } else {
-          html += `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
-        }
-      }
-      html += `</div>`;
-      html += `</div>`;
     });
 
-    html += "</div>";
+    html += `</div>`;
 
-    getElement("options-container").innerHTML = html;
+    if (isSingleQuestion && !isAnswered) {
+      html += `<button class="check-single-btn" data-global="${globalNum}">COMPROBAR</button>`;
+    }
 
-    document
-      .querySelectorAll(".group-q-options .option:not(.disabled)")
-      .forEach((opt) => {
-        opt.addEventListener("click", () => {
-          const globalNum = parseInt(opt.dataset.global);
-          const optIdx = parseInt(opt.dataset.option);
-          selectGroupOption(globalNum, optIdx, opt);
-        });
-      });
+    html += `<div class="group-q-feedback ${isAnswered ? "" : "hidden"}" data-global="${globalNum}">`;
+    if (isAnswered && savedAnswer) {
+      const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
+      if (isCorrect) {
+        html += "¡Correcto!";
+      } else {
+        html += `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
+      }
+    }
+    html += `</div>`;
+    html += `</div>`;
+  });
 
-    document.querySelectorAll(".check-single-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const globalNum = parseInt(btn.dataset.global);
-        checkSingleQuestion(globalNum);
+  html += "</div>";
+
+  getElement("options-container").innerHTML = html;
+
+  document
+    .querySelectorAll(".group-q-options .option:not(.disabled)")
+    .forEach((opt) => {
+      opt.addEventListener("click", () => {
+        const globalNum = parseInt(opt.dataset.global);
+        const optIdx = parseInt(opt.dataset.option);
+        selectGroupOption(globalNum, optIdx, opt);
       });
     });
 
-    const checkGroupBtn = document.getElementById("check-group-btn");
-    if (checkGroupBtn) {
-      checkGroupBtn.addEventListener("click", () => {
-        checkCurrentGroup();
-      });
+  document.querySelectorAll(".check-single-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const globalNum = parseInt(btn.dataset.global);
+      checkSingleQuestion(globalNum);
+    });
+  });
+
+  const checkGroupBtn = document.getElementById("check-group-btn");
+  if (checkGroupBtn) {
+    checkGroupBtn.addEventListener("click", () => {
+      checkCurrentGroup();
+    });
+  }
+}
+
+// Dibuja un artículo de revista en pantalla
+function renderMagazineArticle(art) {
+  let html = `<div class="magazine-article" data-article="${art.letter}">`;
+  html += `<div class="magazine-header">`;
+  html += `<span class="magazine-letter">Article ${art.letter}</span>`;
+  if (art.date) {
+    html += `<span class="magazine-date">${art.date}</span>`;
+  }
+  html += `</div>`;
+  html += `<h2 class="magazine-title">${art.title}</h2>`;
+
+  if (art.author) {
+    html += `<p class="magazine-author">By ${art.author}</p>`;
+  }
+  if (art.subheading) {
+    html += `<p class="magazine-subheading">${art.subheading}</p>`;
+  }
+
+  const contentFormatted = art.content.replace(/\n/g, "<br>");
+  html += `<div class="magazine-body">${contentFormatted}</div>`;
+
+  if (art.bio) {
+    html += `<p class="magazine-bio">${art.bio}</p>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// Selecciona una opción en el grupo de preguntas
+function selectGroupOption(globalNum, optionIdx, element) {
+  const questionIdx = shuffledQuestions.findIndex(
+    (q) => q.globalNumber === globalNum,
+  );
+  if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
+
+  const grp = questionGroups[currentGroupIndex];
+  const isSingleQuestion = grp.questions.length === 1;
+
+  document
+    .querySelectorAll(`.option[data-global="${globalNum}"]`)
+    .forEach((opt) => opt.classList.remove("selected"));
+  element.classList.add("selected");
+
+  groupSelectedAnswers[globalNum] = optionIdx;
+
+  if (isSingleQuestion) {
+    const checkBtn = document.querySelector(
+      `.check-single-btn[data-global="${globalNum}"]`,
+    );
+    if (checkBtn) {
+      checkBtn.classList.remove("hidden");
+      checkBtn.style.display = "";
     }
   }
 
-  // Dibuja un artículo de revista en pantalla
-  function renderMagazineArticle(art) {
-    let html = `<div class="magazine-article" data-article="${art.letter}">`;
-    html += `<div class="magazine-header">`;
-    html += `<span class="magazine-letter">Article ${art.letter}</span>`;
-    if (art.date) {
-      html += `<span class="magazine-date">${art.date}</span>`;
-    }
-    html += `</div>`;
-    html += `<h2 class="magazine-title">${art.title}</h2>`;
+  updatePrevButtonVisibility();
+}
 
-    if (art.author) {
-      html += `<p class="magazine-author">By ${art.author}</p>`;
-    }
-    if (art.subheading) {
-      html += `<p class="magazine-subheading">${art.subheading}</p>`;
-    }
+// Revisa una pregunta individual
+function checkSingleQuestion(globalNum) {
+  const questionIdx = shuffledQuestions.findIndex(
+    (q) => q.globalNumber === globalNum,
+  );
+  if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
+  if (groupSelectedAnswers[globalNum] === undefined) return;
 
-    const contentFormatted = art.content.replace(/\n/g, "<br>");
-    html += `<div class="magazine-body">${contentFormatted}</div>`;
+  const question = shuffledQuestions[questionIdx];
+  const optIdx = groupSelectedAnswers[globalNum];
 
-    if (art.bio) {
-      html += `<p class="magazine-bio">${art.bio}</p>`;
+  const feedback = document.querySelector(
+    `.group-q-feedback[data-global="${globalNum}"]`,
+  );
+  const options = document.querySelectorAll(
+    `.option[data-global="${globalNum}"]`,
+  );
+  const selectedOpt = document.querySelector(
+    `.option[data-global="${globalNum}"][data-option="${optIdx}"]`,
+  );
+
+  options.forEach((opt) => {
+    opt.classList.add("disabled");
+    opt.style.pointerEvents = "none";
+  });
+
+  const isCorrect = optIdx === question.correctShuffledIndex;
+
+  if (isCorrect) {
+    score[question.category]++;
+    selectedOpt.classList.add("correct");
+    if (feedback) {
+      feedback.className = "group-q-feedback correct";
+      feedback.textContent = "¡Correcto!";
     }
-
-    html += `</div>`;
-    return html;
+  } else {
+    selectedOpt.classList.add("incorrect");
+    const correctOpt = document.querySelector(
+      `.option[data-global="${globalNum}"][data-option="${question.correctShuffledIndex}"]`,
+    );
+    if (correctOpt) correctOpt.classList.add("correct");
+    if (feedback) {
+      feedback.className = "group-q-feedback incorrect";
+      feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[question.correctShuffledIndex]}.`;
+    }
   }
 
-  // Selecciona una opción en el grupo de preguntas
-  function selectGroupOption(globalNum, optionIdx, element) {
+  answeredQuestions.add(questionIdx);
+  saveAnswerToHash(letters[optIdx], globalNum);
+  pauseTimer();
+  saveProgress();
+
+  const checkBtn = document.querySelector(
+    `.check-single-btn[data-global="${globalNum}"]`,
+  );
+  if (checkBtn) checkBtn.style.display = "none";
+
+  updatePrevButtonVisibility();
+}
+
+// Revisa todo el grupo de preguntas
+function checkCurrentGroup() {
+  const grp = questionGroups[currentGroupIndex];
+  if (!grp || groupChecked) return;
+
+  let allSelected = true;
+  grp.questions.forEach((q) => {
+    if (groupSelectedAnswers[q.globalNumber] === undefined) {
+      allSelected = false;
+    }
+  });
+
+  if (!allSelected) return;
+
+  groupChecked = true;
+
+  grp.questions.forEach((q) => {
     const questionIdx = shuffledQuestions.findIndex(
-      (q) => q.globalNumber === globalNum,
+      (sq) => sq.globalNumber === q.globalNumber,
     );
     if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
 
-    const grp = questionGroups[currentGroupIndex];
-    const isSingleQuestion = grp.questions.length === 1;
-
-    document
-      .querySelectorAll(`.option[data-global="${globalNum}"]`)
-      .forEach((opt) => opt.classList.remove("selected"));
-    element.classList.add("selected");
-
-    groupSelectedAnswers[globalNum] = optionIdx;
-
-    if (isSingleQuestion) {
-      const checkBtn = document.querySelector(
-        `.check-single-btn[data-global="${globalNum}"]`,
-      );
-      if (checkBtn) {
-        checkBtn.classList.remove("hidden");
-        checkBtn.style.display = "";
-      }
-    }
-
-    updatePrevButtonVisibility();
-  }
-
-  // Revisa una pregunta individual
-  function checkSingleQuestion(globalNum) {
-    const questionIdx = shuffledQuestions.findIndex(
-      (q) => q.globalNumber === globalNum,
-    );
-    if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
-    if (groupSelectedAnswers[globalNum] === undefined) return;
-
-    const question = shuffledQuestions[questionIdx];
-    const optIdx = groupSelectedAnswers[globalNum];
-
+    const optIdx = groupSelectedAnswers[q.globalNumber];
     const feedback = document.querySelector(
-      `.group-q-feedback[data-global="${globalNum}"]`,
+      `.group-q-feedback[data-global="${q.globalNumber}"]`,
     );
     const options = document.querySelectorAll(
-      `.option[data-global="${globalNum}"]`,
+      `.option[data-global="${q.globalNumber}"]`,
     );
     const selectedOpt = document.querySelector(
-      `.option[data-global="${globalNum}"][data-option="${optIdx}"]`,
+      `.option[data-global="${q.globalNumber}"][data-option="${optIdx}"]`,
     );
 
     options.forEach((opt) => {
@@ -2035,10 +2105,10 @@ async function loadAllData() {
       opt.style.pointerEvents = "none";
     });
 
-    const isCorrect = optIdx === question.correctShuffledIndex;
+    const isCorrect = optIdx === q.correctShuffledIndex;
 
     if (isCorrect) {
-      score[question.category]++;
+      score[q.category]++;
       selectedOpt.classList.add("correct");
       if (feedback) {
         feedback.className = "group-q-feedback correct";
@@ -2047,280 +2117,250 @@ async function loadAllData() {
     } else {
       selectedOpt.classList.add("incorrect");
       const correctOpt = document.querySelector(
-        `.option[data-global="${globalNum}"][data-option="${question.correctShuffledIndex}"]`,
+        `.option[data-global="${q.globalNumber}"][data-option="${q.correctShuffledIndex}"]`,
       );
       if (correctOpt) correctOpt.classList.add("correct");
       if (feedback) {
         feedback.className = "group-q-feedback incorrect";
-        feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[question.correctShuffledIndex]}.`;
+        feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
       }
     }
 
     answeredQuestions.add(questionIdx);
-    saveAnswerToHash(letters[optIdx], globalNum);
-    pauseTimer();
+    saveAnswerToHash(letters[optIdx], q.globalNumber);
+  });
+
+  pauseTimer();
+  saveProgress();
+
+  updatePrevButtonVisibility();
+}
+
+// Avanza al siguiente grupo de preguntas
+function navigateToNextGroup() {
+  if (currentGroupIndex < questionGroups.length - 1) {
+    currentGroupIndex++;
+    loadGroup();
     saveProgress();
+  } else {
+    navigateToNextPart();
+  }
+}
 
-    const checkBtn = document.querySelector(
-      `.check-single-btn[data-global="${globalNum}"]`,
-    );
-    if (checkBtn) checkBtn.style.display = "none";
-
-    updatePrevButtonVisibility();
+// Regresa al grupo anterior de preguntas
+function navigateToPrevGroup() {
+  if (currentGroupIndex > 0) {
+    currentGroupIndex--;
+    loadGroup();
+    return;
   }
 
-  // Revisa todo el grupo de preguntas
-  function checkCurrentGroup() {
-    const grp = questionGroups[currentGroupIndex];
-    if (!grp || groupChecked) return;
+  const prevPart = getPrevPartKey();
+  if (!prevPart) return;
 
-    let allSelected = true;
-    grp.questions.forEach((q) => {
-      if (groupSelectedAnswers[q.globalNumber] === undefined) {
-        allSelected = false;
-      }
-    });
+  pauseTimer();
+  saveProgress();
 
-    if (!allSelected) return;
+  if (currentSection === "SPEAKING") {
+    beginSpeaking(prevPart.key);
+    startTimer(currentSection);
+  } else {
+    beginMcPart(prevPart.key);
+    startTimer(currentSection);
+  }
+}
 
-    groupChecked = true;
+// Navega a la parte anterior de la sección
+function navigateToPrevPart() {
+  pauseTimer();
+  const prevPart = getPrevPartKey();
 
-    grp.questions.forEach((q) => {
-      const questionIdx = shuffledQuestions.findIndex(
-        (sq) => sq.globalNumber === q.globalNumber,
-      );
-      if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
-
-      const optIdx = groupSelectedAnswers[q.globalNumber];
-      const feedback = document.querySelector(
-        `.group-q-feedback[data-global="${q.globalNumber}"]`,
-      );
-      const options = document.querySelectorAll(
-        `.option[data-global="${q.globalNumber}"]`,
-      );
-      const selectedOpt = document.querySelector(
-        `.option[data-global="${q.globalNumber}"][data-option="${optIdx}"]`,
-      );
-
-      options.forEach((opt) => {
-        opt.classList.add("disabled");
-        opt.style.pointerEvents = "none";
-      });
-
-      const isCorrect = optIdx === q.correctShuffledIndex;
-
-      if (isCorrect) {
-        score[q.category]++;
-        selectedOpt.classList.add("correct");
-        if (feedback) {
-          feedback.className = "group-q-feedback correct";
-          feedback.textContent = "¡Correcto!";
-        }
-      } else {
-        selectedOpt.classList.add("incorrect");
-        const correctOpt = document.querySelector(
-          `.option[data-global="${q.globalNumber}"][data-option="${q.correctShuffledIndex}"]`,
-        );
-        if (correctOpt) correctOpt.classList.add("correct");
-        if (feedback) {
-          feedback.className = "group-q-feedback incorrect";
-          feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
-        }
-      }
-
-      answeredQuestions.add(questionIdx);
-      saveAnswerToHash(letters[optIdx], q.globalNumber);
-    });
-
-    pauseTimer();
-    saveProgress();
-
-    updatePrevButtonVisibility();
+  if (!prevPart) {
+    return;
   }
 
-  // Avanza al siguiente grupo de preguntas
-  function navigateToNextGroup() {
-    if (currentGroupIndex < questionGroups.length - 1) {
-      currentGroupIndex++;
-      loadGroup();
-      saveProgress();
-    } else {
-      navigateToNextPart();
+  saveProgress();
+
+  if (currentSection === "SPEAKING") {
+    beginSpeaking(prevPart.key);
+    startTimer(currentSection);
+  } else {
+    beginMcPart(prevPart.key);
+    startTimer(currentSection);
+  }
+}
+
+// Configura los eventos del área de texto (universal para textarea inputType)
+function setupTextareaEvents() {
+  const textarea = document.getElementById("writing-textarea");
+  const counter = document.getElementById("char-count");
+  const counterContainer = document.querySelector(".char-counter");
+
+  if (!textarea) return;
+
+  const sectionParts = SECTION_PARTS[currentSection];
+  const currentItem = sectionParts ? sectionParts[currentItemIndex] : null;
+  const isEssay = currentItem ? currentItem.isEssay : false;
+  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+
+  textarea.addEventListener("input", function () {
+    const count = this.value.length;
+    if (counter) counter.textContent = count;
+    if (counterContainer)
+      counterContainer.classList.toggle("visible", count > limit * 0.9);
+  });
+
+  textarea.focus();
+}
+
+// Obtiene el nombre de la siguiente parte de forma universal
+function getNextPartName() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  if (currentSection === "WRITING") {
+    // For Writing: if in Task 1 items (0-2), next is Task 2; if in Task 2 (3), next is Preview
+    if (currentItemIndex <= 2) {
+      const task2Part = sectionParts.find((p) => p.partKey.endsWith("TASK2"));
+      return task2Part ? task2Part.partLabel : "Task 2";
+    }
+    if (currentItemIndex === 3) {
+      return "Preview";
     }
   }
 
-  // Regresa al grupo anterior de preguntas
-  function navigateToPrevGroup() {
-    if (currentGroupIndex > 0) {
-      currentGroupIndex--;
-      loadGroup();
-      return;
+  // For other sections (Listening, Reading, Speaking)
+  const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+  if (!currentPart) return null;
+
+  const currentIndex = sectionParts.indexOf(currentPart);
+  if (currentIndex < sectionParts.length - 1) {
+    return sectionParts[currentIndex + 1].name;
+  }
+  return "Preview";
+}
+
+// Actualiza qué botones se ven (Anterior, Siguiente, etc.)
+function updatePrevButtonVisibility() {
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const submitBtn = document.getElementById("submit-section-btn");
+  const skipBtn = document.getElementById("skip-btn");
+  const checkBtn = document.getElementById("check-btn");
+  const controlsSecondary = document.getElementById("controls-secondary");
+
+  // Reset all buttons
+  if (prevBtn) prevBtn.classList.remove("hidden");
+  if (nextBtn) {
+    nextBtn.classList.remove("hidden");
+    nextBtn.textContent = "Siguiente";
+    nextBtn.classList.remove("btn-primary");
+    nextBtn.classList.add("btn-secondary");
+  }
+  if (submitBtn) submitBtn.classList.add("hidden");
+  if (skipBtn) skipBtn.classList.add("hidden");
+  if (checkBtn) checkBtn.classList.add("hidden");
+  if (controlsSecondary) controlsSecondary.classList.add("hidden");
+
+  if (!currentSection) return;
+
+  // PREVIEW MODE - only Confirm button
+  if (sectionPreviewMode) {
+    if (prevBtn) prevBtn.classList.add("hidden");
+    if (nextBtn) nextBtn.classList.add("hidden");
+    if (submitBtn) {
+      submitBtn.classList.remove("hidden");
+      submitBtn.textContent = "Confirmar";
     }
-
-    const prevPart = getPrevPartKey();
-    if (!prevPart) return;
-
-    pauseTimer();
-    saveProgress();
-
-    if (currentSection === "SPEAKING") {
-      beginSpeaking(prevPart.key);
-      startTimer(currentSection);
-    } else {
-      beginMcPart(prevPart.key);
-      startTimer(currentSection);
-    }
+    return;
   }
 
-  // Navega a la parte anterior de la sección
-  function navigateToPrevPart() {
-    pauseTimer();
-    const prevPart = getPrevPartKey();
+  // Check if this is the first question/step
+  const isFirst = isFirstQuestionOfSection();
+  const isLastQ = isLastQuestionOfSection();
+  const isLastPart = isLastPartOfSection();
+  const nextPart = getNextPartKey();
 
-    if (!prevPart) {
-      return;
-    }
-
-    saveProgress();
-
-    if (currentSection === "SPEAKING") {
-      beginSpeaking(prevPart.key);
-      startTimer(currentSection);
-    } else {
-      beginMcPart(prevPart.key);
-      startTimer(currentSection);
-    }
+  // PREVIOUS: always show unless first question of section
+  if (prevBtn) {
+    prevBtn.classList.toggle("hidden", isFirst);
   }
 
-  // Configura los eventos del área de texto (universal para textarea inputType)
-  function setupTextareaEvents() {
-    const textarea = document.getElementById("writing-textarea");
-    const counter = document.getElementById("char-count");
-    const counterContainer = document.querySelector(".char-counter");
+  if (currentSection === "WRITING") {
+    // For Writing, we don't have a PREVIEW step in currentItemIndex
+    // sectionPreviewMode handles preview
 
-    if (!textarea) return;
-
-    const sectionParts = SECTION_PARTS[currentSection];
-    const currentItem = sectionParts ? sectionParts[currentItemIndex] : null;
-    const isEssay = currentItem ? currentItem.isEssay : false;
-    const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
-
-    textarea.addEventListener("input", function () {
-      const count = this.value.length;
-      if (counter) counter.textContent = count;
-      if (counterContainer)
-        counterContainer.classList.toggle("visible", count > limit * 0.9);
-    });
-
-    textarea.focus();
-  }
-
-  // Obtiene el nombre de la siguiente parte de forma universal
-  function getNextPartName() {
-    const sectionParts = SECTION_PARTS[currentSection];
-    if (!sectionParts) return null;
-
-    if (currentSection === "WRITING") {
-      // For Writing: if in Task 1 items (0-2), next is Task 2; if in Task 2 (3), next is Preview
-      if (currentItemIndex <= 2) {
-        const task2Part = sectionParts.find((p) => p.partKey.endsWith("TASK2"));
-        return task2Part ? task2Part.partLabel : "Task 2";
-      }
-      if (currentItemIndex === 3) {
-        return "Preview";
-      }
-    }
-
-    // For other sections (Listening, Reading, Speaking)
-    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
-    if (!currentPart) return null;
-
-    const currentIndex = sectionParts.indexOf(currentPart);
-    if (currentIndex < sectionParts.length - 1) {
-      return sectionParts[currentIndex + 1].name;
-    }
-    return "Preview";
-  }
-
-  // Actualiza qué botones se ven (Anterior, Siguiente, etc.)
-  function updatePrevButtonVisibility() {
-    const prevBtn = document.getElementById("prev-btn");
-    const nextBtn = document.getElementById("next-btn");
-    const submitBtn = document.getElementById("submit-section-btn");
-    const skipBtn = document.getElementById("skip-btn");
-    const checkBtn = document.getElementById("check-btn");
-    const controlsSecondary = document.getElementById("controls-secondary");
-
-    // Reset all buttons
-    if (prevBtn) prevBtn.classList.remove("hidden");
+    // NEXT/FINISH button
     if (nextBtn) {
-      nextBtn.classList.remove("hidden");
-      nextBtn.textContent = "Siguiente";
-      nextBtn.classList.remove("btn-primary");
-      nextBtn.classList.add("btn-secondary");
-    }
-    if (submitBtn) submitBtn.classList.add("hidden");
-    if (skipBtn) skipBtn.classList.add("hidden");
-    if (checkBtn) checkBtn.classList.add("hidden");
-    if (controlsSecondary) controlsSecondary.classList.add("hidden");
-
-    if (!currentSection) return;
-
-    // PREVIEW MODE - only Confirm button
-    if (sectionPreviewMode) {
-      if (prevBtn) prevBtn.classList.add("hidden");
-      if (nextBtn) nextBtn.classList.add("hidden");
-      if (submitBtn) {
-        submitBtn.classList.remove("hidden");
-        submitBtn.textContent = "Confirmar";
+      if (isLastQ) {
+        nextBtn.textContent = "Finalizar sección";
+        nextBtn.classList.remove("btn-secondary");
+        nextBtn.classList.add("btn-primary");
+      } else {
+        nextBtn.textContent = "Siguiente";
+        nextBtn.classList.remove("btn-primary");
+        nextBtn.classList.add("btn-secondary");
       }
-      return;
     }
 
-    // Check if this is the first question/step
-    const isFirst = isFirstQuestionOfSection();
-    const isLastQ = isLastQuestionOfSection();
-    const isLastPart = isLastPartOfSection();
-    const nextPart = getNextPartKey();
-
-    // PREVIOUS: always show unless first question of section
-    if (prevBtn) {
-      prevBtn.classList.toggle("hidden", isFirst);
+    // SKIP TO button
+    if (skipBtn) {
+      skipBtn.classList.remove("hidden");
+      const targetName = getNextPartName();
+      skipBtn.textContent = targetName
+        ? `Skip to ${targetName}`
+        : "Skip to Preview";
+      skipBtn.classList.remove("btn-primary");
+      skipBtn.classList.add("btn-secondary");
     }
+  } else if (currentSection === "SPEAKING") {
+    const sectionParts = SECTION_PARTS.SPEAKING;
+    const isLastItem = currentItemIndex >= sectionParts.length - 1;
 
-    if (currentSection === "WRITING") {
-      // For Writing, we don't have a PREVIEW step in currentItemIndex
-      // sectionPreviewMode handles preview
-
-      // NEXT/FINISH button
-      if (nextBtn) {
-        if (isLastQ) {
-          nextBtn.textContent = "Finalizar sección";
-          nextBtn.classList.remove("btn-secondary");
-          nextBtn.classList.add("btn-primary");
-        } else {
-          nextBtn.textContent = "Siguiente";
-          nextBtn.classList.remove("btn-primary");
-          nextBtn.classList.add("btn-secondary");
-        }
+    // NEXT/FINISH button
+    if (nextBtn) {
+      if (isLastQ) {
+        nextBtn.textContent = "Finalizar sección";
+        nextBtn.classList.remove("btn-secondary");
+        nextBtn.classList.add("btn-primary");
+      } else {
+        nextBtn.textContent = "Siguiente";
+        nextBtn.classList.remove("btn-primary");
+        nextBtn.classList.add("btn-secondary");
       }
+    }
 
-      // SKIP TO button
-      if (skipBtn) {
-        skipBtn.classList.remove("hidden");
-        const targetName = getNextPartName();
-        skipBtn.textContent = targetName
-          ? `Skip to ${targetName}`
-          : "Skip to Preview";
+    // SKIP TO button
+    if (skipBtn && !isLastQ) {
+      skipBtn.classList.remove("hidden");
+      const targetName = nextPart
+        ? `Skip to ${nextPart.partLabel}`
+        : "Skip to Preview";
+      skipBtn.textContent = targetName;
+      if (isLastPart) {
+        skipBtn.classList.remove("btn-secondary");
+        skipBtn.classList.add("btn-primary");
+      } else {
         skipBtn.classList.remove("btn-primary");
         skipBtn.classList.add("btn-secondary");
       }
-    } else if (currentSection === "SPEAKING") {
-      const sectionParts = SECTION_PARTS.SPEAKING;
-      const isLastItem = currentItemIndex >= sectionParts.length - 1;
+    }
+  } else {
+    // MC sections (LISTENING, READING_AND_GRAMMAR)
+    const grp = questionGroups[currentGroupIndex];
+    const allChecked =
+      grp &&
+      grp.questions.every((q) => {
+        const qi = shuffledQuestions.findIndex(
+          (sq) => sq.globalNumber === q.globalNumber,
+        );
+        return answeredQuestions.has(qi);
+      });
 
-      // NEXT/FINISH button
-      if (nextBtn) {
+    // NEXT/FINISH button - only show when group is checked
+    if (nextBtn) {
+      if (allChecked) {
+        nextBtn.classList.remove("hidden");
         if (isLastQ) {
           nextBtn.textContent = "Finalizar sección";
           nextBtn.classList.remove("btn-secondary");
@@ -2330,738 +2370,686 @@ async function loadAllData() {
           nextBtn.classList.remove("btn-primary");
           nextBtn.classList.add("btn-secondary");
         }
-      }
-
-      // SKIP TO button
-      if (skipBtn && !isLastQ) {
-        skipBtn.classList.remove("hidden");
-        const targetName = nextPart
-          ? `Skip to ${nextPart.partLabel}`
-          : "Skip to Preview";
-        skipBtn.textContent = targetName;
-        if (isLastPart) {
-          skipBtn.classList.remove("btn-secondary");
-          skipBtn.classList.add("btn-primary");
-        } else {
-          skipBtn.classList.remove("btn-primary");
-          skipBtn.classList.add("btn-secondary");
-        }
-      }
-    } else {
-      // MC sections (LISTENING, READING_AND_GRAMMAR)
-      const grp = questionGroups[currentGroupIndex];
-      const allChecked =
-        grp &&
-        grp.questions.every((q) => {
-          const qi = shuffledQuestions.findIndex(
-            (sq) => sq.globalNumber === q.globalNumber,
-          );
-          return answeredQuestions.has(qi);
-        });
-
-      // NEXT/FINISH button - only show when group is checked
-      if (nextBtn) {
-        if (allChecked) {
-          nextBtn.classList.remove("hidden");
-          if (isLastQ) {
-            nextBtn.textContent = "Finalizar sección";
-            nextBtn.classList.remove("btn-secondary");
-            nextBtn.classList.add("btn-primary");
-          } else {
-            nextBtn.textContent = "Siguiente";
-            nextBtn.classList.remove("btn-primary");
-            nextBtn.classList.add("btn-secondary");
-          }
-        } else {
-          nextBtn.classList.add("hidden");
-        }
-      }
-
-      // CHECK button - show when at least one option selected but not all answered
-      if (checkBtn && grp) {
-        const anySelected = grp.questions.some(
-          (q) => groupSelectedAnswers[q.globalNumber] !== undefined,
-        );
-        if (anySelected && !allChecked) {
-          checkBtn.classList.remove("hidden");
-        } else {
-          checkBtn.classList.add("hidden");
-        }
-      }
-
-      // SKIP TO button
-      if (skipBtn && !isLastQ) {
-        skipBtn.classList.remove("hidden");
-        const targetName = nextPart
-          ? `Skip to ${nextPart.name}`
-          : "Skip to Preview";
-        skipBtn.textContent = targetName;
-        if (isLastPart) {
-          skipBtn.classList.remove("btn-secondary");
-          skipBtn.classList.add("btn-primary");
-        } else {
-          skipBtn.classList.remove("btn-primary");
-          skipBtn.classList.add("btn-secondary");
-        }
-      }
-    }
-  }
-
-  // Variables para la sección de Speaking
-  let speakingPart = null;
-  // Índice de la tarea actual
-  let speakingtaskIndex = 0;
-  // Respuestas de audio
-  let speakingResponses = [];
-  // Tiempo restante de Speaking
-  let speakingTimerRemaining = 0;
-  // Intervalo del cronómetro
-  let speakingTimerInterval = null;
-  // Grabadora de audio
-  let speakingMediaRecorder = null;
-  // Fragmentos de audio grabado
-  let speakingAudioChunks = [];
-  // Flujo del micrófono
-  let speakingStream = null;
-  // Contexto de audio
-  let speakingAudioContext = null;
-  // Analizador de audio
-  let speakingAnalyser = null;
-  // ID de animación
-  let speakingAnimationId = null;
-
-  // Configuración de la base de datos para Speaking
-  const SPEAKING_DB_NAME = "SpeakingAudioDB";
-  const SPEAKING_DB_VERSION = 1;
-  const SPEAKING_STORE_NAME = "audioResponses";
-
-  // Conexión a la base de datos
-  let speakingDB = null;
-
-  // Abre la base de datos para guardar audios de Speaking
-  function openSpeakingDB() {
-    return new Promise((resolve, reject) => {
-      if (speakingDB) {
-        resolve(speakingDB);
-        return;
-      }
-      const request = indexedDB.open(SPEAKING_DB_NAME, SPEAKING_DB_VERSION);
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(SPEAKING_STORE_NAME)) {
-          db.createObjectStore(SPEAKING_STORE_NAME, { keyPath: "id" });
-        }
-      };
-      request.onsuccess = (event) => {
-        speakingDB = event.target.result;
-        resolve(speakingDB);
-      };
-      request.onerror = (event) => reject(event.target.error);
-    });
-  }
-
-  // Guarda un audio de Speaking en la base de datos
-  function saveSpeakingAudio(taskIndex, blob, duration) {
-    return openSpeakingDB().then((db) => {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(SPEAKING_STORE_NAME, "readwrite");
-        const store = tx.objectStore(SPEAKING_STORE_NAME);
-        const record = {
-          id: `speaking_task_${taskIndex}`,
-          taskIndex,
-          blob,
-          duration,
-          timestamp: Date.now(),
-        };
-        store.put(record);
-        tx.oncomplete = () => resolve();
-        tx.onerror = (event) => reject(event.target.error);
-      });
-    });
-  }
-
-  // Obtiene un audio guardado de Speaking
-  function getSpeakingAudio(taskIndex) {
-    return openSpeakingDB().then((db) => {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(SPEAKING_STORE_NAME, "readonly");
-        const store = tx.objectStore(SPEAKING_STORE_NAME);
-        const request = store.get(`speaking_task_${taskIndex}`);
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = (event) => reject(event.target.error);
-      });
-    });
-  }
-
-  // Obtiene todos los audios de Speaking guardados
-  function getAllSpeakingAudio() {
-    return openSpeakingDB().then((db) => {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(SPEAKING_STORE_NAME, "readonly");
-        const store = tx.objectStore(SPEAKING_STORE_NAME);
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = (event) => reject(event.target.error);
-      });
-    });
-  }
-
-  // Borra todos los audios de Speaking
-  function clearSpeakingDB() {
-    return openSpeakingDB().then((db) => {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(SPEAKING_STORE_NAME, "readwrite");
-        const store = tx.objectStore(SPEAKING_STORE_NAME);
-        store.clear();
-        tx.oncomplete = () => resolve();
-        tx.onerror = (event) => reject(event.target.error);
-      });
-    });
-  }
-
-  // Pasos del Speaking (qué tarea se está haciendo)
-  const SPEAKING_STEPS = {
-    TASK_1: 0,
-    TASK_2: 1,
-    TASK_3: 2,
-    TASK_4: 3,
-    TASK_5: 4,
-    PREVIEW: 5,
-  };
-
-  // Inicia la sección de Speaking
-  function beginSpeaking(partKey, saved = null) {
-    stopSpeakingMic();
-
-    const config = SECTION_CONFIG[partKey];
-    if (!config || !config.partId) return false;
-
-    const partData = quizData.SPEAKING?.parts?.find(
-      (p) => p.id === config.partId,
-    );
-    if (!partData) return false;
-
-    speakingPart = partData;
-    const hasSavedProgress = saved && saved.currentPartKey === partKey;
-    speakingtaskIndex = hasSavedProgress ? saved.speakingtaskIndex || 0 : 0;
-    speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
-
-    currentPartKey = partKey;
-    currentSection = "SPEAKING";
-
-    getElement("category-select").classList.add("hidden");
-    getElement("quiz-view").classList.remove("hidden");
-    getElement("results-container").classList.add("hidden");
-
-    setupInstructionsPanel();
-    logActivity("INICIO", `${currentSection} Part ${config.partId}`);
-
-    getAllSpeakingAudio()
-      .then((records) => {
-        records.forEach((record) => {
-          if (
-            record.taskIndex >= 0 &&
-            record.taskIndex < speakingPart.tasks.length
-          ) {
-            speakingResponses[record.taskIndex] = {
-              blob: record.blob,
-              duration: record.duration,
-              timestamp: record.timestamp,
-            };
-          }
-        });
-        renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
-      })
-      .catch(() => {
-        renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
-      });
-
-    updatePrevButtonVisibility();
-    startTimer("SPEAKING");
-    return true;
-  }
-
-  // Dibuja la tarea actual de Speaking
-  // Empieza a grabar la respuesta de Speaking
-
-  // Navigate to preview using universal renderPreview
-  function goToPreview() {
-    sectionPreviewMode = true;
-    const sectionParts = SECTION_PARTS[currentSection];
-    renderPreview(
-      currentSection,
-      sectionParts,
-      currentSection === "SPEAKING"
-        ? "audio"
-        : currentSection === "WRITING"
-          ? "textarea"
-          : "mc",
-    );
-  }
-
-  // Universal preview renderer
-  function renderPreview(section, items, inputType) {
-    const container = getElement("quiz-container");
-    container.innerHTML = "";
-    container.classList.remove("fade-out");
-    void container.offsetWidth;
-    container.classList.add("fade-out");
-    setTimeout(() => {
-      container.classList.remove("fade-out");
-      container.style.animation = "none";
-      void container.offsetWidth;
-      container.style.animation = "fadeIn 0.5s ease";
-    }, 300);
-
-    getElement("question-text").classList.add("hidden");
-    getElement("options-container").innerHTML = "";
-    getElement("audio-container").classList.add("hidden");
-    getElement("transcription-toggle").classList.add("hidden");
-    getElement("transcription-text").classList.add("hidden");
-    getElement("reading-text").classList.add("hidden");
-    getElement("feedback-container").classList.add("hidden");
-
-    let html = '<div class="preview-scroll-container">';
-    html += `<h3>Preview - ${SECTION_DISPLAY[section] || section}</h3>`;
-
-    if (inputType === "textarea" && section === "WRITING") {
-      items.forEach((item, idx) => {
-        const response = sectionResponses[item.itemNum - 1];
-        const hasResponse = response && response.length > 0;
-        html += '<div class="preview-slide">';
-        html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
-        if (item.isEssay) {
-          const group = currentGroup;
-          html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
-        }
-        html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
-        html += hasResponse
-          ? response.substring(0, 200) + (response.length > 200 ? "..." : "")
-          : "Not answered";
-        html += "</div></div>";
-      });
-    } else if (inputType === "audio" && section === "SPEAKING") {
-      items.forEach((item, idx) => {
-        const response = speakingResponses[item.itemNum - 1];
-        const hasResponse = response && response.blob;
-        html += '<div class="preview-slide">';
-        html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
-        html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
-        if (hasResponse) {
-          html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
-        } else {
-          html += "Not answered";
-        }
-        html += "</div></div>";
-      });
-    } else {
-      // MC sections
-      const saved = loadProgress();
-      items.forEach((part) => {
-        const partProgress = getPartProgress(part.key, saved);
-        html += '<div class="preview-slide">';
-        html += `<div class="preview-slide-header">${part.name}</div>`;
-        html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
-        html += "</div>";
-      });
-    }
-
-    html += "</div>";
-    html += '<div class="preview-submit-container">';
-    html +=
-      '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
-    html += "</div>";
-
-    getElement("options-container").innerHTML = html;
-
-    const confirmBtn = getElement("preview-confirm-btn");
-    if (confirmBtn) {
-      confirmBtn.onclick = () => showResults();
-    }
-
-    updatePrevButtonVisibility();
-  }
-
-  // Play speaking preview audio
-  function playSpeakingPreview(taskIndex) {
-    const response = speakingResponses[taskIndex];
-    if (response && response.blob) {
-      const audio = new Audio(URL.createObjectURL(response.blob));
-      audio.play();
-    }
-  }
-
-  // Show final results
-  function showResults() {
-    getElement("quiz-view").classList.add("hidden");
-    getElement("results-container").classList.remove("hidden");
-    getElement("category-select").classList.add("hidden");
-
-    // Calculate total score (total correct answers / total questions)
-    const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
-
-    // Calculate totalParts based on section types (MC: questions, Writing: 4 parts, Speaking: tasks)
-    let totalParts = 0;
-    if (quizData.LISTENING) {
-      totalParts += quizData.LISTENING.parts
-        ? quizData.LISTENING.parts.reduce(
-            (sum, p) => sum + (p.questions ? p.questions.length : 0),
-            0,
-          )
-        : 0;
-    }
-    if (quizData.READING_AND_GRAMMAR) {
-      totalParts += quizData.READING_AND_GRAMMAR.parts
-        ? quizData.READING_AND_GRAMMAR.parts.reduce(
-            (sum, p) => sum + (p.questions ? p.questions.length : 0),
-            0,
-          )
-        : 0;
-    }
-    totalParts += 4; // Writing: 3 Task 1 + 1 Task 2
-    totalParts += 5; // Speaking: 3 Part 1 + 2 Part 2
-
-    const percentage =
-      totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
-
-    getElement("score-display").textContent =
-      `${percentage}% (${totalScore}/${totalParts})`;
-
-    // Render breakdown with section-specific display
-    let html = "";
-    const sections = [
-      "WRITING",
-      "LISTENING",
-      "READING_AND_GRAMMAR",
-      "SPEAKING",
-    ];
-    sections.forEach((sec) => {
-      html += '<div class="result-category">';
-      html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
-
-      // Section-specific score display
-      if (sec === "WRITING") {
-        const task1Answered =
-          (sectionResponses[0]?.length > 0 ? 1 : 0) +
-          (sectionResponses[1]?.length > 0 ? 1 : 0) +
-          (sectionResponses[2]?.length > 0 ? 1 : 0);
-        const task2Answered = sectionResponses[3]?.length > 0 ? 1 : 0;
-        html += `<span class="result-category-score">${task1Answered}/3 • ${task2Answered}/1</span>`;
-      } else if (sec === "SPEAKING") {
-        const completed = speakingResponses.filter(
-          (r) => r !== null && r !== undefined,
-        ).length;
-        html += `<span class="result-category-score">${completed}/5</span>`;
       } else {
-        html += `<span class="result-category-score">${score[sec]}</span>`;
+        nextBtn.classList.add("hidden");
       }
+    }
 
-      html += "</div>";
-    });
-    getElement("results-breakdown").innerHTML = html;
+    // CHECK button - show when at least one option selected but not all answered
+    if (checkBtn && grp) {
+      const anySelected = grp.questions.some(
+        (q) => groupSelectedAnswers[q.globalNumber] !== undefined,
+      );
+      if (anySelected && !allChecked) {
+        checkBtn.classList.remove("hidden");
+      } else {
+        checkBtn.classList.add("hidden");
+      }
+    }
 
-    logActivity("RESULTS", `Final score: ${percentage}%`);
-
-    stopTimer();
-  }
-
-  // Check if first question of section
-  function isFirstQuestionOfSection() {
-    if (currentSection === "WRITING") {
-      return currentItemIndex === 0;
-    } else if (currentSection === "SPEAKING") {
-      return currentItemIndex === 0;
-    } else {
-      return currentGroupIndex === 0;
+    // SKIP TO button
+    if (skipBtn && !isLastQ) {
+      skipBtn.classList.remove("hidden");
+      const targetName = nextPart
+        ? `Skip to ${nextPart.name}`
+        : "Skip to Preview";
+      skipBtn.textContent = targetName;
+      if (isLastPart) {
+        skipBtn.classList.remove("btn-secondary");
+        skipBtn.classList.add("btn-primary");
+      } else {
+        skipBtn.classList.remove("btn-primary");
+        skipBtn.classList.add("btn-secondary");
+      }
     }
   }
+}
 
-  // Check if last question of section
-  function isLastQuestionOfSection() {
-    const sectionParts = SECTION_PARTS[currentSection];
-    if (!sectionParts) return true;
+// Variables para la sección de Speaking
+let speakingPart = null;
+// Índice de la tarea actual
+let speakingtaskIndex = 0;
+// Respuestas de audio
+let speakingResponses = [];
+// Tiempo restante de Speaking
+let speakingTimerRemaining = 0;
+// Intervalo del cronómetro
+let speakingTimerInterval = null;
+// Grabadora de audio
+let speakingMediaRecorder = null;
+// Fragmentos de audio grabado
+let speakingAudioChunks = [];
+// Flujo del micrófono
+let speakingStream = null;
+// Contexto de audio
+let speakingAudioContext = null;
+// Analizador de audio
+let speakingAnalyser = null;
+// ID de animación
+let speakingAnimationId = null;
 
-    if (currentSection === "WRITING") {
-      return currentItemIndex >= sectionParts.length - 1;
-    } else if (currentSection === "SPEAKING") {
-      return currentItemIndex >= sectionParts.length - 1;
-    } else {
-      return currentGroupIndex >= questionGroups.length - 1;
-    }
-  }
+// Configuración de la base de datos para Speaking
+const SPEAKING_DB_NAME = "SpeakingAudioDB";
+const SPEAKING_DB_VERSION = 1;
+const SPEAKING_STORE_NAME = "audioResponses";
 
-  // Check if last part of section
-  function isLastPartOfSection() {
-    const sectionParts = SECTION_PARTS[currentSection];
-    if (!sectionParts) return true;
+// Conexión a la base de datos
+let speakingDB = null;
 
-    const currentPart =
-      sectionParts[
-        currentSection === "WRITING" ? currentItemIndex : currentGroupIndex
-      ];
-    if (!currentPart) return true;
-
-    const currentPartKey = currentPart.partKey;
-    const lastPart = sectionParts[sectionParts.length - 1];
-    return currentPartKey === lastPart.partKey;
-  }
-
-  // Get next part key
-  function getNextPartKey() {
-    const sectionParts = SECTION_PARTS[currentSection];
-    if (!sectionParts) return null;
-
-    if (currentSection === "WRITING") {
-      return currentItemIndex < sectionParts.length - 1
-        ? sectionParts[currentItemIndex + 1]
-        : null;
-    } else if (currentSection === "SPEAKING") {
-      return currentItemIndex < sectionParts.length - 1
-        ? sectionParts[currentItemIndex + 1]
-        : null;
-    } else {
-      const currentPart = sectionParts.find((p) => p.key === currentPartKey);
-      if (!currentPart) return null;
-      const currentIndex = sectionParts.indexOf(currentPart);
-      return currentIndex < sectionParts.length - 1
-        ? sectionParts[currentIndex + 1]
-        : null;
-    }
-  }
-
-  // Navigate to next part
-  function navigateToNextPart() {
-    pauseTimer();
-    saveProgress();
-
-    const nextPart = getNextPartKey();
-    if (!nextPart) {
-      goToPreview();
+// Abre la base de datos para guardar audios de Speaking
+function openSpeakingDB() {
+  return new Promise((resolve, reject) => {
+    if (speakingDB) {
+      resolve(speakingDB);
       return;
     }
+    const request = indexedDB.open(SPEAKING_DB_NAME, SPEAKING_DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(SPEAKING_STORE_NAME)) {
+        db.createObjectStore(SPEAKING_STORE_NAME, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = (event) => {
+      speakingDB = event.target.result;
+      resolve(speakingDB);
+    };
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
 
-    if (currentSection === "WRITING") {
-      beginWriting(nextPart.partKey);
-    } else if (currentSection === "SPEAKING") {
-      beginSpeaking(nextPart.partKey);
-    } else {
-      beginMcPart(nextPart.key);
-    }
-    startTimer(currentSection);
-  }
+// Guarda un audio de Speaking en la base de datos
+function saveSpeakingAudio(taskIndex, blob, duration) {
+  return openSpeakingDB().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, "readwrite");
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const record = {
+        id: `speaking_task_${taskIndex}`,
+        taskIndex,
+        blob,
+        duration,
+        timestamp: Date.now(),
+      };
+      store.put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (event) => reject(event.target.error);
+    });
+  });
+}
 
-  // Get previous part key
-  function getPrevPartKey() {
-    const sectionParts = SECTION_PARTS[currentSection];
-    if (!sectionParts) return null;
+// Obtiene un audio guardado de Speaking
+function getSpeakingAudio(taskIndex) {
+  return openSpeakingDB().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, "readonly");
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const request = store.get(`speaking_task_${taskIndex}`);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = (event) => reject(event.target.error);
+    });
+  });
+}
 
-    if (currentSection === "WRITING") {
-      return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
-    } else if (currentSection === "SPEAKING") {
-      return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
-    } else {
-      const currentPart = sectionParts.find((p) => p.key === currentPartKey);
-      if (!currentPart) return null;
-      const currentIndex = sectionParts.indexOf(currentPart);
-      return currentIndex > 0 ? sectionParts[currentIndex - 1] : null;
-    }
-  }
+// Obtiene todos los audios de Speaking guardados
+function getAllSpeakingAudio() {
+  return openSpeakingDB().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, "readonly");
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = (event) => reject(event.target.error);
+    });
+  });
+}
 
-  // Navigate to a specific part
-  function navigateToPart(partKey) {
-    pauseTimer();
-    saveProgress();
+// Borra todos los audios de Speaking
+function clearSpeakingDB() {
+  return openSpeakingDB().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, "readwrite");
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      store.clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = (event) => reject(event.target.error);
+    });
+  });
+}
 
-    if (currentSection === "WRITING") {
-      beginWriting(partKey);
-    } else if (currentSection === "SPEAKING") {
-      beginSpeaking(partKey);
-    } else {
-      beginMcPart(partKey);
-    }
-  }
+// Pasos del Speaking (qué tarea se está haciendo)
+const SPEAKING_STEPS = {
+  TASK_1: 0,
+  TASK_2: 1,
+  TASK_3: 2,
+  TASK_4: 3,
+  TASK_5: 4,
+  PREVIEW: 5,
+};
 
-  // Stop speaking microphone
-  function stopSpeakingMic() {
-    if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
-      speakingMediaRecorder.stop();
-    }
-    if (speakingStream) {
-      speakingStream.getTracks().forEach((track) => track.stop());
-      speakingStream = null;
-    }
-    if (speakingAnimationId) {
-      cancelAnimationFrame(speakingAnimationId);
-      speakingAnimationId = null;
-    }
-  }
+// Inicia la sección de Speaking
+function beginSpeaking(partKey, saved = null) {
+  stopSpeakingMic();
 
-  // Setup all navigation event listeners
-  function setupEventListeners() {
-    // Home button
-    document.getElementById("home-btn")?.addEventListener("click", () => {
-      window.location.hash = "/";
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return false;
+
+  const partData = quizData.SPEAKING?.parts?.find(
+    (p) => p.id === config.partId,
+  );
+  if (!partData) return false;
+
+  speakingPart = partData;
+  const hasSavedProgress = saved && saved.currentPartKey === partKey;
+  speakingtaskIndex = hasSavedProgress ? saved.speakingtaskIndex || 0 : 0;
+  speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
+
+  currentPartKey = partKey;
+  currentSection = "SPEAKING";
+
+  getElement("category-select").classList.add("hidden");
+  getElement("quiz-view").classList.remove("hidden");
+  getElement("results-container").classList.add("hidden");
+
+  setupInstructionsPanel();
+  logActivity("INICIO", `${currentSection} Part ${config.partId}`);
+
+  getAllSpeakingAudio()
+    .then((records) => {
+      records.forEach((record) => {
+        if (
+          record.taskIndex >= 0 &&
+          record.taskIndex < speakingPart.tasks.length
+        ) {
+          speakingResponses[record.taskIndex] = {
+            blob: record.blob,
+            duration: record.duration,
+            timestamp: record.timestamp,
+          };
+        }
+      });
+      renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
+    })
+    .catch(() => {
+      renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
     });
 
-    // Next button
-    document.getElementById("next-btn")?.addEventListener("click", () => {
-      if (sectionPreviewMode) return;
-      if (currentSection === "WRITING" || currentSection === "SPEAKING") {
-        navigateToNextPart();
+  updatePrevButtonVisibility();
+  startTimer("SPEAKING");
+  return true;
+}
+
+// Dibuja la tarea actual de Speaking
+// Empieza a grabar la respuesta de Speaking
+
+// Navigate to preview using universal renderPreview
+function goToPreview() {
+  sectionPreviewMode = true;
+  const sectionParts = SECTION_PARTS[currentSection];
+  renderPreview(
+    currentSection,
+    sectionParts,
+    currentSection === "SPEAKING"
+      ? "audio"
+      : currentSection === "WRITING"
+        ? "textarea"
+        : "mc",
+  );
+}
+
+// Universal preview renderer
+function renderPreview(section, items, inputType) {
+  const container = getElement("quiz-container");
+  container.innerHTML = "";
+  container.classList.remove("fade-out");
+  void container.offsetWidth;
+  container.classList.add("fade-out");
+  setTimeout(() => {
+    container.classList.remove("fade-out");
+    container.style.animation = "none";
+    void container.offsetWidth;
+    container.style.animation = "fadeIn 0.5s ease";
+  }, 300);
+
+  getElement("question-text").classList.add("hidden");
+  getElement("options-container").innerHTML = "";
+  getElement("audio-container").classList.add("hidden");
+  getElement("transcription-toggle").classList.add("hidden");
+  getElement("transcription-text").classList.add("hidden");
+  getElement("reading-text").classList.add("hidden");
+  getElement("feedback-container").classList.add("hidden");
+
+  let html = '<div class="preview-scroll-container">';
+  html += `<h3>Preview - ${SECTION_DISPLAY[section] || section}</h3>`;
+
+  if (inputType === "textarea" && section === "WRITING") {
+    items.forEach((item, idx) => {
+      const response = sectionResponses[item.itemNum - 1];
+      const hasResponse = response && response.length > 0;
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
+      if (item.isEssay) {
+        const group = currentGroup;
+        html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
+      }
+      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
+      html += hasResponse
+        ? response.substring(0, 200) + (response.length > 200 ? "..." : "")
+        : "Not answered";
+      html += "</div></div>";
+    });
+  } else if (inputType === "audio" && section === "SPEAKING") {
+    items.forEach((item, idx) => {
+      const response = speakingResponses[item.itemNum - 1];
+      const hasResponse = response && response.blob;
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
+      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
+      if (hasResponse) {
+        html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
       } else {
-        navigateToNextGroup();
+        html += "Not answered";
+      }
+      html += "</div></div>";
+    });
+  } else {
+    // MC sections
+    const saved = loadProgress();
+    items.forEach((part) => {
+      const partProgress = getPartProgress(part.key, saved);
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${part.name}</div>`;
+      html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
+      html += "</div>";
+    });
+  }
+
+  html += "</div>";
+  html += '<div class="preview-submit-container">';
+  html +=
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
+  html += "</div>";
+
+  getElement("options-container").innerHTML = html;
+
+  const confirmBtn = getElement("preview-confirm-btn");
+  if (confirmBtn) {
+    confirmBtn.onclick = () => showResults();
+  }
+
+  updatePrevButtonVisibility();
+}
+
+// Play speaking preview audio
+function playSpeakingPreview(taskIndex) {
+  const response = speakingResponses[taskIndex];
+  if (response && response.blob) {
+    const audio = new Audio(URL.createObjectURL(response.blob));
+    audio.play();
+  }
+}
+
+// Show final results
+function showResults() {
+  getElement("quiz-view").classList.add("hidden");
+  getElement("results-container").classList.remove("hidden");
+  getElement("category-select").classList.add("hidden");
+
+  // Calculate total score (total correct answers / total questions)
+  const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
+
+  // Calculate totalParts based on section types (MC: questions, Writing: 4 parts, Speaking: tasks)
+  let totalParts = 0;
+  if (quizData.LISTENING) {
+    totalParts += quizData.LISTENING.parts
+      ? quizData.LISTENING.parts.reduce(
+          (sum, p) => sum + (p.questions ? p.questions.length : 0),
+          0,
+        )
+      : 0;
+  }
+  if (quizData.READING_AND_GRAMMAR) {
+    totalParts += quizData.READING_AND_GRAMMAR.parts
+      ? quizData.READING_AND_GRAMMAR.parts.reduce(
+          (sum, p) => sum + (p.questions ? p.questions.length : 0),
+          0,
+        )
+      : 0;
+  }
+  totalParts += 4; // Writing: 3 Task 1 + 1 Task 2
+  totalParts += 5; // Speaking: 3 Part 1 + 2 Part 2
+
+  const percentage =
+    totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
+
+  getElement("score-display").textContent =
+    `${percentage}% (${totalScore}/${totalParts})`;
+
+  // Render breakdown with section-specific display
+  let html = "";
+  const sections = ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"];
+  sections.forEach((sec) => {
+    html += '<div class="result-category">';
+    html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
+
+    // Section-specific score display
+    if (sec === "WRITING") {
+      const task1Answered =
+        (sectionResponses[0]?.length > 0 ? 1 : 0) +
+        (sectionResponses[1]?.length > 0 ? 1 : 0) +
+        (sectionResponses[2]?.length > 0 ? 1 : 0);
+      const task2Answered = sectionResponses[3]?.length > 0 ? 1 : 0;
+      html += `<span class="result-category-score">${task1Answered}/3 • ${task2Answered}/1</span>`;
+    } else if (sec === "SPEAKING") {
+      const completed = speakingResponses.filter(
+        (r) => r !== null && r !== undefined,
+      ).length;
+      html += `<span class="result-category-score">${completed}/5</span>`;
+    } else {
+      html += `<span class="result-category-score">${score[sec]}</span>`;
+    }
+
+    html += "</div>";
+  });
+  getElement("results-breakdown").innerHTML = html;
+
+  logActivity("RESULTS", `Final score: ${percentage}%`);
+
+  stopTimer();
+}
+
+// Check if first question of section
+function isFirstQuestionOfSection() {
+  if (currentSection === "WRITING") {
+    return currentItemIndex === 0;
+  } else if (currentSection === "SPEAKING") {
+    return currentItemIndex === 0;
+  } else {
+    return currentGroupIndex === 0;
+  }
+}
+
+// Check if last question of section
+function isLastQuestionOfSection() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return true;
+
+  if (currentSection === "WRITING") {
+    return currentItemIndex >= sectionParts.length - 1;
+  } else if (currentSection === "SPEAKING") {
+    return currentItemIndex >= sectionParts.length - 1;
+  } else {
+    return currentGroupIndex >= questionGroups.length - 1;
+  }
+}
+
+// Check if last part of section
+function isLastPartOfSection() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return true;
+
+  const currentPart =
+    sectionParts[
+      currentSection === "WRITING" ? currentItemIndex : currentGroupIndex
+    ];
+  if (!currentPart) return true;
+
+  const currentPartKey = currentPart.partKey;
+  const lastPart = sectionParts[sectionParts.length - 1];
+  return currentPartKey === lastPart.partKey;
+}
+
+// Get next part key
+function getNextPartKey() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  if (currentSection === "WRITING") {
+    return currentItemIndex < sectionParts.length - 1
+      ? sectionParts[currentItemIndex + 1]
+      : null;
+  } else if (currentSection === "SPEAKING") {
+    return currentItemIndex < sectionParts.length - 1
+      ? sectionParts[currentItemIndex + 1]
+      : null;
+  } else {
+    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+    if (!currentPart) return null;
+    const currentIndex = sectionParts.indexOf(currentPart);
+    return currentIndex < sectionParts.length - 1
+      ? sectionParts[currentIndex + 1]
+      : null;
+  }
+}
+
+// Navigate to next part
+function navigateToNextPart() {
+  pauseTimer();
+  saveProgress();
+
+  const nextPart = getNextPartKey();
+  if (!nextPart) {
+    goToPreview();
+    return;
+  }
+
+  if (currentSection === "WRITING") {
+    beginWriting(nextPart.partKey);
+  } else if (currentSection === "SPEAKING") {
+    beginSpeaking(nextPart.partKey);
+  } else {
+    beginMcPart(nextPart.key);
+  }
+  startTimer(currentSection);
+}
+
+// Get previous part key
+function getPrevPartKey() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  if (currentSection === "WRITING") {
+    return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
+  } else if (currentSection === "SPEAKING") {
+    return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
+  } else {
+    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+    if (!currentPart) return null;
+    const currentIndex = sectionParts.indexOf(currentPart);
+    return currentIndex > 0 ? sectionParts[currentIndex - 1] : null;
+  }
+}
+
+// Navigate to a specific part
+function navigateToPart(partKey) {
+  pauseTimer();
+  saveProgress();
+
+  if (currentSection === "WRITING") {
+    beginWriting(partKey);
+  } else if (currentSection === "SPEAKING") {
+    beginSpeaking(partKey);
+  } else {
+    beginMcPart(partKey);
+  }
+}
+
+// Stop speaking microphone
+function stopSpeakingMic() {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
+    speakingMediaRecorder.stop();
+  }
+  if (speakingStream) {
+    speakingStream.getTracks().forEach((track) => track.stop());
+    speakingStream = null;
+  }
+  if (speakingAnimationId) {
+    cancelAnimationFrame(speakingAnimationId);
+    speakingAnimationId = null;
+  }
+}
+
+// Setup all navigation event listeners
+function setupEventListeners() {
+  // Home button
+  document.getElementById("home-btn")?.addEventListener("click", () => {
+    window.location.hash = "/";
+  });
+
+  // Next button
+  document.getElementById("next-btn")?.addEventListener("click", () => {
+    if (sectionPreviewMode) return;
+    if (currentSection === "WRITING" || currentSection === "SPEAKING") {
+      navigateToNextPart();
+    } else {
+      navigateToNextGroup();
+    }
+  });
+
+  // Previous button
+  document.getElementById("prev-btn")?.addEventListener("click", () => {
+    navigateToPrevGroup();
+  });
+
+  // Skip button
+  document.getElementById("skip-btn")?.addEventListener("click", () => {
+    navigateToNextPart();
+  });
+
+  // Check button (MC groups)
+  document.getElementById("check-btn")?.addEventListener("click", () => {
+    checkCurrentGroup();
+  });
+
+  // Submit/Confirm button (preview)
+  document
+    .getElementById("submit-section-btn")
+    ?.addEventListener("click", () => {
+      showResults();
+    });
+
+  // Reset all progress button (home)
+  document.getElementById("reset-all-btn")?.addEventListener("click", () => {
+    resetAllProgress();
+  });
+
+  // Reset section progress button (quiz)
+  document.getElementById("reset-btn")?.addEventListener("click", () => {
+    resetSectionProgress();
+  });
+
+  // Help buttons
+  document.getElementById("help-btn-home")?.addEventListener("click", () => {
+    showHelpModal();
+  });
+  document.getElementById("help-btn-quiz")?.addEventListener("click", () => {
+    showHelpModal();
+  });
+
+  // Registration form
+  document
+    .getElementById("registration-form")
+    ?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("reg-name").value.trim();
+      const emailUser = document
+        .getElementById("reg-email-username")
+        .value.trim();
+      const emailDomain = document
+        .getElementById("reg-email-domain")
+        .value.trim();
+      const email = `${emailUser}@${emailDomain}`;
+      if (!isValidName(name) || !email.includes("@")) {
+        alert("Please enter a valid name and email.");
+        return;
+      }
+      const user = { name, email };
+      saveUser(user);
+      hideRegistrationModal();
+      if (pendingSection) {
+        beginQuiz(pendingSection);
+        pendingSection = null;
       }
     });
 
-    // Previous button
-    document.getElementById("prev-btn")?.addEventListener("click", () => {
-      navigateToPrevGroup();
-    });
+  // Registration cancel
+  document.getElementById("reg-cancel")?.addEventListener("click", () => {
+    hideRegistrationModal();
+    pendingSection = null;
+  });
 
-    // Skip button
-    document.getElementById("skip-btn")?.addEventListener("click", () => {
-      navigateToNextPart();
-    });
-
-    // Check button (MC groups)
-    document.getElementById("check-btn")?.addEventListener("click", () => {
-      checkCurrentGroup();
-    });
-
-    // Submit/Confirm button (preview)
-    document
-      .getElementById("submit-section-btn")
-      ?.addEventListener("click", () => {
-        showResults();
-      });
-
-    // Reset all progress button (home)
-    document.getElementById("reset-all-btn")?.addEventListener("click", () => {
-      resetAllProgress();
-    });
-
-    // Reset section progress button (quiz)
-    document.getElementById("reset-btn")?.addEventListener("click", () => {
-      resetSectionProgress();
-    });
-
-    // Help buttons
-    document.getElementById("help-btn-home")?.addEventListener("click", () => {
-      showHelpModal();
-    });
-    document.getElementById("help-btn-quiz")?.addEventListener("click", () => {
-      showHelpModal();
-    });
-
-    // Registration form
-    document
-      .getElementById("registration-form")
-      ?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = document.getElementById("reg-name").value.trim();
-        const emailUser = document
-          .getElementById("reg-email-username")
-          .value.trim();
-        const emailDomain = document
-          .getElementById("reg-email-domain")
-          .value.trim();
-        const email = `${emailUser}@${emailDomain}`;
-        if (!isValidName(name) || !email.includes("@")) {
-          alert("Please enter a valid name and email.");
-          return;
-        }
-        const user = { name, email };
-        saveUser(user);
-        hideRegistrationModal();
-        if (pendingSection) {
-          beginQuiz(pendingSection);
-          pendingSection = null;
-        }
-      });
-
-    // Registration cancel
-    document.getElementById("reg-cancel")?.addEventListener("click", () => {
-      hideRegistrationModal();
-      pendingSection = null;
-    });
-
-    // Change user form
-    document
-      .getElementById("change-user-form")
-      ?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = document.getElementById("change-name").value.trim();
-        const emailUser = document
-          .getElementById("change-email-username")
-          .value.trim();
-        const emailDomain = document
-          .getElementById("change-email-domain")
-          .value.trim();
-        const email = `${emailUser}@${emailDomain}`;
-        if (!isValidName(name) || !email.includes("@")) {
-          alert("Please enter a valid name and email.");
-          return;
-        }
-        const user = { name, email };
-        saveUser(user);
-        hideChangeUserModal();
-      });
-
-    // User name click to change user
-    document.getElementById("user-name")?.addEventListener("click", () => {
-      showChangeUserModal();
-    });
-
-    // Help form
-    document.getElementById("help-form")?.addEventListener("submit", (e) => {
+  // Change user form
+  document
+    .getElementById("change-user-form")
+    ?.addEventListener("submit", (e) => {
       e.preventDefault();
-      const text = document.getElementById("help-text").value.trim();
-      if (!text) return;
-      logActivity("HELP", text.substring(0, 100));
-      alert("Thank you! We will respond soon.");
-      hideHelpModal();
+      const name = document.getElementById("change-name").value.trim();
+      const emailUser = document
+        .getElementById("change-email-username")
+        .value.trim();
+      const emailDomain = document
+        .getElementById("change-email-domain")
+        .value.trim();
+      const email = `${emailUser}@${emailDomain}`;
+      if (!isValidName(name) || !email.includes("@")) {
+        alert("Please enter a valid name and email.");
+        return;
+      }
+      const user = { name, email };
+      saveUser(user);
+      hideChangeUserModal();
     });
 
-    // Help cancel
-    document.getElementById("help-cancel")?.addEventListener("click", () => {
-      hideHelpModal();
-    });
+  // User name click to change user
+  document.getElementById("user-name")?.addEventListener("click", () => {
+    showChangeUserModal();
+  });
 
-    // Time modal buttons
-    document.getElementById("time-home-btn")?.addEventListener("click", () => {
-      hideTimeModal();
-      window.location.hash = "/";
-    });
-    document
-      .getElementById("time-preview-btn")
-      ?.addEventListener("click", () => {
-        hideTimeModal();
-        goToPreview();
-      });
+  // Help form
+  document.getElementById("help-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = document.getElementById("help-text").value.trim();
+    if (!text) return;
+    logActivity("HELP", text.substring(0, 100));
+    alert("Thank you! We will respond soon.");
+    hideHelpModal();
+  });
 
-    // Back modal buttons
-    document.getElementById("back-home-btn")?.addEventListener("click", () => {
-      document.getElementById("back-modal").classList.add("hidden");
-      window.location.hash = "/";
-    });
-    document.getElementById("back-prev-btn")?.addEventListener("click", () => {
-      document.getElementById("back-modal").classList.add("hidden");
-      navigateToPrevGroup();
-    });
-    document.getElementById("back-cancel")?.addEventListener("click", () => {
-      document.getElementById("back-modal").classList.add("hidden");
-    });
+  // Help cancel
+  document.getElementById("help-cancel")?.addEventListener("click", () => {
+    hideHelpModal();
+  });
 
-    // Results buttons
-    document
-      .getElementById("results-home-btn")
-      ?.addEventListener("click", () => {
-        window.location.hash = "/";
-      });
-    document.getElementById("email-btn")?.addEventListener("click", () => {
-      const subject = "MET Quiz Results";
-      const body = `Results: ${document.getElementById("score-display")?.textContent || ""}`;
-      window.location.href = `mailto:${currentUser?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    });
-  }
+  // Time modal buttons
+  document.getElementById("time-home-btn")?.addEventListener("click", () => {
+    hideTimeModal();
+    window.location.hash = "/";
+  });
+  document.getElementById("time-preview-btn")?.addEventListener("click", () => {
+    hideTimeModal();
+    goToPreview();
+  });
+
+  // Back modal buttons
+  document.getElementById("back-home-btn")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+    window.location.hash = "/";
+  });
+  document.getElementById("back-prev-btn")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+    navigateToPrevGroup();
+  });
+  document.getElementById("back-cancel")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+  });
+
+  // Results buttons
+  document.getElementById("results-home-btn")?.addEventListener("click", () => {
+    window.location.hash = "/";
+  });
+  document.getElementById("email-btn")?.addEventListener("click", () => {
+    const subject = "MET Quiz Results";
+    const body = `Results: ${document.getElementById("score-display")?.textContent || ""}`;
+    window.location.href = `mailto:${currentUser?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
 }
