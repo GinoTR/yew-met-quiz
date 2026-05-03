@@ -173,11 +173,6 @@ function updateHash(partKey, groupIndex) {
   window.location.hash = formatHash(partKey, groupIndex);
 }
 
-// Actualiza la URL para Writing
-function updateWritingHash(taskPart, qNum) {
-  window.location.hash = formatWritingHash(taskPart, qNum);
-}
-
 // Lee la URL (hash) y extrae la información de la sección actual
 function parseHash() {
   const hash = window.location.hash.slice(1); // Quita el # inicial
@@ -1596,15 +1591,18 @@ function navigateToPrevPart() {
   }
 }
 
-// Configura los eventos del área de texto de Writing
-function setupWritingTextareaEvents() {
+// Configura los eventos del área de texto (universal para textarea inputType)
+function setupTextareaEvents() {
   const textarea = document.getElementById('writing-textarea');
   const counter = document.getElementById('char-count');
   const counterContainer = document.querySelector('.char-counter');
 
   if (!textarea) return;
 
-  const limit = textarea.classList.contains('writing-textarea-large') ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+  const sectionParts = SECTION_PARTS[currentSection];
+  const currentItem = sectionParts ? sectionParts[currentItemIndex] : null;
+  const isEssay = currentItem ? currentItem.isEssay : false;
+  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
 
   textarea.addEventListener('input', function () {
     const count = this.value.length;
@@ -1615,384 +1613,31 @@ function setupWritingTextareaEvents() {
   textarea.focus();
 }
 
-// Preview now handled by renderUnifiedPreview()
-
-// Obtiene la siguiente parte de la sección
-function getNextPartKey() {
-  const parts = SECTION_PARTS[currentSection];
-  if (!parts) return null;
-  const currentIndex = parts.findIndex(p => p.key === currentPartKey);
-  if (currentIndex < 0 || currentIndex >= parts.length - 1) return null;
-  return parts[currentIndex + 1];
-}
-
-// Obtiene la parte anterior de la sección
-function getPrevPartKey() {
-  const parts = SECTION_PARTS[currentSection];
-  if (!parts) return null;
-  const currentIndex = parts.findIndex(p => p.key === currentPartKey);
-  if (currentIndex <= 0) return null;
-  return parts[currentIndex - 1];
-}
-
-// Navega a una parte específica de la sección
-function navigateToPart(partKey) {
-  pauseTimer();
-  saveProgress();
+// Obtiene el nombre de la siguiente parte de forma universal
+function getNextPartName() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
 
   if (currentSection === 'WRITING') {
-    beginWriting(partKey, loadProgress(), SECTION_CONFIG[partKey]);
-    startTimer(currentSection);
-  } else if (currentSection === 'SPEAKING') {
-    beginSpeaking(partKey, loadProgress());
-    startTimer(currentSection);
-  } else {
-    beginMcPart(partKey, loadProgress());
-    startTimer(currentSection);
-  }
-}
-
-// Va a la vista previa de la sección
-function goToPreview() {
-  sectionPreviewMode = true;
-  currentPreviewIndex = 0;
-
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
-
-  setupInstructionsPanel();
-  renderPreview(currentSection, currentGroup, 'textarea');
-  updatePrevButtonVisibility();
-
-  hashNavigationLocked = true;
-  window.location.hash = `#/${currentSection.toLowerCase()}/preview`;
-  hashNavigationLocked = false;
-}
-
-// Revisa si es la primera parte de la sección
-function isFirstPartOfSection() {
-  if (currentSection === 'WRITING') {
-    const sectionParts = SECTION_PARTS.WRITING;
-    return currentItemIndex <= 2; // Task 1 has items 0, 1, 2
-  }
-  return getPrevPartKey() === null;
-}
-
-// Revisa si es la última parte de la sección
-function isLastPartOfSection() {
-  if (currentSection === 'WRITING') {
-    const sectionParts = SECTION_PARTS.WRITING;
-    return currentItemIndex >= sectionParts.length - 1;
-  }
-  return getNextPartKey() === null;
-}
-
-// Revisa si es la última pregunta de la sección
-function isLastQuestionOfSection() {
-  if (currentSection === 'WRITING') {
-    const sectionParts = SECTION_PARTS.WRITING;
-    return currentItemIndex === sectionParts.length - 1;
-  }
-  if (currentSection === 'SPEAKING') {
-    return isLastPartOfSection() && speakingTaskIndex >= speakingPart.tasks.length - 1;
-  }
-  if (currentSection) {
-    return isLastPartOfSection() && currentGroupIndex >= questionGroups.length - 1;
-  }
-  return false;
-}
-
-// Revisa si es la primera pregunta de la sección
-function isFirstQuestionOfSection() {
-  if (currentSection === 'WRITING') {
-    return currentItemIndex === 0;
-  }
-  if (currentSection === 'SPEAKING') {
-    return isFirstPartOfSection() && speakingTaskIndex === 0;
-  }
-  if (currentSection) {
-    return isFirstPartOfSection() && currentGroupIndex === 0;
-  }
-  return false;
-}
-
-// Dibuja un paso de cualquier sección de forma universal
-// inputType: 'textarea' (Writing), 'audio' (Speaking), 'mc' (Listening/Reading)
-function renderStep(section, itemIndex, items, inputType) {
-  const container = getElement('quiz-container');
-  container.classList.remove('fade-out');
-  void container.offsetWidth;
-  container.classList.add('fade-out');
-  setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
-    void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
-  }, 300);
-
-  if (section === 'SPEAKING') {
-    updateSpeakingProgress();
-  } else {
-    updateSectionProgress();
-  }
-
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('feedback-container').classList.add('hidden');
-  getElement('section-instructions-panel').classList.remove('hidden');
-
-  let html = '';
-
-  if (inputType === 'textarea') {
-    // Universal textarea rendering using SECTION_PARTS items
-    const sectionParts = SECTION_PARTS[section];
-    if (!sectionParts || !sectionParts[itemIndex]) return;
-
-    const item = sectionParts[itemIndex];
-    const existingResponse = sectionResponses[itemIndex] || '';
-    const charCount = existingResponse.length;
-    const charLimit = item.isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
-    const showCounter = charCount > charLimit * 0.9;
-
-    if (item.task === 2 || item.isEssay) {
-      // Task 2 (essay)
-      const task2 = items.task2;
-      if (task2) {
-        html = `
-          <div class="writing-question">
-            <p class="writing-question-text">${task2.topic}</p>
-            <p class="writing-task-prompt">${task2.prompt}</p>
-            <textarea id="writing-textarea" class="writing-textarea writing-textarea-large" placeholder="Escribe tu essay aquí..." maxlength="${charLimit}">${existingResponse}</textarea>
-            <div class="char-counter ${showCounter ? 'visible' : ''}">
-              <span id="char-count">${charCount}</span> / ${charLimit}
-            </div>
-          </div>
-        `;
-      }
-    } else {
-      // Task 1 questions
-      const question = items.task1 ? items.task1[item.itemNum - 1] : null;
-      if (question) {
-        html = `
-          <div class="writing-question">
-            <p class="writing-question-text">${question.text}</p>
-            <textarea id="writing-textarea" class="writing-textarea" placeholder="Escribe tu respuesta aquí..." maxlength="${charLimit}">${existingResponse}</textarea>
-            <div class="char-counter ${showCounter ? 'visible' : ''}">
-              <span id="char-count">${charCount}</span> / ${charLimit}
-            </div>
-          </div>
-        `;
-      }
+    // For Writing: if in Task 1 items (0-2), next is Task 2; if in Task 2 (3), next is Preview
+    if (currentItemIndex <= 2) {
+      const task2Part = sectionParts.find(p => p.partKey.endsWith('TASK2'));
+      return task2Part ? task2Part.partLabel : 'Task 2';
     }
-  } else if (inputType === 'audio') {
-    // Renderizado para Speaking
-    const task = items.tasks[speakingTaskIndex];
-    if (!task) return;
-    const hasResponse = speakingResponses[speakingTaskIndex] !== null && speakingResponses[speakingTaskIndex] !== undefined;
-    const partLabel = getPartLabel(currentPartKey);
-    html = '<div class="speaking-task-container">';
-    html += `<div class="speaking-task-header">`;
-    html += `<span class="speaking-task-badge">${partLabel}</span>`;
-    html += `<span class="speaking-task-label">Task ${task.number} of ${items.tasks.length}</span>`;
-    html += '</div>';
-    html += `<div class="speaking-prompt">${task.prompt}</div>`;
-    html += `<div class="speaking-time-info">You have ${task.timeLimit} seconds to talk.</div>`;
-    if (!hasResponse) {
-      html += '<button id="begin-speaking-btn" class="btn-begin-speaking">Begin speaking now</button>';
-      html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
-      html += '<div id="speaking-recorder" class="speaking-recorder hidden">';
-      html += '<div class="recorder-icon">🎙</div>';
-      html += '<div class="recorder-text">Recording</div>';
-      html += '<canvas id="audio-waveform" class="audio-waveform"></canvas>';
-      html += '</div>';
-    } else {
-      const duration = speakingResponses[speakingTaskIndex].duration;
-      html += `<div class="speaking-completed">✓ Response recorded (${duration}s)</div>`;
-      html += '<button id="playback-speaking-btn" class="btn-playback-speaking">▶ Play your recording</button>';
-      html += '<audio id="speaking-audio-playback" class="hidden"></audio>';
-      html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
-      html += '<div id="speaking-recorder" class="speaking-recorder hidden">';
-      html += '<div class="recorder-icon">🎙</div>';
-      html += '<div class="recorder-text">Recording</div>';
-      html += '<canvas id="audio-waveform" class="audio-waveform"></canvas>';
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  getElement('question-text').innerHTML = '';
-  getElement('options-container').innerHTML = html;
-
-  if (inputType === 'textarea') {
-    getElement('controls').classList.remove('hidden');
-    setupWritingTextareaEvents();
-  } else if (inputType === 'audio') {
-    getElement('controls').classList.remove('hidden');
-    getElement('question-text').classList.add('hidden');
-    const beginBtn = document.getElementById('begin-speaking-btn');
-    if (beginBtn) {
-      beginBtn.addEventListener('click', () => startSpeakingRecording(task));
-    }
-    const playbackBtn = document.getElementById('playback-speaking-btn');
-    if (playbackBtn) {
-      playbackBtn.addEventListener('click', () => playSpeakingRecording(speakingTaskIndex));
+    if (currentItemIndex === 3) {
+      return 'Preview';
     }
   }
 
-  updatePrevButtonVisibility();
-}
+  // For other sections (Listening, Reading, Speaking)
+  const currentPart = sectionParts.find(p => p.key === currentPartKey);
+  if (!currentPart) return null;
 
-// Dibuja la vista previa de forma universal
-// inputType: 'textarea' (Writing), 'audio' (Speaking), 'mc' (Listening/Reading)
-function renderPreview(section, items, inputType) {
-  let html = '';
-
-  if (inputType === 'textarea') {
-    // Universal preview using SECTION_PARTS items
-    const sectionParts = SECTION_PARTS[section];
-    if (!sectionParts) return '';
-
-    const canEdit = timerRemaining > 0;
-
-    sectionParts.forEach((item, itemIndex) => {
-      const response = sectionResponses[itemIndex] || '';
-      const hasResponse = response.length > 0;
-      const statusClass = hasResponse ? 'answered' : 'unanswered';
-      const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
-
-      html += `<div class="preview-slide" data-item-index="${itemIndex}">`;
-      html += `<div class="preview-slide-header">${item.partLabel} — ${item.isEssay ? 'Essay' : `Question ${item.itemNum} of ${item.totalInPart}`}</div>`;
-      html += `<div class="preview-question">`;
-
-      if (item.isEssay) {
-        const task2 = items.task2;
-        html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2 ? task2.topic : ''}</div>`;
-      } else {
-        const question = items.task1 ? items.task1[item.itemNum - 1] : null;
-        html += `<div class="preview-q-text"><span class="preview-q-num">Q${item.itemNum}.</span> ${question ? question.text : ''}</div>`;
-      }
-
-      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-      if (canEdit) {
-        html += ` <button class="btn-preview-edit" data-item-index="${itemIndex}" style="margin-left:8px;">✏️ Edit</button>`;
-      }
-      html += `</div></div></div>`;
-    });
-
-  } else if (inputType === 'audio') {
-    // Preview para Speaking
-    if (!items || !items.tasks) return '';
-    const tasks = items.tasks || [];
-    const canEdit = timerRemaining > 0;
-
-    tasks.forEach((task, i) => {
-      const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
-      const duration = hasRecording ? speakingResponses[i].duration : null;
-      const statusClass = hasRecording ? 'correct' : 'unanswered';
-      const statusText = hasRecording ? `✓ Response recorded (${duration}s)` : 'Sin respuesta';
-
-      html += `<div class="preview-slide" data-speaking-task="${i}">`;
-      html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
-      html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
-      html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
-      if (hasRecording) {
-        html += ` <button class="btn-preview-playback" data-task-idx="${i}" style="margin-left:8px;">▶ Play</button>`;
-        html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
-      }
-      if (canEdit) {
-        html += ` <button class="btn-preview-edit-speaking" data-task-idx="${i}" style="margin-left:8px;">✏️ Edit</button>`;
-      }
-      html += `</div></div></div>`;
-    });
-
-  } else if (inputType === 'mc') {
-    // Preview para Multiple Choice (Listening/Reading)
-    const allGroups = buildAllSectionGroups(currentSection);
-    let answeredCount = 0;
-    let totalQ = 0;
-
-    allGroups.forEach((grp) => {
-      const partLabel = grp.partLabel;
-      let headerText = `${partLabel}`;
-      if (grp.groupLabel) {
-        headerText += ` ${grp.groupLabel}`;
-      }
-      if (grp.article) {
-        headerText += ` — Article ${grp.article.letter}`;
-      } else if (grp.isConnector) {
-        headerText += ` — Connector`;
-      } else if (grp.audioGroupNumber) {
-        headerText += ` — Audio ${grp.audioGroupNumber}`;
-      }
-      const { start, end } = grp.questionRange;
-      headerText += ` — Questions ${start}${end !== start ? '-' + end : ''}`;
-
-      html += `<div class="preview-slide">`;
-      html += `<div class="preview-slide-header">${headerText}</div>`;
-
-      grp.questions.forEach(q => {
-        const questionIdx = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
-        const isAnswered = answeredQuestions.has(questionIdx);
-        const displayNum = q.displayNumber || q.globalNumber;
-        const userAnswerIdx = groupSelectedAnswers[q.globalNumber];
-        totalQ++;
-        if (isAnswered) answeredCount++;
-
-        let statusClass = 'unanswered';
-        let answerDetail = '';
-
-        if (isAnswered && questionIdx >= 0) {
-          const sq = shuffledQuestions[questionIdx];
-          statusClass = 'answered';
-          if (userAnswerIdx !== undefined) {
-            const userLetter = letters[userAnswerIdx];
-            const correctLetter = letters[sq.correctAnswer];
-            if (userLetter === correctLetter) {
-              statusClass = 'correct';
-              answerDetail = ` — Your answer: ${userLetter}`;
-            } else {
-              statusClass = 'incorrect';
-              answerDetail = ` — Your answer: ${userLetter} (Correct: ${correctLetter})`;
-            }
-          }
-        }
-
-        html += `<div class="preview-question">`;
-        html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.text}</div>`;
-        html += `<div class="preview-q-answer ${statusClass}">${isAnswered ? 'Answered' : 'Sin respuesta'}${answerDetail}`;
-        if (isAnswered && canEdit) {
-          html += ` <button class="btn-preview-edit-mc" data-global-num="${q.globalNumber}" style="margin-left:8px;">✏️ Edit</button>`;
-        }
-        html += `</div></div>`;
-      });
-
-      html += `</div>`;
-    });
+  const currentIndex = sectionParts.indexOf(currentPart);
+  if (currentIndex < sectionParts.length - 1) {
+    return sectionParts[currentIndex + 1].name;
   }
-
-  return html;
-}
-
-// Obtiene el nombre de la siguiente parte de Writing de forma dinámica
-function getWritingNextPartName() {
-  // Based on currentItemIndex in SECTION_PARTS.WRITING
-  const sectionParts = SECTION_PARTS.WRITING;
-  if (!sectionParts) return 'Task 2';
-
-  if (currentItemIndex <= 2) {
-    // Currently in Task 1 (items 0, 1, 2)
-    const task2Part = sectionParts.find(p => p.key.endsWith('TASK2'));
-    return task2Part ? task2Part.name : 'Task 2';
-  }
-  // Currently in Task 2 (item 3)
-  if (currentItemIndex === 3) {
-    return 'Preview';
-  }
-  return null;
+  return 'Preview';
 }
 
 // Actualiza qué botones se ven (Anterior, Siguiente, etc.)
@@ -2061,7 +1706,7 @@ function updatePrevButtonVisibility() {
     // SKIP TO button
     if (skipBtn) {
       skipBtn.classList.remove('hidden');
-      const targetName = getWritingNextPartName();
+      const targetName = getNextPartName();
       skipBtn.textContent = targetName ? `Skip to ${targetName}` : 'Skip to Preview';
       skipBtn.classList.remove('btn-primary');
       skipBtn.classList.add('btn-secondary');
