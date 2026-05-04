@@ -1312,7 +1312,9 @@ h1 {
   opacity: 0;
 }
 
-.writing-question {
+/* Unified styles for Writing and Speaking */
+.writing-question,
+.speaking-task-container {
   text-align: left;
 }
 
@@ -1324,11 +1326,21 @@ h1 {
   font-weight: 500;
 }
 
-.writing-task-prompt {
+/* Unified prompt styles */
+.writing-task-prompt,
+.speaking-prompt {
   font-size: 0.71rem;
   color: var(--text-secondary);
   margin-bottom: 15px;
   font-style: italic;
+  background: var(--bg-secondary);
+  border-left: 4px solid #6366f1;
+  padding: 16px 20px;
+  border-radius: 8px;
+  line-height: 1.6;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
 }
 
 .writing-textarea {
@@ -2097,19 +2109,6 @@ h1 {
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-weight: 500;
-  }
-
-  .speaking-prompt {
-    background: var(--bg-secondary);
-    border-left: 4px solid #6366f1;
-    padding: 16px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    line-height: 1.6;
-    color: var(--text-primary);
-    width: 100%;
-    max-width: 600px;
-    text-align: center;
   }
 
   .speaking-time-info {

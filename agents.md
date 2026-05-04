@@ -200,8 +200,8 @@ Use generic names that apply to all sections:
 Use section-specific names only where the functionality IS section-specific:
 - `renderStep(section, partId, items, inputType)` - universal function replacing renderWritingStep, renderWritingTask1, renderWritingTask2, renderSpeakingTask
 - `renderPreview(section, items, inputType)` - universal function replacing renderWritingPreviewItems, renderSpeakingPreviewItems, renderMCPreviewItems
-- `.writing-textarea` - specific CSS class (to be unified in future)
-- `.speaking-task-container` - specific CSS class (to be unified in future)
+- `.writing-question, .speaking-task-container` - unified CSS class for text alignment
+- `.writing-task-prompt, .speaking-prompt` - unified CSS class for prompt styling
 
 ### Navigation and Buttons in MET Quiz
 

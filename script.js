@@ -491,13 +491,14 @@ function loadFromHash() {
   }
 
   // Universal logic: handle navigation based on SECTION_PARTS
-  const sectionParts = SECTION_PARTS[currentSection];
-  if (sectionParts && currentSection === getSectionKey(section)) {
+  const sectionKey = getSectionKey(section);
+  const sectionParts = SECTION_PARTS[sectionKey];
+  if (sectionParts && sectionKey) {
     if (qStart !== null) {
       // Find the item in SECTION_PARTS that matches this question number
       const targetItem = sectionParts.find((item) => {
-        if (item.inputType === "textarea") {
-          // For Writing: qStart corresponds to item number
+        if (item.inputType === "textarea" || item.inputType === "audio") {
+          // For Writing/Speaking: qStart corresponds to item number
           return qStart === item.itemNum;
         }
         return false;
@@ -509,12 +510,7 @@ function loadFromHash() {
       } else if (targetItem) {
         // Same part, just render the step
         const itemIndex = sectionParts.indexOf(targetItem);
-        renderStep(
-          currentSection,
-          itemIndex,
-          currentGroup,
-          targetItem.inputType,
-        );
+        renderStep(sectionKey, itemIndex, currentGroup, targetItem.inputType);
         return;
       }
     }
@@ -536,7 +532,11 @@ function loadFromHash() {
     return;
   }
 
-  if (currentSection === getSectionKey(section) && currentPartKey !== section) {
+  if (
+    sectionKey &&
+    currentSection === sectionKey &&
+    currentPartKey !== section
+  ) {
     navigateToPart(section);
     return;
   }
@@ -1190,23 +1190,24 @@ function renderCategorySelect() {
   });
 }
 
-// Revisa si una sección ya tiene contenido disponible (unificado)
+// Revisa si una sección ya tiene contenido disponible (validación diferenciada)
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   const sectionData = quizData[section];
 
   if (!sectionData) return false;
 
-  // Check based on data structure
+  // Writing: validate groups array (has task1 + task2)
   if (section === "WRITING") {
     return sectionData.groups && sectionData.groups.length > 0;
   }
 
+  // Speaking: validate parts array (has tasks)
   if (section === "SPEAKING") {
     return sectionData.parts && sectionData.parts.length > 0;
   }
 
-  // LISTENING and READING_AND_GRAMMAR
+  // LISTENING and READING_AND_GRAMMAR: validate parts array
   return sectionData.parts && sectionData.parts.length > 0;
 }
 
@@ -1227,12 +1228,14 @@ function getPartProgress(partKey, saved) {
   if (itemsInPart.length > 0) {
     const total = itemsInPart.length;
 
-    // Get responses based on section (stored separately for now)
+    // Get responses from the correct source (sectionResponses for Writing, speakingResponses for Speaking)
     let responses = [];
     if (section === "WRITING") {
-      responses = saved.writingResponses || [];
+      // Writing uses sectionResponses (textarea responses)
+      responses = saved.writingResponses || sectionResponses || [];
     } else if (section === "SPEAKING") {
-      responses = saved.speakingResponses || [];
+      // Speaking uses speakingResponses (audio responses)
+      responses = saved.speakingResponses || speakingResponses || [];
     }
 
     const answered = itemsInPart.filter((item) => {
@@ -1303,61 +1306,38 @@ function beginQuiz(section) {
     timerRemaining = SECTION_TIMES[currentSection];
   }
 
-  if (section.startsWith("WRITING") || section === "WRITING") {
-    const parts = SECTION_PARTS.WRITING;
-    const partKey = section.startsWith("WRITING_T")
-      ? section
-      : parts && parts[0]
-        ? parts[0].key
-        : "WRITING_TASK1";
+  // Universal section initialization
+  const sectionParts = SECTION_PARTS[currentSection];
+  const firstPart = sectionParts && sectionParts[0];
+  const partKey = section.startsWith(currentSection)
+    ? section
+    : firstPart
+      ? firstPart.key || firstPart.partKey
+      : null;
+
+  if (!partKey) {
+    alert("Esta sección aún no tiene contenido.");
+    return;
+  }
+
+  // Determine if this section uses inputType (Writing/Speaking) or MC
+  if (firstPart?.inputType === "textarea") {
     beginWriting(partKey, saved);
-    return;
-  }
-
-  if (section.startsWith("LISTENING") || section === "LISTENING") {
-    const parts = SECTION_PARTS.LISTENING;
-    const partKey = section.startsWith("LISTENING_P")
-      ? section
-      : parts && parts[0]
-        ? parts[0].key
-        : "LISTENING_P1";
-    beginMcPart(partKey, saved);
-    return;
-  }
-
-  if (section.startsWith("READING") || section === "READING_AND_GRAMMAR") {
-    const parts = SECTION_PARTS.READING_AND_GRAMMAR;
-    const partKey = section.startsWith("READING_P")
-      ? section
-      : parts && parts[0]
-        ? parts[0].key
-        : "READING_P1";
-    beginMcPart(partKey, saved);
-    return;
-  }
-
-  if (section.startsWith("SPEAKING") || section === "SPEAKING") {
-    const parts = SECTION_PARTS.SPEAKING;
-    const partKey = section.startsWith("SPEAKING_P")
-      ? section
-      : parts && parts[0]
-        ? parts[0].key
-        : "SPEAKING_P1";
+  } else if (firstPart?.inputType === "audio") {
     beginSpeaking(partKey, saved);
-    return;
+  } else {
+    beginMcPart(partKey, saved);
   }
-
-  alert("Esta sección aún no tiene contenido.");
 }
 
-// Inicia la sección de Writing (universal para textarea inputType)
+// Inicia una sección con inputType textarea (ej: Writing)
 function beginWriting(partKey, saved) {
-  if (
-    !quizData.WRITING ||
-    !quizData.WRITING.groups ||
-    quizData.WRITING.groups.length === 0
-  ) {
-    alert("La sección de Writing aún no tiene contenido.");
+  const sectionData = quizData[currentSection];
+
+  if (!sectionData || !sectionData.groups || sectionData.groups.length === 0) {
+    alert(
+      `La sección de ${SECTION_DISPLAY[currentSection]} aún no tiene contenido.`,
+    );
     return;
   }
 
@@ -1365,20 +1345,18 @@ function beginWriting(partKey, saved) {
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
   if (hasSavedProgress && saved.writingGroupId) {
-    const group = quizData.WRITING.groups.find(
-      (g) => g.id === saved.writingGroupId,
-    );
+    const group = sectionData.groups.find((g) => g.id === saved.writingGroupId);
     if (group) {
       currentGroup = group;
       sectionResponses = saved.writingResponses || [];
       currentItemIndex = saved.itemIndex || 0;
     } else {
-      currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+      currentGroup = shuffleArray([...sectionData.groups])[0];
       sectionResponses = [];
       currentItemIndex = 0;
     }
   } else {
-    currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    currentGroup = shuffleArray([...sectionData.groups])[0];
     sectionResponses = [];
     currentItemIndex = 0;
   }
@@ -1389,16 +1367,16 @@ function beginWriting(partKey, saved) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("INICIO", `WRITING - Grupo: ${currentGroup.id}`);
+  logActivity("INICIO", `${currentSection} - Grupo: ${currentGroup.id}`);
 
-  // Find the item index in SECTION_PARTS.WRITING that matches the partKey
-  const sectionParts = SECTION_PARTS.WRITING;
+  // Find the item index in SECTION_PARTS that matches the partKey
+  const sectionParts = SECTION_PARTS[currentSection];
   const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
   if (itemIndex >= 0) {
     currentItemIndex = itemIndex;
   }
 
-  renderStep("WRITING", currentItemIndex, currentGroup, "textarea");
+  renderStep(currentSection, currentItemIndex, currentGroup, "textarea");
   updatePrevButtonVisibility();
 
   // Update hash using universal format
@@ -1406,7 +1384,7 @@ function beginWriting(partKey, saved) {
   updateHash(partKey, currentItemIndex);
   hashNavigationLocked = false;
 
-  startTimer("WRITING");
+  startTimer(currentSection);
 }
 
 // Universal step renderer for Writing (textarea) and Speaking (audio)
@@ -2061,9 +2039,9 @@ function navigateToNextGroup() {
       if (nextPart) {
         pauseTimer();
         saveProgress();
-        if (currentSection === "WRITING") {
+        if (hasInputType === "textarea") {
           beginWriting(nextPart.partKey);
-        } else {
+        } else if (hasInputType === "audio") {
           beginSpeaking(nextPart.partKey);
         }
         startTimer(currentSection);
@@ -2095,9 +2073,9 @@ function navigateToPrevGroup() {
       if (prevPart) {
         pauseTimer();
         saveProgress();
-        if (currentSection === "WRITING") {
+        if (hasInputType === "textarea") {
           beginWriting(prevPart.partKey);
-        } else {
+        } else if (hasInputType === "audio") {
           beginSpeaking(prevPart.partKey);
         }
         startTimer(currentSection);
@@ -2138,9 +2116,9 @@ function navigateToPrevPart() {
 
   if (hasInputType) {
     // Writing or Speaking
-    if (currentSection === "WRITING") {
+    if (hasInputType === "textarea") {
       beginWriting(prevPart.partKey);
-    } else {
+    } else if (hasInputType === "audio") {
       beginSpeaking(prevPart.partKey);
     }
   } else {
@@ -2434,16 +2412,15 @@ function clearSpeakingDB() {
   });
 }
 
-// Inicia la sección de Speaking
+// Inicia una sección con inputType audio (ej: Speaking)
 function beginSpeaking(partKey, saved = null) {
   stopSpeakingMic();
 
   const config = SECTION_CONFIG[partKey];
   if (!config || !config.partId) return false;
 
-  const partData = quizData.SPEAKING?.parts?.find(
-    (p) => p.id === config.partId,
-  );
+  const sectionData = quizData[currentSection];
+  const partData = sectionData?.parts?.find((p) => p.id === config.partId);
   if (!partData) return false;
 
   speakingPart = partData;
@@ -2452,7 +2429,6 @@ function beginSpeaking(partKey, saved = null) {
   speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
 
   currentPartKey = partKey;
-  currentSection = "SPEAKING";
 
   getElement("category-select").classList.add("hidden");
   getElement("quiz-view").classList.remove("hidden");
@@ -2476,24 +2452,24 @@ function beginSpeaking(partKey, saved = null) {
         }
       });
       // Find correct itemIndex for renderStep
-      const sectionParts = SECTION_PARTS["SPEAKING"];
+      const sectionParts = SECTION_PARTS[currentSection];
       const itemIndex = sectionParts.findIndex(
         (item) => item.partKey === currentPartKey,
       );
       renderStep(
-        "SPEAKING",
+        currentSection,
         itemIndex >= 0 ? itemIndex : 0,
         speakingPart,
         "audio",
       );
     })
     .catch(() => {
-      const sectionParts = SECTION_PARTS["SPEAKING"];
+      const sectionParts = SECTION_PARTS[currentSection];
       const itemIndex = sectionParts.findIndex(
         (item) => item.partKey === currentPartKey,
       );
       renderStep(
-        "SPEAKING",
+        currentSection,
         itemIndex >= 0 ? itemIndex : 0,
         speakingPart,
         "audio",
@@ -2501,7 +2477,7 @@ function beginSpeaking(partKey, saved = null) {
     });
 
   updatePrevButtonVisibility();
-  startTimer("SPEAKING");
+  startTimer(currentSection);
   return true;
 }
 
@@ -2512,15 +2488,8 @@ function beginSpeaking(partKey, saved = null) {
 function goToPreview() {
   sectionPreviewMode = true;
   const sectionParts = SECTION_PARTS[currentSection];
-  renderPreview(
-    currentSection,
-    sectionParts,
-    currentSection === "SPEAKING"
-      ? "audio"
-      : currentSection === "WRITING"
-        ? "textarea"
-        : "mc",
-  );
+  const hasInputType = sectionParts && sectionParts[0]?.inputType;
+  renderPreview(currentSection, sectionParts, hasInputType || "mc");
 }
 
 // Universal preview renderer (unificado)
@@ -2679,11 +2648,13 @@ function showResults() {
       const sectionParts = SECTION_PARTS[sec];
       const total = sectionParts ? sectionParts.length : 0;
 
-      // Get responses from current state or saved
+      // Get responses from the correct source
       let responses = [];
       if (sec === "WRITING") {
+        // Writing uses sectionResponses (saved as writingResponses in progress)
         responses = saved?.writingResponses || sectionResponses || [];
       } else {
+        // Speaking uses speakingResponses
         responses = saved?.speakingResponses || speakingResponses || [];
       }
 
@@ -2797,9 +2768,9 @@ function navigateToNextPart() {
 
   if (hasInputType) {
     // Writing or Speaking
-    if (currentSection === "WRITING") {
+    if (hasInputType === "textarea") {
       beginWriting(nextPart.partKey);
-    } else {
+    } else if (hasInputType === "audio") {
       beginSpeaking(nextPart.partKey);
     }
   } else {
@@ -2833,9 +2804,12 @@ function navigateToPart(partKey) {
   pauseTimer();
   saveProgress();
 
-  if (currentSection === "WRITING") {
+  const sectionParts = SECTION_PARTS[currentSection];
+  const hasInputType = sectionParts && sectionParts[0]?.inputType;
+
+  if (hasInputType === "textarea") {
     beginWriting(partKey);
-  } else if (currentSection === "SPEAKING") {
+  } else if (hasInputType === "audio") {
     beginSpeaking(partKey);
   } else {
     beginMcPart(partKey);
@@ -2868,7 +2842,9 @@ function setupEventListeners() {
   // Next button
   document.getElementById("next-btn")?.addEventListener("click", () => {
     if (sectionPreviewMode) return;
-    if (currentSection === "WRITING" || currentSection === "SPEAKING") {
+    const sectionParts = SECTION_PARTS[currentSection];
+    const hasInputType = sectionParts && sectionParts[0]?.inputType;
+    if (hasInputType) {
       navigateToNextPart();
     } else {
       navigateToNextGroup();
