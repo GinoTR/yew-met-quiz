@@ -773,7 +773,7 @@ const letters = ["A", "B", "C", "D"];
 
 // URL para enviar datos a Google Sheets (En caso de actualizar, está en: línea 523, 709 y 740 y en SETUP.md)
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyVOdDlFpC1SP4AoZt5ipwcgdbMaqo3TSiq5e6EcZLnZ3klrtB3TU8WRuZS5LXlqgTq/exec";
+  "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec";
 
 // Límite de caracteres para Task 1
 const TASK1_CHAR_LIMIT = 750;
@@ -966,7 +966,7 @@ async function logActivity(action, detail = "") {
     if (
       APPS_SCRIPT_URL &&
       APPS_SCRIPT_URL !==
-        "https://script.google.com/macros/s/AKfycbyVOdDlFpC1SP4AoZt5ipwcgdbMaqo3TSiq5e6EcZLnZ3klrtB3TU8WRuZS5LXlqgTq/exec"
+        "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec"
     ) {
       await fetch(APPS_SCRIPT_URL, {
         method: "POST",
