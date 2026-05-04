@@ -21,7 +21,7 @@ const SECTION_CONFIG = {
     time: 30 * 60,
     tasks: 1,
     items: 3,
-    name: "writing-task1",
+    name: "Task 1",
     parentSection: "WRITING",
     partId: 1,
   },
@@ -29,7 +29,7 @@ const SECTION_CONFIG = {
     time: 45 * 60,
     tasks: 1,
     items: 1,
-    name: "writing-task2",
+    name: "Task 2",
     parentSection: "WRITING",
     partId: 2,
   },
@@ -85,7 +85,7 @@ const SECTION_CONFIG = {
     time: 10 * 60,
     parts: 2,
     items: 3,
-    name: "speaking-p1",
+    name: "Part 1",
     parentSection: "SPEAKING",
     partId: 1,
   },
@@ -93,7 +93,7 @@ const SECTION_CONFIG = {
     time: 10 * 60,
     parts: 2,
     items: 2,
-    name: "speaking-p2",
+    name: "Part 2",
     parentSection: "SPEAKING",
     partId: 2,
   },
@@ -1194,7 +1194,11 @@ function renderCategorySelect() {
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === "WRITING")
-    return quizData.WRITING && Object.keys(quizData.WRITING).length > 0;
+    return (
+      quizData.WRITING &&
+      quizData.WRITING.groups &&
+      quizData.WRITING.groups.length > 0
+    );
   if (section === "LISTENING")
     return (
       quizData.LISTENING &&
