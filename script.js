@@ -353,14 +353,14 @@ function parseHash() {
   const parts = hash.split("/").filter((p) => p); // Divide por barras
   if (parts.length < 2) return null; // URL muy corta
 
-  const rawKey = parts[0]; // Primera parte (ej: "writing-task1")
+  const rawKey = parts[0]; // Primera parte (ej: "writing" o "writing-task1")
   const sectionKey = getPartKeyFromHashName(rawKey); // Convierte a clave interna
+  const parentSection = getSectionKey(sectionKey) || sectionKey;
 
-  // Si es vista previa
+  // Si es vista previa - usar nombre de sección (ej: /#/writing/preview)
   if (parts[1] === "preview") {
-    const parentSection = getSectionKey(sectionKey);
     return {
-      section: sectionKey,
+      section: parentSection,
       parentSection,
       taskPart: "preview",
       qStart: null,
@@ -370,11 +370,10 @@ function parseHash() {
     };
   }
 
-  // Si es vista de resultados
+  // Si es vista de resultados - usar nombre de sección (ej: /#/writing/results)
   if (parts[1] === "results") {
-    const parentSection = getSectionKey(sectionKey);
     return {
-      section: sectionKey,
+      section: parentSection,
       parentSection,
       taskPart: "results",
       qStart: null,
@@ -384,40 +383,44 @@ function parseHash() {
     };
   }
 
-  const rangeMatch = parts[1].match(/^q(\d+)(?:-(\d+))?$/);
-  if (rangeMatch) {
-    const qStart = parseInt(rangeMatch[1], 10);
-    const qEnd = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : qStart;
-    const parentSection = getSectionKey(sectionKey);
-    return {
-      section: sectionKey,
-      parentSection,
-      taskPart: null,
-      qStart,
-      qEnd,
-      groupIndex: null,
-      hash,
-    };
+  // Para navegación normal, usar la clave de parte (ej: WRITING_TASK1)
+  const sectionParts = SECTION_PARTS[parentSection];
+  const sectionType = getSectionType(parentSection);
+
+  if (sectionType === "textarea" || sectionType === "audio") {
+    // Writing/Speaking: parse q number from hash
+    const qMatch = parts[1]?.match(/^q(\d+)(?:-(\d+))?$/);
+    if (qMatch) {
+      const qStart = parseInt(qMatch[1], 10);
+      return {
+        section: sectionKey,
+        parentSection,
+        taskPart: null,
+        qStart,
+        qEnd: qMatch[2] ? parseInt(qMatch[2], 10) : qStart,
+        groupIndex: null,
+        hash,
+      };
+    }
+  } else {
+    // MC sections: parse q range from hash
+    const rangeMatch = parts[1]?.match(/^q(\d+)(?:-(\d+))?$/);
+    if (rangeMatch) {
+      const qStart = parseInt(rangeMatch[1], 10);
+      const qEnd = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : qStart;
+      return {
+        section: sectionKey,
+        parentSection,
+        taskPart: null,
+        qStart,
+        qEnd,
+        groupIndex: null,
+        hash,
+      };
+    }
   }
 
-  if (parts.length < 3) return null;
-
-  const taskPart = parts[1];
-  const qPart = parts[2];
-  const qMatch2 = qPart.match(/q(\d+)/);
-  if (!qMatch2) return null;
-
-  const qNum = parseInt(qMatch2[1], 10);
-  const parentSection = getSectionKey(sectionKey);
-  return {
-    section: sectionKey,
-    parentSection,
-    taskPart,
-    qStart: qNum,
-    qEnd: qNum,
-    groupIndex: null,
-    hash,
-  };
+  return null;
 }
 
 // Crea una clave única para guardar cada respuesta
@@ -477,7 +480,7 @@ function loadFromHash() {
     return;
   }
 
-  const { section, taskPart, qStart, qEnd } = parsed;
+  const { section, parentSection, taskPart, qStart, qEnd } = parsed;
 
   if (!section || !SECTION_CONFIG[section]) {
     if (!currentSection) renderCategorySelect();
@@ -489,9 +492,10 @@ function loadFromHash() {
     return;
   }
 
+  // Handle preview and results at section level
   if (taskPart === "preview") {
-    if (currentPartKey !== section) {
-      beginQuiz(section);
+    if (currentSection !== parentSection) {
+      beginQuiz(parentSection);
       setTimeout(() => goToPreview(), 100);
     } else {
       goToPreview();
@@ -500,8 +504,8 @@ function loadFromHash() {
   }
 
   if (taskPart === "results") {
-    if (currentPartKey !== section) {
-      beginQuiz(section);
+    if (currentSection !== parentSection) {
+      beginQuiz(parentSection);
       setTimeout(() => showResults(), 100);
     } else {
       showResults();
@@ -510,9 +514,10 @@ function loadFromHash() {
   }
 
   // Universal logic: handle navigation based on SECTION_PARTS
-  const sectionKey = getSectionKey(section);
+  const sectionKey = parentSection || getSectionKey(section);
   const sectionParts = SECTION_PARTS[sectionKey];
   const sectionType = getSectionType(section);
+
   if (sectionParts && sectionKey) {
     if (qStart !== null) {
       // Find the item in SECTION_PARTS that matches this question number
@@ -536,6 +541,7 @@ function loadFromHash() {
     }
   }
 
+  // For MC sections with question groups
   if (
     currentPartKey === section &&
     qStart !== null &&
@@ -552,6 +558,7 @@ function loadFromHash() {
     return;
   }
 
+  // Navigate to different part
   if (
     sectionKey &&
     currentSection === sectionKey &&
@@ -1047,7 +1054,27 @@ function updateSectionProgress() {
           `${partLabel}: Task ${item.itemNum}/${item.totalInPart}`;
       }
 
-      const percent = ((currentItemIndex + 1) / sectionParts.length) * 100;
+      // Calculate progress based on saved responses
+      const saved = loadProgress();
+      let responses = [];
+      if (sectionType === "textarea") {
+        responses = saved?.writingResponses || sectionResponses || [];
+      } else if (sectionType === "audio") {
+        responses = saved?.speakingResponses || speakingResponses || [];
+      }
+
+      const answered = sectionParts.filter((itm) => {
+        const response = responses[itm.itemNum - 1];
+        if (!response) return false;
+        if (itm.inputType === "textarea") {
+          return typeof response === "string" && response.length > 0;
+        } else if (itm.inputType === "audio") {
+          return response !== null && response !== undefined;
+        }
+        return false;
+      }).length;
+
+      const percent = sectionParts.length > 0 ? (answered / sectionParts.length) * 100 : 0;
       getElement("progress-bar").style.width = percent + "%";
     }
     return;
