@@ -1915,6 +1915,10 @@ function renderGroupQuestions(grp) {
   });
 
   html += "</div>";
+  html += '<div class="preview-submit-container">';
+  html +=
+    '<button id="preview-confirm-btn" class="btn-submit-review">Confirmar</button>';
+  html += "</div>";
 
   getElement("options-container").innerHTML = html;
 
@@ -2520,8 +2524,8 @@ function beginSpeaking(partKey, saved = null) {
 function goToPreview() {
   sectionPreviewMode = true;
   const sectionParts = SECTION_PARTS[currentSection];
-  const hasInputType = sectionParts && sectionParts[0]?.inputType;
-  renderPreview(currentSection, sectionParts, hasInputType || "mc");
+  const sectionType = getSectionType(currentPartKey);
+  renderPreview(currentSection, sectionParts, sectionType || "mc");
 }
 
 // Universal preview renderer (unificado)
@@ -2560,7 +2564,9 @@ function renderPreview(section, items, inputType) {
       html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
       if (item.isEssay) {
         const group = currentGroup;
-        html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
+        if (group && group.task2) {
+          html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
+        }
       }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
       html += hasResponse
@@ -2600,7 +2606,7 @@ function renderPreview(section, items, inputType) {
     '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
   html += "</div>";
 
-  getElement("options-container").innerHTML = html;
+  container.innerHTML = html;
 
   const confirmBtn = getElement("preview-confirm-btn");
   if (confirmBtn) {
