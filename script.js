@@ -2545,8 +2545,9 @@ function beginSpeaking(partKey, saved = null) {
 function goToPreview() {
   sectionPreviewMode = true;
   const sectionParts = SECTION_PARTS[currentSection];
-  const sectionType = getSectionType(currentPartKey);
-  renderPreview(currentSection, sectionParts, sectionType || "mc");
+  if (!sectionParts) return;
+  const sectionType = getSectionType(currentPartKey) || "mc";
+  renderPreview(currentSection, sectionParts, sectionType);
 }
 
 // Universal preview renderer (unificado)
@@ -2577,16 +2578,29 @@ function renderPreview(section, items, inputType) {
   const saved = loadProgress();
 
   if (inputType === "textarea") {
-    // Writing preview
-    items.forEach((item, idx) => {
-      const response = sectionResponses[item.itemNum - 1];
-      const hasResponse = response && response.length > 0;
+    // Writing preview - use localStorage as primary source
+    const responses = saved?.writingResponses || sectionResponses || [];
+    items.forEach((item) => {
+      const response = responses[item.itemNum - 1] || "";
+      const hasResponse = typeof response === "string" && response.length > 0;
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
       if (item.isEssay) {
-        const group = currentGroup;
-        if (group && group.part2) {
-          html += `<div class="preview-question"><strong>Topic:</strong> ${group.part2.topic}</div>`;
+        const sectionData = quizData[section];
+        const partData = sectionData?.parts?.find((p) => p.id === 2);
+        if (partData?.part2) {
+          html += `<div class="preview-question"><strong>Topic:</strong> ${partData.part2.topic}</div>`;
+        }
+      } else {
+        const sectionData = quizData[section];
+        const partData = sectionData?.parts?.find((p) => p.id === 1);
+        if (partData?.part1) {
+          const taskData = partData.part1.find(
+            (t) => t.number === item.itemNum,
+          );
+          if (taskData) {
+            html += `<div class="preview-question">${taskData.text}</div>`;
+          }
         }
       }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
@@ -2596,12 +2610,21 @@ function renderPreview(section, items, inputType) {
       html += "</div></div>";
     });
   } else if (inputType === "audio") {
-    // Speaking preview
-    items.forEach((item, idx) => {
-      const response = speakingResponses[item.itemNum - 1];
+    // Speaking preview - use localStorage as primary source
+    const responses = saved?.speakingResponses || speakingResponses || [];
+    items.forEach((item) => {
+      const response = responses[item.itemNum - 1];
       const hasResponse = response && response.blob;
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
+      const sectionData = quizData[section];
+      const partData =
+        sectionData?.parts?.find((p) => p.id === item.partId) ||
+        (sectionData?.parts && sectionData.parts[0]);
+      const task = partData?.tasks && partData.tasks[item.itemNum - 1];
+      if (task) {
+        html += `<div class="preview-question">${task.prompt}</div>`;
+      }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
       if (hasResponse) {
         html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
@@ -2611,12 +2634,47 @@ function renderPreview(section, items, inputType) {
       html += "</div></div>";
     });
   } else {
-    // MC sections
-    items.forEach((part) => {
-      const partProgress = getPartProgress(part.partKey, saved);
+    // MC sections - show individual questions with status
+    const sectionParts = SECTION_PARTS[section];
+    sectionParts.forEach((part) => {
+      const partData = getPartDataFromSection(part.partKey, section);
+      if (!partData) return;
+
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${part.name}</div>`;
-      html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
+
+      const questions = extractQuestionsFromPart(partData);
+
+      questions.forEach((q, idx) => {
+        const globalNum = idx + 1;
+        const progressKey = getProgressKeyForPreview(part.partKey, globalNum);
+        const userAnswer = saved?.answers?.[progressKey];
+        const correctLetter = letters[q.correct] || "";
+        const isCorrect = userAnswer === correctLetter;
+        const isAnswered = userAnswer !== null && userAnswer !== undefined;
+
+        let statusClass = "unanswered";
+        let statusText = "Skipped";
+        if (isAnswered) {
+          if (isCorrect) {
+            statusClass = "correct";
+            statusText = "Correct";
+          } else {
+            statusClass = "incorrect";
+            statusText = "Wrong";
+          }
+        }
+
+        html += '<div class="preview-question">';
+        html += `<div class="preview-q-num">Q${globalNum}</div>`;
+        html += `<div class="preview-q-text">${q.question}</div>`;
+        html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+        if (isAnswered && !isCorrect) {
+          html += ` — Your answer: ${userAnswer || "?"}, Correct: ${correctLetter}`;
+        }
+        html += "</div></div>";
+      });
+
       html += "</div>";
     });
   }
@@ -2637,9 +2695,46 @@ function renderPreview(section, items, inputType) {
   updatePrevButtonVisibility();
 }
 
+// Helper: get part data from section for preview
+function getPartDataFromSection(partKey, section) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return null;
+  const sectionData = quizData[section];
+  if (!sectionData?.parts) return null;
+  return sectionData.parts.find((p) => p.id === config.partId);
+}
+
+// Helper: extract questions from part data (handles questions, audioGroups, readingGroups)
+function extractQuestionsFromPart(partData) {
+  const questions = [];
+  if (partData.questions) {
+    questions.push(...partData.questions);
+  } else if (partData.audioGroups) {
+    partData.audioGroups.forEach((group) => {
+      questions.push(...group.questions);
+    });
+  } else if (partData.readingGroups) {
+    partData.readingGroups.forEach((group) => {
+      questions.push(...group.questions);
+    });
+  }
+  return questions;
+}
+
+// Helper: get progress key for preview (uses part config name)
+function getProgressKeyForPreview(partKey, qNum) {
+  const config = SECTION_CONFIG[partKey];
+  if (config) {
+    return `${config.name}_q${qNum.toString().padStart(2, "0")}`;
+  }
+  return `${partKey.toLowerCase()}_q${qNum.toString().padStart(2, "0")}`;
+}
+
 // Play speaking preview audio
 function playSpeakingPreview(taskIndex) {
-  const response = speakingResponses[taskIndex];
+  const saved = loadProgress();
+  const responses = saved?.speakingResponses || speakingResponses || [];
+  const response = responses[taskIndex];
   if (response && response.blob) {
     const audio = new Audio(URL.createObjectURL(response.blob));
     audio.play();
