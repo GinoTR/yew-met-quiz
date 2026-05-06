@@ -987,11 +987,9 @@ function showRegistrationModal() {
   modal.classList.remove("hidden");
   const nameInput = getElement("nombre");
   const emailInput = getElement("email");
-  if (nameInput) {
-    nameInput.value = "";
+  if (nameInput && !nameInput.value) {
     nameInput.focus();
   }
-  if (emailInput) emailInput.value = "";
 }
 
 // Oculta la ventana de registro
@@ -3148,6 +3146,7 @@ function setupEventListeners() {
       }
       const user = { name: nombre, email: email };
       saveUser(user);
+      hideRegistrationModal();
 
       // Send updated user data to Google Sheets
       if (
@@ -3159,17 +3158,23 @@ function setupEventListeners() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            nombre: name,
+            nombre: nombre,
             email: email,
             categoria: "",
-            accion: "CHANGE_USER",
-            detalle: "User changed",
+            accion: "REGISTER_USER",
+            detalle: "New user registered",
           }),
         }).catch(() => null);
       }
-
-      hideChangeUserModal();
     });
+
+  // Registration modal cancel button
+  document.getElementById("reg-cancel")?.addEventListener("click", () => {
+    hideRegistrationModal();
+    if (!currentUser) {
+      renderCategorySelect();
+    }
+  });
 
   // User name click to change user
   document.getElementById("user-name")?.addEventListener("click", () => {
