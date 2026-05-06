@@ -1477,41 +1477,7 @@ function beginWriting(partKey, saved = null) {
   updateHash(partKey, currentItemIndex);
   hashNavigationLocked = false;
 
-  startTimer(currentSection);
-}
-
-  currentPartKey = partKey;
-  const hasSavedProgress = saved && saved.currentPartKey === partKey;
-
-  // Find the item index in SECTION_PARTS that matches the partKey
-  const sectionParts = SECTION_PARTS[currentSection];
-  const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
-  currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
-
-  // Load saved responses if available
-  if (hasSavedProgress) {
-    sectionResponses = saved.writingResponses || [];
-  } else {
-    sectionResponses = [];
-  }
-  currentPreviewIndex = 0;
-
-  getElement("category-select").classList.add("hidden");
-  getElement("quiz-view").classList.remove("hidden");
-  getElement("results-container").classList.add("hidden");
-
-  setupInstructionsPanel();
-  logActivity("START", `${currentSection} - ${partKey}`);
-
-  renderStep(currentSection, currentItemIndex, sectionData, "textarea");
-  updatePrevButtonVisibility();
-
-  // Update hash using universal format
-  hashNavigationLocked = true;
-  updateHash(partKey, currentItemIndex);
-  hashNavigationLocked = false;
-
-  startTimer(currentSection);
+   startTimer(currentSection);
 }
 
 // Universal step renderer for Writing (textarea) and Speaking (audio)
