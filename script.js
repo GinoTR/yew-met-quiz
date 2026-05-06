@@ -1160,6 +1160,10 @@ function renderCategorySelect() {
   getElement("results-container").classList.add("hidden");
   getElement("category-select").classList.remove("hidden");
 
+  // Hide preview container
+  const previewContainer = getElement("preview-container");
+  if (previewContainer) previewContainer.classList.add("hidden");
+
   const container = getElement("category-buttons");
   container.innerHTML = "";
 
@@ -1335,9 +1339,20 @@ function startFromSection(section) {
 // Comienza el quiz para una sección
 function beginQuiz(section) {
   const saved = loadProgress();
-  const config = SECTION_CONFIG[section];
 
   sectionPreviewMode = false;
+  currentPreviewIndex = 0;
+
+  // Hide preview container, show quiz container
+  const previewContainer = getElement("preview-container");
+  if (previewContainer) previewContainer.classList.add("hidden");
+  const quizContainer = getElement("quiz-container");
+  if (quizContainer) quizContainer.classList.remove("hidden");
+  const progressRow = getElement("progress-row");
+  if (progressRow) progressRow.classList.remove("hidden");
+  const controls = getElement("controls");
+  if (controls) controls.classList.remove("hidden");
+
   currentPartKey = section;
   currentSection = getSectionKey(section) || section;
   currentPartQuestionIndex = 0;
@@ -2544,25 +2559,21 @@ function beginSpeaking(partKey, saved = null) {
 // Navigate to preview using universal renderPreview
 function goToPreview() {
   sectionPreviewMode = true;
+  currentPreviewIndex = 0;
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return;
   const sectionType = getSectionType(currentPartKey) || "mc";
   renderPreview(currentSection, sectionParts, sectionType);
 }
 
-// Universal preview renderer (unificado)
+// Universal preview renderer (unificado) - builds carousel slides
 function renderPreview(section, items, inputType) {
-  const container = getElement("quiz-container");
-  container.innerHTML = "";
-  container.classList.remove("fade-out");
-  void container.offsetWidth;
-  container.classList.add("fade-out");
-  setTimeout(() => {
-    container.classList.remove("fade-out");
-    container.style.animation = "none";
-    void container.offsetWidth;
-    container.style.animation = "fadeIn 0.5s ease";
-  }, 300);
+  // Hide quiz container, show preview container
+  const quizContainer = getElement("quiz-container");
+  const previewContainer = getElement("preview-container");
+
+  quizContainer.classList.add("hidden");
+  previewContainer.classList.remove("hidden");
 
   getElement("question-text").classList.add("hidden");
   getElement("options-container").innerHTML = "";
@@ -2571,20 +2582,49 @@ function renderPreview(section, items, inputType) {
   getElement("transcription-text").classList.add("hidden");
   getElement("reading-text").classList.add("hidden");
   getElement("feedback-container").classList.add("hidden");
+  getElement("controls").classList.add("hidden");
 
-  let html = '<div class="preview-scroll-container">';
-  html += `<h3>Preview - ${SECTION_DISPLAY[section] || section}</h3>`;
+  // Hide header elements in preview
+  const progressRow = getElement("progress-row");
+  if (progressRow) progressRow.classList.add("hidden");
 
+  // Build all carousel slides
+  const track = getElement("preview-track");
+  track.innerHTML = "";
+
+  const slides = buildPreviewSlides(section, items, inputType);
+  slides.forEach((slideHTML, idx) => {
+    const slide = document.createElement("div");
+    slide.className =
+      "carousel-slide" + (idx === currentPreviewIndex ? " active" : "");
+    slide.innerHTML = slideHTML;
+    track.appendChild(slide);
+  });
+
+  // Update header title
+  const header = previewContainer.querySelector("h3");
+  if (header) {
+    header.textContent = `Preview - ${SECTION_DISPLAY[section] || section}`;
+  }
+
+  updateCarouselNav();
+  updatePrevButtonVisibility();
+}
+
+// Build slide HTML for each preview item
+function buildPreviewSlides(section, items, inputType) {
   const saved = loadProgress();
+  const slides = [];
 
   if (inputType === "textarea") {
-    // Writing preview - use localStorage as primary source
+    // Writing preview
     const responses = saved?.writingResponses || sectionResponses || [];
     items.forEach((item) => {
       const response = responses[item.itemNum - 1] || "";
       const hasResponse = typeof response === "string" && response.length > 0;
-      html += '<div class="preview-slide">';
-      html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
+
+      let html = '<div class="preview-card">';
+      html += `<div class="preview-card-header">${item.partLabel} - Question ${item.itemNum}</div>`;
       if (item.isEssay) {
         const sectionData = quizData[section];
         const partData = sectionData?.parts?.find((p) => p.id === 2);
@@ -2605,18 +2645,20 @@ function renderPreview(section, items, inputType) {
       }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
       html += hasResponse
-        ? response.substring(0, 200) + (response.length > 200 ? "..." : "")
+        ? response.substring(0, 300) + (response.length > 300 ? "..." : "")
         : "Not answered";
       html += "</div></div>";
+      slides.push(html);
     });
   } else if (inputType === "audio") {
-    // Speaking preview - use localStorage as primary source
+    // Speaking preview
     const responses = saved?.speakingResponses || speakingResponses || [];
     items.forEach((item) => {
       const response = responses[item.itemNum - 1];
       const hasResponse = response && response.blob;
-      html += '<div class="preview-slide">';
-      html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
+
+      let html = '<div class="preview-card">';
+      html += `<div class="preview-card-header">${item.partLabel} - Task ${item.itemNum}</div>`;
       const sectionData = quizData[section];
       const partData =
         sectionData?.parts?.find((p) => p.id === item.partId) ||
@@ -2632,18 +2674,19 @@ function renderPreview(section, items, inputType) {
         html += "Not answered";
       }
       html += "</div></div>";
+      slides.push(html);
     });
   } else {
-    // MC sections - show individual questions with status
+    // MC sections - one slide per part
     const sectionParts = SECTION_PARTS[section];
     sectionParts.forEach((part) => {
       const partData = getPartDataFromSection(part.partKey, section);
       if (!partData) return;
 
-      html += '<div class="preview-slide">';
-      html += `<div class="preview-slide-header">${part.name}</div>`;
-
       const questions = extractQuestionsFromPart(partData);
+
+      let html = '<div class="preview-card">';
+      html += `<div class="preview-card-header">${part.name}</div>`;
 
       questions.forEach((q, idx) => {
         const globalNum = idx + 1;
@@ -2676,23 +2719,49 @@ function renderPreview(section, items, inputType) {
       });
 
       html += "</div>";
+      slides.push(html);
     });
   }
 
-  html += "</div>";
-  html += '<div class="preview-submit-container">';
-  html +=
-    '<button id="preview-confirm-btn" class="btn-submit-preview">Submit section</button>';
-  html += "</div>";
+  return slides;
+}
 
-  container.innerHTML = html;
+// Update carousel navigation buttons and indicator
+function updateCarouselNav() {
+  const prevBtn = getElement("preview-prev");
+  const nextBtn = getElement("preview-next");
+  const indicator = getElement("preview-indicator");
 
-  const confirmBtn = getElement("preview-confirm-btn");
-  if (confirmBtn) {
-    confirmBtn.onclick = () => showResults();
+  const track = getElement("preview-track");
+  const totalSlides = track.querySelectorAll(".carousel-slide").length;
+
+  if (prevBtn) {
+    prevBtn.disabled = currentPreviewIndex === 0;
+    prevBtn.onclick = () => navigateCarousel(-1);
   }
+  if (nextBtn) {
+    nextBtn.disabled = currentPreviewIndex >= totalSlides - 1;
+    nextBtn.onclick = () => navigateCarousel(1);
+  }
+  if (indicator) {
+    indicator.textContent = `${currentPreviewIndex + 1} / ${totalSlides}`;
+  }
+}
 
-  updatePrevButtonVisibility();
+// Navigate carousel by direction (-1 or +1)
+function navigateCarousel(direction) {
+  const track = getElement("preview-track");
+  const slides = track.querySelectorAll(".carousel-slide");
+  const totalSlides = slides.length;
+  const newIndex = currentPreviewIndex + direction;
+
+  if (newIndex < 0 || newIndex >= totalSlides) return;
+
+  slides[currentPreviewIndex].classList.remove("active");
+  currentPreviewIndex = newIndex;
+  slides[currentPreviewIndex].classList.add("active");
+
+  updateCarouselNav();
 }
 
 // Helper: get part data from section for preview
@@ -2743,6 +2812,24 @@ function playSpeakingPreview(taskIndex) {
 
 // Show final results (unificado)
 function showResults() {
+  sectionPreviewMode = false;
+
+  // Hide preview container
+  const previewContainer = getElement("preview-container");
+  if (previewContainer) previewContainer.classList.add("hidden");
+
+  // Restore quiz container visibility
+  const quizContainer = getElement("quiz-container");
+  if (quizContainer) quizContainer.classList.remove("hidden");
+
+  // Restore progress row
+  const progressRow = getElement("progress-row");
+  if (progressRow) progressRow.classList.remove("hidden");
+
+  // Restore controls
+  const controls = getElement("controls");
+  if (controls) controls.classList.remove("hidden");
+
   getElement("quiz-view").classList.add("hidden");
   getElement("results-container").classList.remove("hidden");
   getElement("category-select").classList.add("hidden");
@@ -3019,6 +3106,21 @@ function setupEventListeners() {
   document.getElementById("check-btn")?.addEventListener("click", () => {
     checkCurrentGroup();
   });
+
+  // Preview carousel navigation
+  document.getElementById("preview-prev")?.addEventListener("click", () => {
+    navigateCarousel(-1);
+  });
+  document.getElementById("preview-next")?.addEventListener("click", () => {
+    navigateCarousel(1);
+  });
+
+  // Preview confirm button
+  document
+    .getElementById("preview-confirm-btn")
+    ?.addEventListener("click", () => {
+      showResults();
+    });
 
   // No need for submit-section-btn anymore - preview uses preview-confirm-btn
 

@@ -1742,32 +1742,82 @@ h1 {
   box-shadow: none;
 }
 
-/* Preview Scroll Styles */
-.preview-scroll-container {
-  max-height: 65vh;
-  overflow-y: auto;
+/* Preview Container & Carousel */
+.preview-container {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 8px 0;
+}
+
+.preview-container h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* Carousel layout */
+.preview-container.carousel {
+  position: relative;
+}
+
+.carousel-track {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.carousel-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateX(30px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+}
+
+.carousel-slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+  position: relative;
+}
+
+/* Carousel navigation controls */
+.carousel-controls {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-right: 6px;
-  scroll-behavior: smooth;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  gap: 8px;
 }
 
-.preview-scroll-container::-webkit-scrollbar {
-  width: 6px;
+.carousel-btn {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
-.preview-scroll-container::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 3px;
+.carousel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.preview-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
+.carousel-indicator {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
-.preview-slide {
+/* Carousel item cards */
+.carousel-slide .preview-card {
   background: var(--bg-card);
   border-radius: 10px;
   padding: 16px;
@@ -1775,7 +1825,7 @@ h1 {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-.preview-slide-header {
+.carousel-slide .preview-card-header {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--color-primary);
@@ -1786,16 +1836,17 @@ h1 {
   border-bottom: 2px solid var(--border-color);
 }
 
-.preview-question {
+/* Question/prompt inside carousel slide */
+.carousel-slide .preview-question {
   margin-bottom: 10px;
   padding: 8px 0;
 }
 
-.preview-question:last-child {
+.carousel-slide .preview-question:last-child {
   margin-bottom: 0;
 }
 
-.preview-q-num {
+.carousel-slide .preview-q-num {
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 700;
@@ -1803,13 +1854,14 @@ h1 {
   margin-right: 4px;
 }
 
-.preview-q-text {
+.carousel-slide .preview-q-text {
   font-size: 0.85rem;
   color: var(--text-primary);
   line-height: 1.4;
   margin-bottom: 4px;
 }
 
+/* Answer status styles */
 .preview-q-answer {
   font-size: 0.8rem;
   font-style: italic;
@@ -1830,11 +1882,12 @@ h1 {
 .preview-q-answer.incorrect {
   color: var(--color-danger);
   font-weight: 600;
-  font-style: normal;
+  font-style: italic;
 }
 
 .preview-q-answer.unanswered {
-  color: var(--color-danger);
+  color: var(--text-muted);
+  font-style: normal;
 }
 
 .btn-preview-playback {
@@ -2244,5 +2297,36 @@ h1 {
       width: 160px;
       height: 32px;
     }
+  }
+}
+
+/* Carousel responsive */
+@media (max-width: 600px) {
+  .carousel-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .carousel-btn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+
+  .carousel-indicator {
+    font-size: 0.8rem;
+    order: -1;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .preview-container.carousel {
+    max-width: 100%;
+    padding: 4px 0;
+  }
+
+  .carousel-slide .preview-card {
+    padding: 12px;
   }
 }

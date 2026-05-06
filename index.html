@@ -231,8 +231,22 @@
         <div id="feedback-container" class="hidden"></div>
         </div>
 
-        <!-- Controles de navegación del quiz -->
-        <div id="controls">
+      <!-- Contenedor dedicado al preview con navegación carrusel -->
+      <div id="preview-container" class="preview-container carousel hidden">
+        <h3>Preview</h3>
+        <div class="carousel-track" id="preview-track"></div>
+        <div class="carousel-controls">
+          <button id="preview-prev" class="btn btn-secondary carousel-btn">← Previous</button>
+          <div class="carousel-indicator" id="preview-indicator">1 / 1</div>
+          <button id="preview-next" class="btn btn-secondary carousel-btn">Next →</button>
+        </div>
+        <div class="preview-submit-container">
+          <button id="preview-confirm-btn" class="btn-submit-preview">Submit section</button>
+        </div>
+      </div>
+
+      <!-- Controles de navegación del quiz -->
+      <div id="controls">
           <!-- Fila principal: Anterior, Siguiente, COMPROBAR, Confirmar, Skip -->
           <div class="controls-row controls-row-main">
             <!-- Botón para ir a la pregunta anterior -->
