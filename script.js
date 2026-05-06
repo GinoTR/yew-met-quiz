@@ -17,10 +17,25 @@ const SECTION_CONFIG = {
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: "reading" },
   SPEAKING: { time: 20 * 60, parts: 2, items: 5, name: "speaking" },
   // Configuración de cada parte individual (Part 1, Part 2, etc.)
-  WRITING_P1: { key: "WRITING_P1", time: 30 * 60, parts: 1, questions: 3, items: 3, name: "writing-p1", parentSection: "WRITING", partId: 1 },
-  WRITING_P2: { key: "WRITING_P2", time: 15 * 60, parts: 1, questions: 1, items: 1, name: "writing-p2", parentSection: "WRITING", partId: 2 },
+  WRITING_P1: {
+    time: 30 * 60,
+    parts: 1,
+    questions: 3,
+    items: 3,
+    name: "writing-p1",
+    parentSection: "WRITING",
+    partId: 1,
+  },
+  WRITING_P2: {
+    time: 15 * 60,
+    parts: 1,
+    questions: 1,
+    items: 1,
+    name: "writing-p2",
+    parentSection: "WRITING",
+    partId: 2,
+  },
   LISTENING_P1: {
-    key: "LISTENING_P1",
     time: 35 * 60,
     parts: 3,
     items: 19,
@@ -29,7 +44,6 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   LISTENING_P2: {
-    key: "LISTENING_P2",
     time: 35 * 60,
     parts: 3,
     items: 14,
@@ -38,7 +52,6 @@ const SECTION_CONFIG = {
     partId: 2,
   },
   LISTENING_P3: {
-    key: "LISTENING_P3",
     time: 35 * 60,
     parts: 3,
     items: 17,
@@ -47,7 +60,6 @@ const SECTION_CONFIG = {
     partId: 3,
   },
   READING_P1: {
-    key: "READING_P1",
     time: 65 * 60,
     parts: 3,
     items: 20,
@@ -56,7 +68,6 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   READING_P2: {
-    key: "READING_P2",
     time: 65 * 60,
     parts: 3,
     items: 11,
@@ -65,7 +76,6 @@ const SECTION_CONFIG = {
     partId: 2,
   },
   READING_P3: {
-    key: "READING_P3",
     time: 65 * 60,
     parts: 3,
     items: 20,
@@ -73,8 +83,24 @@ const SECTION_CONFIG = {
     parentSection: "READING_AND_GRAMMAR",
     partId: 3,
   },
-  SPEAKING_P1: { key: "SPEAKING_P1", time: 10 * 60, parts: 1, tasks: 3, items: 3, name: "speaking-p1", parentSection: "SPEAKING", partId: 1 },
-  SPEAKING_P2: { key: "SPEAKING_P2", time: 10 * 60, parts: 1, tasks: 2, items: 2, name: "speaking-p2", parentSection: "SPEAKING", partId: 2 },
+  SPEAKING_P1: {
+    time: 10 * 60,
+    parts: 1,
+    tasks: 3,
+    items: 3,
+    name: "speaking-p1",
+    parentSection: "SPEAKING",
+    partId: 1,
+  },
+  SPEAKING_P2: {
+    time: 10 * 60,
+    parts: 1,
+    tasks: 2,
+    items: 2,
+    name: "speaking-p2",
+    parentSection: "SPEAKING",
+    partId: 2,
+  },
 };
 
 // Convierte nombre de sección (escrito) a clave interna (en inglés)
@@ -217,15 +243,15 @@ const SECTION_PARTS = {
   ],
   // Listening tiene 3 partes
   LISTENING: [
-    { key: "LISTENING_P1", name: "Part 1", time: 35 * 60, partId: 1 },
-    { key: "LISTENING_P2", name: "Part 2", time: 35 * 60, partId: 2 },
-    { key: "LISTENING_P3", name: "Part 3", time: 35 * 60, partId: 3 },
+    { partKey: "LISTENING_P1", name: "Part 1", time: 35 * 60, partId: 1 },
+    { partKey: "LISTENING_P2", name: "Part 2", time: 35 * 60, partId: 2 },
+    { partKey: "LISTENING_P3", name: "Part 3", time: 35 * 60, partId: 3 },
   ],
   // Reading & Grammar tiene 3 partes
   READING_AND_GRAMMAR: [
-    { key: "READING_P1", name: "Part 1", time: 65 * 60, partId: 1 },
-    { key: "READING_P2", name: "Part 2", time: 65 * 60, partId: 2 },
-    { key: "READING_P3", name: "Part 3", time: 65 * 60, partId: 3 },
+    { partKey: "READING_P1", name: "Part 1", time: 65 * 60, partId: 1 },
+    { partKey: "READING_P2", name: "Part 2", time: 65 * 60, partId: 2 },
+    { partKey: "READING_P3", name: "Part 3", time: 65 * 60, partId: 3 },
   ],
   // Speaking tiene 2 partes, 5 tareas total (3 en Part 1, 2 en Part 2)
   SPEAKING: [
@@ -287,7 +313,21 @@ function formatHash(partKey, groupIndex) {
   // Todas las secciones usan "part" (part1, part2, etc.)
   const partName = `part${partNum}`;
 
-  // Si hay grupos, añade el rango de preguntas (ej: q01-03)
+  const sectionType = getSectionType(partKey);
+
+  // Para Writing y Speaking (textarea/audio), usar itemIndex para q number
+  if (sectionType === "textarea" || sectionType === "audio") {
+    const sectionParts = SECTION_PARTS[getSectionKey(partKey)];
+    if (sectionParts && sectionParts[groupIndex]) {
+      const item = sectionParts[groupIndex];
+      const qNum = item.itemNum;
+      const qStr = qNum.toString().padStart(2, "0");
+      return `#/${sectionName}-${partName}/q${qStr}`;
+    }
+    return `#/${sectionName}-${partName}/q01`;
+  }
+
+  // Para MC sections, usar questionGroups
   if (questionGroups && questionGroups[groupIndex]) {
     const group = questionGroups[groupIndex];
     const { start, end } = group.questionRange;
@@ -1128,26 +1168,26 @@ function renderCategorySelect() {
       key: "WRITING",
       name: "Writing",
       description: "Part 1 (3 questions) and Part 2 (essay of 250 words)",
-      parts: [SECTION_CONFIG.WRITING_P1, SECTION_CONFIG.WRITING_P2],
+      parts: ["WRITING_P1", "WRITING_P2"],
     },
     {
       key: "LISTENING",
       name: "Listening",
       description: "Parts 1-3, 50 questions total.",
-      parts: SECTION_PARTS.LISTENING,
+      parts: ["LISTENING_P1", "LISTENING_P2", "LISTENING_P3"],
     },
     {
       key: "READING_AND_GRAMMAR",
       name: "Reading & Grammar",
       description: "Parts 1-3, 51 questions total.",
-      parts: SECTION_PARTS.READING_AND_GRAMMAR,
+      parts: ["READING_P1", "READING_P2", "READING_P3"],
     },
     {
       key: "SPEAKING",
       name: "Speaking",
       description:
         "Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.",
-      parts: [SECTION_CONFIG.SPEAKING_P1, SECTION_CONFIG.SPEAKING_P2],
+      parts: ["SPEAKING_P1", "SPEAKING_P2"],
     },
   ];
 
@@ -1168,8 +1208,8 @@ function renderCategorySelect() {
     const partsContainer = document.createElement("div");
     partsContainer.className = "home-card-parts";
 
-    sec.parts.forEach((part) => {
-      const partKey = part.key;
+    sec.parts.forEach((partKey) => {
+      const partConfig = SECTION_CONFIG[partKey];
       const hasContent = hasSectionContent(partKey);
       const saved = loadProgress();
       const partProgress = getPartProgress(partKey, saved);
@@ -1181,7 +1221,7 @@ function renderCategorySelect() {
 
       const partTitle = document.createElement("div");
       partTitle.className = "home-card-part-title";
-      partTitle.textContent = getPartLabel(partKey) || part.name || part.partLabel;
+      partTitle.textContent = getPartLabel(partKey) || partConfig?.name || "";
       partBtn.appendChild(partTitle);
 
       if (!hasContent) {
@@ -1335,7 +1375,7 @@ function beginQuiz(section) {
   const partKey = section.startsWith(currentSection)
     ? section
     : firstPart
-      ? firstPart.key || firstPart.partKey
+      ? firstPart.partKey
       : null;
 
   if (!partKey) {
@@ -1366,21 +1406,16 @@ function beginWriting(partKey, saved) {
   currentPartKey = partKey;
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
-  if (hasSavedProgress && saved.writingGroupId) {
-    const group = sectionData.parts.find((g) => g.id === saved.writingGroupId);
-    if (group) {
-      currentGroup = group;
-      sectionResponses = saved.writingResponses || [];
-      currentItemIndex = saved.itemIndex || 0;
-    } else {
-      currentGroup = shuffleArray([...sectionData.parts])[0];
-      sectionResponses = [];
-      currentItemIndex = 0;
-    }
+  // Find the item index in SECTION_PARTS that matches the partKey
+  const sectionParts = SECTION_PARTS[currentSection];
+  const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
+  currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
+
+  // Load saved responses if available
+  if (hasSavedProgress) {
+    sectionResponses = saved.writingResponses || [];
   } else {
-    currentGroup = shuffleArray([...sectionData.parts])[0];
     sectionResponses = [];
-    currentItemIndex = 0;
   }
   currentPreviewIndex = 0;
 
@@ -1389,16 +1424,9 @@ function beginWriting(partKey, saved) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("START", `${currentSection} - Group: ${currentGroup.id}`);
+  logActivity("START", `${currentSection} - ${partKey}`);
 
-  // Find the item index in SECTION_PARTS that matches the partKey
-  const sectionParts = SECTION_PARTS[currentSection];
-  const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
-  if (itemIndex >= 0) {
-    currentItemIndex = itemIndex;
-  }
-
-  renderStep(currentSection, currentItemIndex, currentGroup, "textarea");
+  renderStep(currentSection, currentItemIndex, sectionData, "textarea");
   updatePrevButtonVisibility();
 
   // Update hash using universal format
@@ -2191,7 +2219,7 @@ function getNextPartName() {
     }
   } else {
     // For MC sections (uses currentPartKey)
-    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+    const currentPart = sectionParts.find((p) => p.partKey === currentPartKey);
     if (!currentPart) return null;
 
     const currentIndex = sectionParts.indexOf(currentPart);
@@ -2446,12 +2474,10 @@ function beginSpeaking(partKey, saved = null) {
   if (!config || !config.partId) return false;
 
   const sectionData = quizData[currentSection];
-  const partData = sectionData?.parts?.find((p) => p.id === config.partId);
-  if (!partData) return false;
+  if (!sectionData || !sectionData.parts) return false;
 
-  speakingPart = partData;
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
-  speakingtaskIndex = hasSavedProgress ? saved.speakingtaskIndex || 0 : 0;
+  speakingTaskIndex = hasSavedProgress ? saved.speakingTaskIndex || 0 : 0;
   speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
 
   currentPartKey = partKey;
@@ -2461,15 +2487,13 @@ function beginSpeaking(partKey, saved = null) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("START", `${currentSection} Part ${config.partId}`);
+  logActivity("START", `${currentSection} - ${partKey}`);
 
+  // Load saved audio recordings
   getAllSpeakingAudio()
     .then((records) => {
       records.forEach((record) => {
-        if (
-          record.taskIndex >= 0 &&
-          record.taskIndex < speakingPart.tasks.length
-        ) {
+        if (record.taskIndex >= 0) {
           speakingResponses[record.taskIndex] = {
             blob: record.blob,
             duration: record.duration,
@@ -2485,7 +2509,7 @@ function beginSpeaking(partKey, saved = null) {
       renderStep(
         currentSection,
         itemIndex >= 0 ? itemIndex : 0,
-        speakingPart,
+        sectionData,
         "audio",
       );
     })
@@ -2497,7 +2521,7 @@ function beginSpeaking(partKey, saved = null) {
       renderStep(
         currentSection,
         itemIndex >= 0 ? itemIndex : 0,
-        speakingPart,
+        sectionData,
         "audio",
       );
     });
@@ -2582,7 +2606,7 @@ function renderPreview(section, items, inputType) {
   } else {
     // MC sections
     items.forEach((part) => {
-      const partProgress = getPartProgress(part.key, saved);
+      const partProgress = getPartProgress(part.partKey, saved);
       html += '<div class="preview-slide">';
       html += `<div class="preview-slide-header">${part.name}</div>`;
       html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
@@ -2771,7 +2795,7 @@ function getNextPartKey() {
       : null;
   } else {
     // MC sections (uses currentPartKey)
-    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+    const currentPart = sectionParts.find((p) => p.partKey === currentPartKey);
     if (!currentPart) return null;
     const currentIndex = sectionParts.indexOf(currentPart);
     return currentIndex < sectionParts.length - 1
@@ -2803,7 +2827,7 @@ function navigateToNextPart() {
     }
   } else {
     // MC sections
-    beginMcPart(nextPart.key);
+    beginMcPart(nextPart.partKey);
   }
   startTimer(currentSection);
 }
@@ -2820,7 +2844,7 @@ function getPrevPartKey() {
     return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
   } else {
     // MC sections (uses currentPartKey)
-    const currentPart = sectionParts.find((p) => p.key === currentPartKey);
+    const currentPart = sectionParts.find((p) => p.partKey === currentPartKey);
     if (!currentPart) return null;
     const currentIndex = sectionParts.indexOf(currentPart);
     return currentIndex > 0 ? sectionParts[currentIndex - 1] : null;
