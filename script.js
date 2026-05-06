@@ -1,4 +1,4 @@
-// Archivo principal de JavaScript para el quiz MET de Your English World
+﻿// Archivo principal de JavaScript para el quiz MET de Your English World
 // Este archivo contiene toda la lógica del quiz: preguntas, temporizador, navegación, etc.
 // Los comentarios en español explican cada función para personas sin experiencia en programación.
 
@@ -1947,7 +1947,7 @@ function renderGroupQuestions(grp) {
   html += "</div>";
   html += '<div class="preview-submit-container">';
   html +=
-    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirm</button>';
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Submit section</button>';
   html += "</div>";
 
   getElement("options-container").innerHTML = html;
@@ -2259,23 +2259,16 @@ function updatePrevButtonVisibility() {
     nextBtn.classList.remove("btn-primary");
     nextBtn.classList.add("btn-secondary");
   }
-  if (submitBtn) submitBtn.classList.add("hidden");
   if (skipBtn) skipBtn.classList.add("hidden");
   if (checkBtn) checkBtn.classList.add("hidden");
-  if (controlsSecondary) controlsSecondary.classList.add("hidden");
 
   if (!currentSection) return;
 
-  // PREVIEW MODE - only Confirm button (MC sections only)
+  // PREVIEW MODE - no navigation buttons needed
   if (sectionPreviewMode) {
     if (prevBtn) prevBtn.classList.add("hidden");
     if (nextBtn) nextBtn.classList.add("hidden");
-    // Only show Confirm for MC sections (Writing/Speaking use their own flow)
-    const sectionType = getSectionType(currentPartKey);
-    if (submitBtn && sectionType === "mc") {
-      submitBtn.classList.remove("hidden");
-      submitBtn.textContent = "Confirm";
-    }
+    if (skipBtn) skipBtn.classList.add("hidden");
     return;
   }
 
@@ -2631,7 +2624,7 @@ function renderPreview(section, items, inputType) {
   html += "</div>";
   html += '<div class="preview-submit-container">';
   html +=
-    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirm</button>';
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Submit section</button>';
   html += "</div>";
 
   container.innerHTML = html;
@@ -2932,12 +2925,7 @@ function setupEventListeners() {
     checkCurrentGroup();
   });
 
-  // Submit/Confirm button (preview)
-  document
-    .getElementById("submit-section-btn")
-    ?.addEventListener("click", () => {
-      showResults();
-    });
+  // No need for submit-section-btn anymore - preview uses preview-confirm-btn
 
   // Reset all progress button (home)
   document.getElementById("reset-all-btn")?.addEventListener("click", () => {
@@ -2964,63 +2952,11 @@ function setupEventListeners() {
       e.preventDefault();
       const nombre = document.getElementById("nombre").value.trim();
       const email = document.getElementById("email").value.trim();
-      if (!isValidName(name) || !email.includes("@")) {
+      if (!isValidName(nombre) || !email.includes("@")) {
         alert("Please enter a valid name and email.");
         return;
       }
-      const user = { name, email };
-      saveUser(user);
-
-      // Send registration data to Google Sheets
-      if (
-        APPS_SCRIPT_URL &&
-        APPS_SCRIPT_URL !==
-          "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
-      ) {
-        fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nombre: nombre,
-            email: email,
-            categoria: "",
-            accion: "REGISTRATION",
-            detalle: "User registered",
-          }),
-        }).catch(() => null);
-      }
-
-      hideRegistrationModal();
-      if (pendingSection) {
-        beginQuiz(pendingSection);
-        pendingSection = null;
-      }
-    });
-
-  // Registration cancel
-  document.getElementById("reg-cancel")?.addEventListener("click", () => {
-    hideRegistrationModal();
-    pendingSection = null;
-  });
-
-  // Change user form
-  document
-    .getElementById("change-user-form")
-    ?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const name = document.getElementById("change-name").value.trim();
-      const emailUser = document
-        .getElementById("change-email-username")
-        .value.trim();
-      const emailDomain = document
-        .getElementById("change-email-domain")
-        .value.trim();
-      const email = `${emailUser}@${emailDomain}`;
-      if (!isValidName(name) || !email.includes("@")) {
-        alert("Please enter a valid name and email.");
-        return;
-      }
-      const user = { name, email };
+      const user = { name: nombre, email: email };
       saveUser(user);
 
       // Send updated user data to Google Sheets
