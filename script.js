@@ -1473,7 +1473,7 @@ function renderStep(section, itemIndex, partData, inputType) {
 }
 
 // Render Writing step (textarea input)
-function renderWritingStep(item, group) {
+function renderWritingStep(item, sectionData) {
   if (!item) return;
 
   const container = getElement("options-container");
@@ -1484,13 +1484,20 @@ function renderWritingStep(item, group) {
   html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
 
   if (isEssay) {
-    const groupData = group;
-    html += `<div class="writing-task-prompt">${groupData.part2.topic}</div>`;
-    html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.part2.prompt}</div>`;
+    // Find the part data from sectionData (quizData)
+    const partData = sectionData?.parts?.find((p) => p.id === 2);
+    if (partData?.part2) {
+      html += `<div class="writing-task-prompt">${partData.part2.topic}</div>`;
+      html += `<div class="writing-task-prompt" style="font-style:italic">${partData.part2.prompt}</div>`;
+    }
   } else {
-    const taskData = group.part1.find((t) => t.number === item.itemNum);
-    if (taskData) {
-      html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+    // Find the part data from sectionData (quizData)
+    const partData = sectionData?.parts?.find((p) => p.id === 1);
+    if (partData?.part1) {
+      const taskData = partData.part1.find((t) => t.number === item.itemNum);
+      if (taskData) {
+        html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+      }
     }
   }
 
@@ -1507,12 +1514,17 @@ function renderWritingStep(item, group) {
 }
 
 // Render Speaking step (audio input)
-function renderSpeakingStep(item, partData) {
+function renderSpeakingStep(item, sectionData) {
   if (!item) return;
 
   const container = getElement("options-container");
   const taskIndex = item.itemNum - 1;
-  const task = partData.tasks[taskIndex];
+
+  // Get tasks from sectionData (quizData[currentSection])
+  const partData =
+    sectionData?.parts?.find((p) => p.id === 1) ||
+    (sectionData?.parts && sectionData.parts[0]);
+  const task = partData?.tasks && partData.tasks[taskIndex];
 
   if (!task) return;
 
@@ -2254,11 +2266,13 @@ function updatePrevButtonVisibility() {
 
   if (!currentSection) return;
 
-  // PREVIEW MODE - only Confirm button
+  // PREVIEW MODE - only Confirm button (MC sections only)
   if (sectionPreviewMode) {
     if (prevBtn) prevBtn.classList.add("hidden");
     if (nextBtn) nextBtn.classList.add("hidden");
-    if (submitBtn) {
+    // Only show Confirm for MC sections (Writing/Speaking use their own flow)
+    const sectionType = getSectionType(currentPartKey);
+    if (submitBtn && sectionType === "mc") {
       submitBtn.classList.remove("hidden");
       submitBtn.textContent = "Confirm";
     }
