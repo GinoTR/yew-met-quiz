@@ -329,12 +329,27 @@ function parseHash() {
   if (!hash || hash === "/") return null;
 
   const parts = hash.split("/").filter((p) => p);
-  if (parts.length < 2) return null;
+  if (parts.length < 1) return null;
+
+  // Global results: #/results
+  if (parts[0] === "results") {
+    return {
+      section: null,
+      parentSection: null,
+      taskPart: "results",
+      qStart: null,
+      qEnd: null,
+      groupIndex: null,
+      hash,
+    };
+  }
 
   // parts[0] = section name (writing, listening, reading, speaking)
   const sectionName = parts[0];
   const parentSection = SECTION_NAMES[sectionName];
   if (!parentSection) return null;
+
+  if (parts.length < 2) return null;
 
   // Check for preview: #/writing/preview
   if (parts[1] === "preview") {
@@ -469,7 +484,9 @@ function loadFromHash() {
   }
 
   if (taskPart === "results") {
-    if (currentSection !== parentSection) {
+    if (!parentSection) {
+      showResults();
+    } else if (currentSection !== parentSection) {
       beginQuiz(parentSection);
       setTimeout(() => showResults(), 100);
     } else {
@@ -2191,37 +2208,68 @@ function checkCurrentGroup() {
   updatePrevButtonVisibility();
 }
 
-// Avanza al siguiente grupo de preguntas (unificado)
-function navigateToNextGroup() {
+// Unified: obtiene el siguiente step de forma genérica para todas las sections
+function getNextStep() {
   const sectionParts = SECTION_PARTS[currentSection];
-  const hasInputType = sectionParts && sectionParts[0]?.inputType;
+  if (!sectionParts) return null;
+  const hasInputType = sectionParts[0]?.inputType;
 
   if (hasInputType) {
-    // Writing or Speaking - use itemIndex
+    // Writing/Speaking: next item
     if (currentItemIndex < sectionParts.length - 1) {
-      const nextPart = getNextPartKey();
-      if (nextPart) {
-        pauseTimer();
-        saveProgress();
-        if (hasInputType === "textarea") {
-          beginWriting(nextPart.partKey);
-        } else if (hasInputType === "audio") {
-          beginSpeaking(nextPart.partKey);
-        }
-        startTimer(currentSection);
-      }
-    } else {
-      goToPreview();
+      const nextItem = sectionParts[currentItemIndex + 1];
+      return {
+        type: "item",
+        index: currentItemIndex + 1,
+        partKey: nextItem.partKey,
+        isNewPart: nextItem.partKey !== currentPartKey,
+      };
     }
-  } else {
-    // MC sections - use groupIndex
-    if (currentGroupIndex < questionGroups.length - 1) {
-      currentGroupIndex++;
-      loadGroup();
-      saveProgress();
-    } else {
-      navigateToNextPart();
-    }
+    return null; // End → preview
+  }
+
+  // MC sections
+  if (currentGroupIndex < questionGroups.length - 1) {
+    return { type: "group", index: currentGroupIndex + 1 };
+  }
+  const nextPart = getNextPartKey();
+  if (nextPart) {
+    return { type: "part", partKey: nextPart.partKey };
+  }
+  return null;
+}
+
+// Unified: navega a un step específico por itemIndex (Writing/Speaking)
+function navigateToStep(itemIndex, newPartKey) {
+  pauseTimer();
+  saveProgress();
+  if (newPartKey) currentPartKey = newPartKey;
+  currentItemIndex = itemIndex;
+  renderStep(
+    currentSection,
+    itemIndex,
+    quizData[currentSection],
+    getSectionType(currentPartKey),
+  );
+  startTimer(currentSection);
+}
+
+// Unified: avanza al siguiente step en cualquier section
+function navigateToNextStep() {
+  const next = getNextStep();
+  if (!next) {
+    goToPreview();
+    return;
+  }
+
+  if (next.type === "item") {
+    navigateToStep(next.index, next.isNewPart ? next.partKey : null);
+  } else if (next.type === "group") {
+    currentGroupIndex = next.index;
+    loadGroup();
+    saveProgress();
+  } else if (next.type === "part") {
+    navigateToNextPart(next.partKey);
   }
 }
 
@@ -2950,6 +2998,28 @@ function playSpeakingPreview(taskIndex) {
   }
 }
 
+// Count correct answers for a MC part from saved progress
+function countCorrectInMcPart(partKey, saved) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return { correct: 0, total: 0 };
+  const section = getSectionKey(partKey);
+  const sectionData = quizData[section];
+  if (!sectionData?.parts) return { correct: 0, total: 0 };
+  const partData = sectionData.parts.find((p) => p.id === config.partId);
+  if (!partData) return { correct: 0, total: 0 };
+
+  const questions = extractQuestionsFromPart(partData);
+  let correct = 0;
+  questions.forEach((q, idx) => {
+    const globalNum = idx + 1;
+    const progressKey = getProgressKeyForPreview(partKey, globalNum);
+    const userAnswer = saved?.answers?.[progressKey];
+    const correctLetter = letters[q.correct] || "";
+    if (userAnswer === correctLetter) correct++;
+  });
+  return { correct, total: questions.length };
+}
+
 // Show final results (unificado)
 function showResults() {
   sectionPreviewMode = false;
@@ -2976,91 +3046,76 @@ function showResults() {
 
   const saved = loadProgress();
 
-  // Calculate total score (total correct answers / total questions)
-  const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
+  // Build per-part breakdown and compute totals
+  const SECTION_ORDER = [
+    { key: "WRITING", parts: ["WRITING_P1", "WRITING_P2"] },
+    {
+      key: "LISTENING",
+      parts: ["LISTENING_P1", "LISTENING_P2", "LISTENING_P3"],
+    },
+    {
+      key: "READING_AND_GRAMMAR",
+      parts: ["READING_P1", "READING_P2", "READING_P3"],
+    },
+    { key: "SPEAKING", parts: ["SPEAKING_P1", "SPEAKING_P2"] },
+  ];
 
-  // Calculate totalParts dynamically using SECTION_PARTS and quiz data
-  let totalParts = 0;
+  let totalCorrect = 0;
+  let totalQuestions = 0;
+  let resultsHtml = "";
 
-  // MC sections: count questions from data
-  if (quizData.LISTENING) {
-    totalParts += quizData.LISTENING.parts
-      ? quizData.LISTENING.parts.reduce(
-          (sum, p) => sum + (p.questions ? p.questions.length : 0),
-          0,
-        )
-      : 0;
-  }
-  if (quizData.READING_AND_GRAMMAR) {
-    totalParts += quizData.READING_AND_GRAMMAR.parts
-      ? quizData.READING_AND_GRAMMAR.parts.reduce(
-          (sum, p) => sum + (p.questions ? p.questions.length : 0),
-          0,
-        )
-      : 0;
-  }
+  SECTION_ORDER.forEach((sec) => {
+    const partResults = [];
+    sec.parts.forEach((partKey) => {
+      const sectionType = getSectionType(partKey);
+      if (sectionType === "textarea" || sectionType === "audio") {
+        // Writing/Speaking: count answered per part from SECTION_PARTS
+        const sectionParts = SECTION_PARTS[sec.key];
+        const itemsInPart = sectionParts.filter(
+          (item) => item.partKey === partKey,
+        );
+        const total = itemsInPart.length;
 
-  // Writing: count items from SECTION_PARTS
-  if (SECTION_PARTS.WRITING) {
-    totalParts += SECTION_PARTS.WRITING.length;
-  }
+        let responses = [];
+        if (sectionType === "textarea") {
+          responses = saved?.writingResponses || sectionResponses || [];
+        } else {
+          responses = saved?.speakingResponses || speakingResponses || [];
+        }
 
-  // Speaking: count items from SECTION_PARTS
-  if (SECTION_PARTS.SPEAKING) {
-    totalParts += SECTION_PARTS.SPEAKING.length;
-  }
+        const answered = itemsInPart.filter((item) => {
+          const response = responses[item.itemNum - 1];
+          if (!response) return false;
+          if (item.inputType === "textarea") {
+            return typeof response === "string" && response.length > 0;
+          }
+          return response !== null && response !== undefined;
+        }).length;
+
+        partResults.push(`${answered}/${total}`);
+        totalCorrect += answered;
+        totalQuestions += total;
+      } else {
+        // MC: count correct answers from saved progress
+        const { correct, total } = countCorrectInMcPart(partKey, saved);
+        partResults.push(`${correct}/${total}`);
+        totalCorrect += correct;
+        totalQuestions += total;
+      }
+    });
+
+    resultsHtml += '<div class="result-category">';
+    resultsHtml += `<span class="result-category-name">${SECTION_DISPLAY[sec.key]}</span>`;
+    resultsHtml += `<span class="result-category-score">${partResults.join(" • ")}</span>`;
+    resultsHtml += "</div>";
+  });
 
   const percentage =
-    totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
+    totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   getElement("score-display").textContent =
-    `${percentage}% (${totalScore}/${totalParts})`;
-
-  // Render breakdown with section-specific display
-  let html = "";
-  const sections = ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"];
-  sections.forEach((sec) => {
-    html += '<div class="result-category">';
-    html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
-
-    // Section-specific score display using getPartProgress
-    if (sec === "WRITING" || sec === "SPEAKING") {
-      // For Writing/Speaking, show completed/total from SECTION_PARTS
-      const sectionParts = SECTION_PARTS[sec];
-      const total = sectionParts ? sectionParts.length : 0;
-
-      // Get responses from the correct source
-      let responses = [];
-      if (sec === "WRITING") {
-        // Writing uses sectionResponses (saved as writingResponses in progress)
-        responses = saved?.writingResponses || sectionResponses || [];
-      } else {
-        // Speaking uses speakingResponses
-        responses = saved?.speakingResponses || speakingResponses || [];
-      }
-
-      const completed = sectionParts
-        ? sectionParts.filter((item) => {
-            const response = responses[item.itemNum - 1];
-            if (!response) return false;
-            if (item.inputType === "textarea") {
-              return typeof response === "string" && response.length > 0;
-            } else if (item.inputType === "audio") {
-              return response !== null && response !== undefined;
-            }
-            return false;
-          }).length
-        : 0;
-
-      html += `<span class="result-category-score">${completed}/${total}</span>`;
-    } else {
-      // MC sections - show correct answers
-      html += `<span class="result-category-score">${score[sec]}</span>`;
-    }
-
-    html += "</div>";
-  });
-  getElement("results-breakdown").innerHTML = html;
+    `${percentage}% (${totalCorrect}/${totalQuestions})`;
+  getElement("results-breakdown").innerHTML = resultsHtml;
 
   logActivity("RESULTS", `Final score: ${percentage}%`);
 
@@ -3142,11 +3197,11 @@ function getNextPartKey() {
 }
 
 // Navigate to next part (unificado)
-function navigateToNextPart() {
+function navigateToNextPart(partKey) {
   pauseTimer();
   saveProgress();
 
-  const nextPart = getNextPartKey();
+  const nextPart = partKey ? { partKey } : getNextPartKey();
   if (!nextPart) {
     goToPreview();
     return;
@@ -3231,13 +3286,7 @@ function setupEventListeners() {
   // Next button
   document.getElementById("next-btn")?.addEventListener("click", () => {
     if (sectionPreviewMode) return;
-    const sectionParts = SECTION_PARTS[currentSection];
-    const hasInputType = sectionParts && sectionParts[0]?.inputType;
-    if (hasInputType) {
-      navigateToNextPart();
-    } else {
-      navigateToNextGroup();
-    }
+    navigateToNextStep();
   });
 
   // Previous button
@@ -3272,6 +3321,7 @@ function setupEventListeners() {
   document
     .getElementById("preview-confirm-btn")
     ?.addEventListener("click", () => {
+      window.location.hash = "#/results";
       showResults();
     });
 
@@ -3405,6 +3455,7 @@ function setupEventListeners() {
   // Results buttons
   document.getElementById("results-home-btn")?.addEventListener("click", () => {
     window.location.hash = "#/home";
+    renderCategorySelect();
   });
   document.getElementById("email-btn")?.addEventListener("click", () => {
     const subject = "MET Quiz Results";
