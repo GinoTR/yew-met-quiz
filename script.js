@@ -575,6 +575,15 @@ window.addEventListener("load", async () => {
   // Setup navigation event listeners
   setupEventListeners();
 
+  // Redirect base URL to #/home
+  if (
+    !window.location.hash ||
+    window.location.hash === "#" ||
+    window.location.hash === "#/"
+  ) {
+    window.location.hash = "#/home";
+  }
+
   loadFromHash();
 });
 
@@ -1042,7 +1051,7 @@ function updateSectionProgress() {
         getElement("progress-text").textContent = itemText;
       } else if (item.inputType === "audio") {
         getElement("progress-text").textContent =
-          `${partLabel}: Task ${item.itemNum}/${item.totalInPart}`;
+          `${partLabel}: Q${item.itemNum}/${item.totalInPart}`;
       }
 
       // Calculate progress based on saved responses
@@ -1387,11 +1396,9 @@ function beginQuiz(section) {
     return;
   }
 
-  const partKey = section.startsWith(currentSection)
-    ? section
-    : firstPart
-      ? firstPart.partKey
-      : null;
+  const isPartKey =
+    SECTION_CONFIG[section] && SECTION_CONFIG[section].partId !== undefined;
+  const partKey = isPartKey ? section : firstPart ? firstPart.partKey : null;
 
   if (!partKey) {
     alert("Error: No se pudo determinar la parte inicial.");
@@ -2316,10 +2323,15 @@ function getNextPartName() {
   const sectionType = getSectionType(currentPartKey);
 
   if (sectionType === "textarea" || sectionType === "audio") {
-    // For Writing/Speaking (uses currentItemIndex)
-    if (currentItemIndex < sectionParts.length - 1) {
-      return sectionParts[currentItemIndex + 1].partLabel;
+    // For Writing/Speaking: find next item with different partKey
+    const current = sectionParts[currentItemIndex];
+    if (!current) return null;
+    for (let i = currentItemIndex + 1; i < sectionParts.length; i++) {
+      if (sectionParts[i].partKey !== current.partKey) {
+        return sectionParts[i].partLabel;
+      }
     }
+    return "Preview";
   } else {
     // For MC sections (uses currentPartKey)
     const currentPart = sectionParts.find((p) => p.partKey === currentPartKey);
@@ -2331,6 +2343,29 @@ function getNextPartName() {
     }
   }
   return "Preview";
+}
+
+// Obtiene el siguiente Part completo para Skip, no el siguiente item
+function getNextPartForSkip() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  const hasInputType = sectionParts[0]?.inputType;
+  if (!hasInputType) {
+    // MC: same as getNextPartKey
+    return getNextPartKey();
+  }
+
+  // For Writing/Speaking: find next item with different partKey
+  const current = sectionParts[currentItemIndex];
+  if (!current) return null;
+
+  for (let i = currentItemIndex + 1; i < sectionParts.length; i++) {
+    if (sectionParts[i].partKey !== current.partKey) {
+      return sectionParts[i];
+    }
+  }
+  return null;
 }
 
 // Actualiza qué botones se ven (Anterior, Siguiente, etc.) - unificado
@@ -2618,6 +2653,9 @@ function beginSpeaking(partKey, saved = null) {
         sectionData,
         "audio",
       );
+      hashNavigationLocked = true;
+      updateHash(partKey, itemIndex >= 0 ? itemIndex : 0);
+      hashNavigationLocked = false;
     })
     .catch(() => {
       const sectionParts = SECTION_PARTS[currentSection];
@@ -2630,6 +2668,9 @@ function beginSpeaking(partKey, saved = null) {
         sectionData,
         "audio",
       );
+      hashNavigationLocked = true;
+      updateHash(partKey, itemIndex >= 0 ? itemIndex : 0);
+      hashNavigationLocked = false;
     });
 
   updatePrevButtonVisibility();
@@ -2648,6 +2689,9 @@ function goToPreview() {
   if (!sectionParts) return;
   const sectionType = getSectionType(currentPartKey) || "mc";
   renderPreview(currentSection, sectionParts, sectionType);
+  hashNavigationLocked = true;
+  window.location.hash = "#/" + currentSection.toLowerCase() + "/preview";
+  hashNavigationLocked = false;
 }
 
 // Universal preview renderer (unificado) - builds carousel slides
@@ -2709,22 +2753,26 @@ function buildPreviewSlides(section, items, inputType) {
 
       let html = '<div class="preview-card">';
       html += `<div class="preview-card-header">${item.partLabel} - Question ${item.itemNum}</div>`;
+      const sectionData = quizData[section];
+      const partData = sectionData?.parts?.find((p) => p.id === item.partId);
+      const abanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
+      let abanico = null;
+      if (partData?.abanicos && abanicoId) {
+        abanico = partData.abanicos.find((a) => a.id === abanicoId);
+      }
+      if (!abanico && partData?.abanicos) {
+        abanico = partData.abanicos[0];
+      }
       if (item.isEssay) {
-        const sectionData = quizData[section];
-        const partData = sectionData?.parts?.find((p) => p.id === 2);
-        if (partData?.part2) {
-          html += `<div class="preview-question"><strong>Topic:</strong> ${partData.part2.topic}</div>`;
+        if (abanico?.topic) {
+          html += `<div class="preview-question"><strong>Topic:</strong> ${abanico.topic}</div>`;
         }
       } else {
-        const sectionData = quizData[section];
-        const partData = sectionData?.parts?.find((p) => p.id === 1);
-        if (partData?.part1) {
-          const taskData = partData.part1.find(
-            (t) => t.number === item.itemNum,
-          );
-          if (taskData) {
-            html += `<div class="preview-question">${taskData.text}</div>`;
-          }
+        const question =
+          abanico?.questions &&
+          abanico.questions.find((q) => q.number === item.itemNum);
+        if (question) {
+          html += `<div class="preview-question">${question.text}</div>`;
         }
       }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
@@ -2747,7 +2795,15 @@ function buildPreviewSlides(section, items, inputType) {
       const partData =
         sectionData?.parts?.find((p) => p.id === item.partId) ||
         (sectionData?.parts && sectionData.parts[0]);
-      const task = partData?.tasks && partData.tasks[item.itemNum - 1];
+      const abanicoId = saved?.speakingAbanicoId || currentAbanicoId || null;
+      let abanico = null;
+      if (partData?.abanicos && abanicoId) {
+        abanico = partData.abanicos.find((a) => a.id === abanicoId);
+      }
+      if (!abanico && partData?.abanicos) {
+        abanico = partData.abanicos[0];
+      }
+      const task = abanico?.questions && abanico.questions[item.itemNum - 1];
       if (task) {
         html += `<div class="preview-question">${task.prompt}</div>`;
       }
@@ -3168,7 +3224,7 @@ function stopSpeakingMic() {
 function setupEventListeners() {
   // Home button - render home screen directly
   document.getElementById("home-btn")?.addEventListener("click", () => {
-    window.location.hash = "/";
+    window.location.hash = "#/home";
     renderCategorySelect();
   });
 
@@ -3191,7 +3247,19 @@ function setupEventListeners() {
 
   // Skip button
   document.getElementById("skip-btn")?.addEventListener("click", () => {
-    navigateToNextPart();
+    const sectionParts = SECTION_PARTS[currentSection];
+    const hasInputType = sectionParts && sectionParts[0]?.inputType;
+    if (hasInputType) {
+      // Writing/Speaking: skip to next PART (not next item)
+      const nextPart = getNextPartForSkip();
+      if (!nextPart) {
+        goToPreview();
+        return;
+      }
+      navigateToPart(nextPart.partKey);
+    } else {
+      navigateToNextPart();
+    }
   });
 
   // Check button (MC groups)
@@ -3314,7 +3382,7 @@ function setupEventListeners() {
   // Time modal buttons
   document.getElementById("time-home-btn")?.addEventListener("click", () => {
     hideTimeModal();
-    window.location.hash = "/";
+    window.location.hash = "#/home";
   });
   document.getElementById("time-preview-btn")?.addEventListener("click", () => {
     hideTimeModal();
@@ -3324,7 +3392,7 @@ function setupEventListeners() {
   // Back modal buttons
   document.getElementById("back-home-btn")?.addEventListener("click", () => {
     document.getElementById("back-modal").classList.add("hidden");
-    window.location.hash = "/";
+    window.location.hash = "#/home";
   });
   document.getElementById("back-prev-btn")?.addEventListener("click", () => {
     document.getElementById("back-modal").classList.add("hidden");
@@ -3336,7 +3404,7 @@ function setupEventListeners() {
 
   // Results buttons
   document.getElementById("results-home-btn")?.addEventListener("click", () => {
-    window.location.hash = "/";
+    window.location.hash = "#/home";
   });
   document.getElementById("email-btn")?.addEventListener("click", () => {
     const subject = "MET Quiz Results";
