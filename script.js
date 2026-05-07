@@ -119,7 +119,7 @@ const SECTION_DISPLAY = {
   SPEAKING: "SPEAKING",
 };
 
-// Obtiene la sección padre a partir de una clave (ej: "writing-part1" → "WRITING")
+// Obtiene la sección padre a partir de una clave (ej: "WRITING_P1" → "WRITING")
 function getSectionKey(partKey) {
   if (!partKey) return null;
   if (partKey.startsWith("WRITING")) return "WRITING";
