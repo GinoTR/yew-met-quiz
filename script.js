@@ -538,6 +538,21 @@ window.addEventListener("hashchange", loadFromHash);
 window.addEventListener("load", async () => {
   await loadAllData();
 
+  // SPA redirect: read path saved by 404.html on clean URL navigation
+  // e.g., /MET/writing/p1/q1 → #/writing/p1/q1
+  const redirect = sessionStorage.redirect;
+  delete sessionStorage.redirect;
+  if (redirect) {
+    const path = redirect.split("?")[0].split("#")[0];
+    const basePath = "/MET";
+    const cleanPath = path.startsWith(basePath)
+      ? path.substring(basePath.length)
+      : path;
+    if (cleanPath && cleanPath !== "/") {
+      window.location.hash = "#" + cleanPath;
+    }
+  }
+
   // Load saved user and update display
   loadUser();
   updateUserDisplay();
@@ -1311,6 +1326,20 @@ function startFromSection(section) {
 
 // Comienza el quiz para una sección
 function beginQuiz(section) {
+  // Clean state from any previous section
+  if (currentSection && currentSection !== getSectionKey(section)) {
+    stopTimer();
+    stopSpeakingMic();
+  }
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+  }
+  currentAudioSrc = null;
+  getElement("audio-container").classList.add("hidden");
+  getElement("audio-container").innerHTML = "";
+  getElement("options-container").innerHTML = "";
+
   const saved = loadProgress();
 
   sectionPreviewMode = false;
@@ -1331,8 +1360,6 @@ function beginQuiz(section) {
   currentPartQuestionIndex = 0;
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
-  currentAudioSrc = null;
-  currentAudioElement = null;
 
   if (saved) {
     score = saved.score || {
@@ -1452,6 +1479,15 @@ function renderStep(section, itemIndex, partData, inputType) {
     void container.offsetWidth;
     container.style.animation = "fadeIn 0.5s ease";
   }, 300);
+
+  // Clean up audio from previous step
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+  }
+  currentAudioSrc = null;
+  getElement("audio-container").classList.add("hidden");
+  getElement("audio-container").innerHTML = "";
 
   updateSectionProgress();
 
