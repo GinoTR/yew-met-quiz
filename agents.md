@@ -15,18 +15,16 @@ Web quiz for MET (Michigan English Test) practice for Diana's English school "Yo
 The MET exam is divided into **4 parts**:
 
 ### 1. WRITING
-- **Task 1:** 3 correlative questions about personal experiences
-- **Task 2:** 1 essay of 250 words
+- **Part 1:** 3 correlative questions about personal experiences
+- **Part 2:** 1 essay of 250 words
 
 ### 2. LISTENING (Multiple Choice)
 - 4 answer options
-- In the real MET, audio plays only once
-- Dialogs include transcription with (T) button - note that in the real MET there is NO transcription
 - Watch out for trap questions with words like "imply" (imply/deduce) or "mainly" (main topic)
 
 **Parts:**
 - **Part 1:** Short conversations between 2 people - 19 questions
-- **Part 2:** Long conversations (some with 3-4 questions) - 14 questions
+- **Part 2:** Long conversations (some with 3-4 questions, whose set is called a group) - 14 questions
 - **Part 3:** Short talks - 17 questions
 
 ### 3. READING AND GRAMMAR (Multiple Choice)
@@ -43,13 +41,13 @@ The MET exam is divided into **4 parts**:
 ### 4. SPEAKING
 
 **Part 1:** Responses max 60 seconds
-- Task 1: Describe an image
-- Task 2: Give an opinion
-- Task 3: Talk about a personal experience
+- Question 1: Describe an image
+- Question 2: Give an opinion
+- Question 3: Talk about a personal experience
 
 **Part 2:**
-- Task 1: Advantages and disadvantages
-- Task 2: Justify an opinion (try to convince)
+- Question 1: Advantages and disadvantages
+- Question 2: Justify an opinion (try to convince)
 
 ---
 
@@ -82,7 +80,6 @@ The MET exam is divided into **4 parts**:
 - Form collects name + email before starting quiz
 - Data stored in localStorage for return users
 - User name displayed in header with "change" button
-- Replaces the old 5-category system (Grammar, Reading, Listening, Writing, Speaking) with 4 MET categories
 
 ### Help/Contact
 - "?" button in Home and Quiz views
@@ -106,7 +103,6 @@ The MET exam is divided into **4 parts**:
 ├── script.js           (JavaScript logic)
 ├── agents.md           (This file - project context)
 ├── data/
-│   ├── grammar.json    (Grammar questions - to be restructured)
 │   ├── reading.json    (Reading questions - to be restructured)
 │   ├── listening.json (Listening questions - to be restructured)
 │   ├── writing.json   (Writing guide)
@@ -131,16 +127,9 @@ The MET exam is divided into **4 parts**:
 
 ---
 
-## Categories (Current vs MET)
+## MET Standard Categories
 
-**Current (5 categories - needs restructuring):**
-- GRAMMAR
-- READING
-- LISTENING
-- WRITING
-- SPEAKING
-
-**MET Standard (4 categories - target):**
+**4 categories:**
 - WRITING
 - LISTENING
 - READING AND GRAMMAR
@@ -161,14 +150,14 @@ The MET exam is divided into **4 parts**:
 **Score Display:** Large blue gradient text showing percentage and fraction
 - Format: `50% (3/6)` or `100% (4/4)`
 
-**Sections (in order):**
-1. **WRITING** - Shows progress per part: `3/3 • 1/1`
-2. **LISTENING** - Correct answers: `3/21`
-3. **READING AND GRAMMAR** - Combined: `3/11`
-4. **SPEAKING** - Completeness: `1/2`
+**Sections (in order):** Shows progress per part (according to the displayed abanico)
+1. **WRITING** - `X/3 • X/1`
+2. **LISTENING** - `X/19 • X/14 • X/17`
+3. **READING AND GRAMMAR** `X/20 • X/11 • X/20`
+4. **SPEAKING** `X/3 • X/2`
 
 **Action Buttons:**
-- Home (gray, secondary)
+- Home (gray, secondary) - Sends home page
 - Enviar resultados por email (purple, primary) - Opens mailto
 - Reiniciar test (gray, secondary)
 
@@ -211,21 +200,21 @@ Button PREVIOUS (ANTERIOR):
 - Note: in groups of questions, only one button per group.
 
 Button NEXT (SIGUIENTE) / FINISH (FINALIZAR) (unified):
-- Normal state: shows "Next" and moves to the next question/part/task.
-- Special state: in the last question/group of the section, changes to "Finish section" with primary style and redirects to the section preview (#/[section-name]/preview).
-- Note: never redirects to Results or another section. In groups, only one button per group.
+- Normal state: shows "Next" (primary button style) and moves to the next question/part.
+- Special state: in the last question/group of the section, changes label to "Finish section" with primary style and redirects to the section preview (#/[section-name]/preview).
+- Note: never redirects to Results or another section. In groups, only one button per group. never redirects to the previous question/part. in the last question/group of a part, never redirects to the current part (no loops).
 
 Button SKIP TO:
-- Location: in all questions/groups except the last one of the section.
+- Location: in all questions/groups steps except the last one of the section.
 - Function: redirects to the next Part of the section.
-- In the last Part: shows "Skip to Preview" and redirects to the section preview.
-- Label: dynamic, "Skip to [next block name]" obtained from the data array (no hardcoding).
+- In the last Part of the section: shows "Skip to Preview" label, and redirects to the section preview.
+- Label: dynamic, "Skip to [next part name, or the section preview]" obtained from the data array (no hardcoding).
 - Note: in groups of questions, only one button per group.
 
 Button CHECK (COMPROBAR):
 - Location: in MC individual questions (below each question) or in groups (one button per group).
 - Initial state: only CHECK is visible.
-- On click: highlights correct answers in blue, incorrect ones in gray, updates the response counter in localStorage, hides CHECK, and shows NEXT/FINISH in the same place.
+- On click: highlights correct answers in blue, incorrect ones in gray, updates the response counter in localStorage, hides CHECK, and shows NEXT/FINISH button (primary button style) in the same place.
 
 Button CONFIRM (CONFIRMAR):
 - Location: only in the preview of any section.
@@ -234,7 +223,7 @@ Button CONFIRM (CONFIRMAR):
 Visual placement:
 - Desktop:
   - Left → PREVIOUS
-  - Center → NEXT/FINISH and CHECK
+  - Center → NEXT and CHECK
   - Right → SKIP TO
   - If SKIP does not apply, NEXT/FINISH moves to the right.
 - Mobile:
