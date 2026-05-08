@@ -1865,6 +1865,9 @@ function buildQuestionGroups(partData, section, partId) {
         questionRange: { start: startNum, end: globalNum },
         questions: groupQuestions,
       };
+      if (rg.passage) {
+        groupObj.passage = rg.passage;
+      }
       if (rg.article) {
         groupObj.article = rg.article;
       }
@@ -1981,11 +1984,18 @@ function renderGroupQuestions(grp) {
 
   let html = "";
 
-  grp.questions.forEach((q, idx) => {
-    if (q.passage && !grp.article && !grp.isConnector) {
-      html += `<div class="reading-passage">${q.passage.replace(/\n/g, "<br>")}</div>`;
-    }
+  // Render articles/passages before questions (Reading Part 2 & 3)
+  if (grp.isConnector && grp.connectorArticles) {
+    grp.connectorArticles.forEach((art) => {
+      html += renderMagazineArticle(art);
+    });
+  } else if (grp.article) {
+    html += renderMagazineArticle(grp.article);
+  } else if (grp.passage) {
+    html += `<div class="reading-passage">${grp.passage.replace(/\n/g, "<br>")}</div>`;
+  }
 
+  grp.questions.forEach((q, idx) => {
     const globalNum = q.globalNumber;
     const questionIdx = shuffledQuestions.findIndex(
       (sq) => sq.globalNumber === globalNum,
