@@ -532,6 +532,9 @@ function loadFromHash() {
           quizData[sectionKey],
           sectionType,
         );
+        hashNavigationLocked = true;
+        updateHash(targetPartKey, targetItemIndex);
+        hashNavigationLocked = false;
       }
     } else {
       // MC section
@@ -1050,49 +1053,16 @@ function updateSectionProgress() {
 
   // For sections with textarea or audio inputType (WRITING, SPEAKING)
   if (sectionType === "textarea" || sectionType === "audio") {
-    // Find current item index in SECTION_PARTS
-    const currentItemIndex = sectionParts.findIndex((item) => {
-      return item.partKey === currentPartKey;
-    });
-
-    if (currentItemIndex >= 0) {
-      const item = sectionParts[currentItemIndex];
+    const item = sectionParts[currentItemIndex];
+    if (item) {
       const partLabel = item.partLabel;
 
-      // Universal progress text based on inputType
-      if (item.inputType === "textarea") {
-        const itemText =
-          item.totalInPart > 1
-            ? `${partLabel}: Q${item.itemNum}/${item.totalInPart}`
-            : `${partLabel}: Essay`;
-        getElement("progress-text").textContent = itemText;
-      } else if (item.inputType === "audio") {
-        getElement("progress-text").textContent =
-          `${partLabel}: Q${item.itemNum}/${item.totalInPart}`;
-      }
+      // Universal hierarchical badge format
+      getElement("progress-text").textContent =
+        `${partLabel}: Q${item.itemNum}/${item.totalInPart}`;
 
-      // Calculate progress based on saved responses
-      const saved = loadProgress();
-      let responses = [];
-      if (sectionType === "textarea") {
-        responses = saved?.writingResponses || sectionResponses || [];
-      } else if (sectionType === "audio") {
-        responses = saved?.speakingResponses || speakingResponses || [];
-      }
-
-      const answered = sectionParts.filter((itm) => {
-        const response = responses[itm.itemNum - 1];
-        if (!response) return false;
-        if (itm.inputType === "textarea") {
-          return typeof response === "string" && response.length > 0;
-        } else if (itm.inputType === "audio") {
-          return response !== null && response !== undefined;
-        }
-        return false;
-      }).length;
-
-      const percent =
-        sectionParts.length > 0 ? (answered / sectionParts.length) * 100 : 0;
+      // Position-based progress bar, consistent with MC sections
+      const percent = ((currentItemIndex + 1) / sectionParts.length) * 100;
       getElement("progress-bar").style.width = percent + "%";
     }
     return;
@@ -2251,6 +2221,9 @@ function navigateToStep(itemIndex, newPartKey) {
     quizData[currentSection],
     getSectionType(currentPartKey),
   );
+  hashNavigationLocked = true;
+  updateHash(currentPartKey, itemIndex);
+  hashNavigationLocked = false;
   startTimer(currentSection);
 }
 
