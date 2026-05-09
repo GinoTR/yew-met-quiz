@@ -462,17 +462,12 @@ function loadFromHash() {
 
   const { section, parentSection, taskPart, qStart } = parsed;
 
-  if (!section || !SECTION_CONFIG[section]) {
-    if (!currentSection) renderCategorySelect();
-    return;
-  }
-
   if (!currentUser) {
     showRegistrationModal();
     return;
   }
 
-  // Handle preview and results at section level
+  // Handle preview and results at section level (before section validation)
   if (taskPart === "preview") {
     if (currentSection !== parentSection) {
       beginQuiz(parentSection);
@@ -484,14 +479,13 @@ function loadFromHash() {
   }
 
   if (taskPart === "results") {
-    if (!parentSection) {
-      showResults();
-    } else if (currentSection !== parentSection) {
-      beginQuiz(parentSection);
-      setTimeout(() => showResults(), 100);
-    } else {
-      showResults();
-    }
+    showResults();
+    return;
+  }
+
+  // Now validate section for question-level navigation
+  if (!section || !SECTION_CONFIG[section]) {
+    if (!currentSection) renderCategorySelect();
     return;
   }
 
@@ -2867,7 +2861,8 @@ function buildPreviewSlides(section, items, inputType) {
       const partData = getPartDataFromSection(part.partKey, section);
       if (!partData) return;
 
-      const questions = extractQuestionsFromPart(partData);
+      const abanicoId = saved?.[`${part.partKey}_abanicoId`] || null;
+      const questions = extractQuestionsFromPart(partData, abanicoId);
 
       let html = '<div class="preview-card">';
       html += `<div class="preview-card-header">${part.name}</div>`;
@@ -2958,16 +2953,27 @@ function getPartDataFromSection(partKey, section) {
 }
 
 // Helper: extract questions from part data (handles questions, audioGroups, readingGroups)
-function extractQuestionsFromPart(partData) {
+function extractQuestionsFromPart(partData, abanicoId) {
   const questions = [];
-  if (partData.questions) {
-    questions.push(...partData.questions);
-  } else if (partData.audioGroups) {
-    partData.audioGroups.forEach((group) => {
+  let source = partData;
+  if (partData.abanicos && partData.abanicos.length > 0) {
+    let selected = null;
+    if (abanicoId) {
+      selected = partData.abanicos.find((a) => a.id === abanicoId);
+    }
+    if (!selected) {
+      selected = partData.abanicos[0];
+    }
+    source = selected;
+  }
+  if (source.questions) {
+    questions.push(...source.questions);
+  } else if (source.audioGroups) {
+    source.audioGroups.forEach((group) => {
       questions.push(...group.questions);
     });
-  } else if (partData.readingGroups) {
-    partData.readingGroups.forEach((group) => {
+  } else if (source.readingGroups) {
+    source.readingGroups.forEach((group) => {
       questions.push(...group.questions);
     });
   }
@@ -3008,7 +3014,8 @@ function countCorrectInMcPart(partKey, saved) {
   const partData = sectionData.parts.find((p) => p.id === config.partId);
   if (!partData) return { correct: 0, total: 0 };
 
-  const questions = extractQuestionsFromPart(partData);
+  const abanicoId = saved?.[`${partKey}_abanicoId`] || null;
+  const questions = extractQuestionsFromPart(partData, abanicoId);
   let correct = 0;
   questions.forEach((q, idx) => {
     const globalNum = idx + 1;
@@ -3322,7 +3329,6 @@ function setupEventListeners() {
     .getElementById("preview-confirm-btn")
     ?.addEventListener("click", () => {
       window.location.hash = "#/results";
-      showResults();
     });
 
   // No need for submit-section-btn anymore - preview uses preview-confirm-btn
