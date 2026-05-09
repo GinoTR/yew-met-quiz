@@ -2259,25 +2259,20 @@ function navigateToPrevGroup() {
   const hasInputType = sectionParts && sectionParts[0]?.inputType;
 
   if (hasInputType) {
-    // Writing or Speaking - use itemIndex
+    // Writing or Speaking - navigate to previous item by index
     if (currentItemIndex > 0) {
-      const prevPart = getPrevPartKey();
-      if (prevPart) {
-        pauseTimer();
-        saveProgress();
-        if (hasInputType === "textarea") {
-          beginWriting(prevPart.partKey);
-        } else if (hasInputType === "audio") {
-          beginSpeaking(prevPart.partKey);
-        }
-        startTimer(currentSection);
-      }
+      const prevItem = sectionParts[currentItemIndex - 1];
+      navigateToStep(
+        currentItemIndex - 1,
+        prevItem.partKey !== currentPartKey ? prevItem.partKey : null,
+      );
     }
     return;
   }
 
   // MC sections - use groupIndex
   if (currentGroupIndex > 0) {
+    saveProgress();
     currentGroupIndex--;
     loadGroup();
     return;
