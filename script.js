@@ -779,6 +779,7 @@ const APPS_SCRIPT_URL =
 // Envía datos de respuesta a Google Sheets (14 columnas universales)
 function sendAnswerToSheet(data) {
   if (!APPS_SCRIPT_URL) return;
+
   const payload = {
     section: data.section || currentSection || "",
     time: new Date().toISOString(),
@@ -791,18 +792,25 @@ function sendAnswerToSheet(data) {
     type: data.type || "",
     userChoice: data.userChoice || "",
     userText: data.userText || "",
-    userVoice: data.userVoice || "",
-    userVoiceData: data.userVoiceData || "",
-    userVoiceName: data.userVoiceName || "",
+    // Aquí puedes decidir: si ya subes el audio a Drive en el backend,
+    // envía solo userVoiceUrl. Si aún no lo subes, mantén los blobs.
+    userVoiceUrl: data.userVoiceUrl || "",
     correctAnswer: data.correctAnswer || "",
     score: data.score !== undefined ? data.score : "",
     notes: data.notes || "",
   };
+
   fetch(APPS_SCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  }).catch(() => {
+  })
+  .then(res => res.json())
+  .then(result => {
+    console.log("Respuesta Apps Script:", result);
+  })
+  .catch(err => {
+    console.error("Error al enviar:", err);
     console.log("Answer data saved locally:", payload);
   });
 }
