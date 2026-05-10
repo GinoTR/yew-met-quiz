@@ -774,7 +774,7 @@ const letters = ["A", "B", "C", "D"];
 
 // URL para enviar datos a Google Sheets (En caso de actualizar, está en: línea 523, 709 y 740 y en SETUP.md)
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec";
+  "https://script.google.com/macros/s/AKfycbyEU0JtzDuEKLj322Zkiot1M9ELR6-xuSeSU5LlHelUlJeYBqHhC2tTHMGouktyr0_V/exec";
 
 // Envía datos de respuesta a Google Sheets (14 columnas universales)
 function sendAnswerToSheet(data) {
