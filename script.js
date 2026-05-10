@@ -780,6 +780,7 @@ const APPS_SCRIPT_URL =
 function sendAnswerToSheet(data) {
   if (!APPS_SCRIPT_URL) return;
   const payload = {
+    section: data.section || currentSection || "",
     time: new Date().toISOString(),
     user: currentUser?.name || "",
     email: currentUser?.email || "",
@@ -2229,6 +2230,13 @@ function checkCurrentGroup() {
     let sendReadingText = "";
     if (grpForSend.passage) sendReadingText = grpForSend.passage;
     if (grpForSend.article) sendReadingText = grpForSend.article.content || "";
+    if (grpForSend.isConnector && grpForSend.connectorArticles) {
+      sendReadingText = grpForSend.connectorArticles
+        .map(function (a) {
+          return "Article " + a.letter + ": " + a.title + "\n" + a.content;
+        })
+        .join("\n\n");
+    }
     const sendFile = q.audio || grpForSend.mainAudio || q.extraAudio || "";
     sendAnswerToSheet({
       section: currentSection,
