@@ -792,9 +792,9 @@ function sendAnswerToSheet(data) {
     type: data.type || "",
     userChoice: data.userChoice || "",
     userText: data.userText || "",
-    // Aquí puedes decidir: si ya subes el audio a Drive en el backend,
-    // envía solo userVoiceUrl. Si aún no lo subes, mantén los blobs.
-    userVoiceUrl: data.userVoiceUrl || "",
+    userVoice: data.userVoice || "",
+    userVoiceData: data.userVoiceData || "",
+    userVoiceName: data.userVoiceName || "",
     correctAnswer: data.correctAnswer || "",
     score: data.score !== undefined ? data.score : "",
     notes: data.notes || "",
@@ -1026,6 +1026,7 @@ async function logActivity(accion, detalle = "") {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        section: currentSection || "",
         time: new Date().toISOString(),
         user: currentUser.name,
         email: currentUser.email,
@@ -3541,6 +3542,7 @@ function setupEventListeners() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            section: "Registration",
             time: new Date().toISOString(),
             user: nombre,
             email: email,
