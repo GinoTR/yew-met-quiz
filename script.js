@@ -805,14 +805,14 @@ function sendAnswerToSheet(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   })
-  .then(res => res.json())
-  .then(result => {
-    console.log("Respuesta Apps Script:", result);
-  })
-  .catch(err => {
-    console.error("Error al enviar:", err);
-    console.log("Answer data saved locally:", payload);
-  });
+    .then((res) => res.json())
+    .then((result) => {
+      console.log("Respuesta Apps Script:", result);
+    })
+    .catch((err) => {
+      console.error("Error al enviar:", err);
+      console.log("Answer data saved locally:", payload);
+    });
 }
 
 // Convierte un Blob a base64 para enviarlo al servidor
@@ -3605,39 +3605,20 @@ function setupEventListeners() {
       hideChangeUserModal();
     });
 
-  // Help form
-  document.getElementById("help-form")?.addEventListener("submit", (e) => {
-    e.preventDefault();
+  // Help send button
+  document.getElementById("help-send-btn")?.addEventListener("click", () => {
     const mensaje = document.getElementById("help-text").value.trim();
     if (!mensaje) return;
 
-    const detalle = mensaje.substring(0, 500);
+    const helpText = mensaje.substring(0, 500);
 
-    // Send consultation to Google Sheets
-    if (APPS_SCRIPT_URL) {
-      fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          time: new Date().toISOString(),
-          user: currentUser?.name || "",
-          email: currentUser?.email || "",
-          partNum: "",
-          file: "",
-          readingText: "",
-          question: "",
-          type: "consultation",
-          userChoice: "",
-          userText: detalle,
-          userVoice: "",
-          correctAnswer: "",
-          score: "",
-          notes:
-            "CONSULTATION" +
-            (currentSection ? " [" + currentSection + "]" : ""),
-        }),
-      }).catch(() => null);
-    }
+    sendAnswerToSheet({
+      section: "Help",
+      type: "consultation",
+      userText: helpText,
+      notes:
+        "CONSULTATION" + (currentSection ? " [" + currentSection + "]" : ""),
+    });
 
     alert("Thank you! We will respond soon.");
     hideHelpModal();

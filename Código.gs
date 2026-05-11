@@ -11,11 +11,12 @@ const COLUMNS = [
 
 function getSheetName(section) {
   if (!section) return 'Writing';
+  if (section === 'Help') return 'Help';
   if (section.startsWith('WRITING')) return 'Writing';
   if (section.startsWith('LISTENING')) return 'Listening';
   if (section.startsWith('READING')) return 'ReadingGrammar';
   if (section.startsWith('SPEAKING')) return 'Speaking';
-  if (section === 'consultation') return 'Writing';
+  if (section === 'consultation') return 'Help';
   return 'Writing';
 }
 
