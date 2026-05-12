@@ -2898,6 +2898,8 @@ function beginSpeaking(partKey, saved = null) {
 function goToPreview() {
   // Queue all responses before preview (no duplicates)
   queueSectionResponses();
+  // Flush in-memory responses to localStorage so Preview reads the latest data
+  saveProgress();
   sectionPreviewMode = true;
   currentPreviewIndex = 0;
   const sectionParts = SECTION_PARTS[currentSection];
@@ -2976,8 +2978,12 @@ function buildPreviewSlides(section, items, inputType) {
 
     const responses =
       inputType === "textarea"
-        ? saved?.writingResponses || sectionResponses || {}
-        : saved?.speakingResponses || speakingResponses || [];
+        ? sectionResponses && Object.keys(sectionResponses).length > 0
+          ? sectionResponses
+          : saved?.writingResponses || {}
+        : speakingResponses && speakingResponses.length > 0
+          ? speakingResponses
+          : saved?.speakingResponses || [];
 
     const sectionData = quizData[section];
     const abanicoId =
@@ -3282,9 +3288,15 @@ function showResults() {
 
         let responses;
         if (sectionType === "textarea") {
-          responses = saved?.writingResponses || sectionResponses || {};
+          responses =
+            sectionResponses && Object.keys(sectionResponses).length > 0
+              ? sectionResponses
+              : saved?.writingResponses || {};
         } else {
-          responses = saved?.speakingResponses || speakingResponses || [];
+          responses =
+            speakingResponses && speakingResponses.length > 0
+              ? speakingResponses
+              : saved?.speakingResponses || [];
         }
 
         const answered = itemsInPart.filter((item) => {
