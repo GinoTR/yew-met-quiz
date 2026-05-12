@@ -1779,9 +1779,6 @@ async function startSpeakingrecording(taskIndex, timeLimit) {
 
       saveProgress();
       updatePrevButtonVisibility();
-
-      // Send speaking audio to Google Sheets
-      sendCurrentSpeakingData(taskIndex);
     };
 
     speakingMediaRecorder.start();
@@ -2333,77 +2330,66 @@ function getNextStep() {
   return null;
 }
 
-// Envía datos de respuesta de Writing a Sheets antes de navegar
-function sendCurrentWritingData() {
-  const sectionType = getSectionType(currentPartKey);
-  if (sectionType !== "textarea") return;
-  const sectionParts = SECTION_PARTS[currentSection];
-  const item = sectionParts?.[currentItemIndex];
-  if (!item) return;
-  const response = sectionResponses[item.partKey]?.[item.itemNum];
-  if (!response || response.length === 0) return;
-  const partData = quizData[currentSection]?.parts?.find(
-    (p) => p.id === item.partId,
-  );
-  let abanico = null;
-  if (partData?.abanicos && currentAbanicoId) {
-    abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
-  }
-  let qText = "";
-  if (item.isEssay) {
-    qText = abanico?.topic || "";
-  } else if (abanico?.questions) {
-    const task = abanico.questions.find((t) => t.number === item.itemNum);
-    qText = task?.text || "";
-  }
-  queueAnswerToSheet({
-    section: currentSection,
-    partNum: item.partId,
-    question: qText,
-    type: "writing",
-    userText: response,
-    score: 1,
-  });
-}
-
-// Queue ALL writing responses before preview (replaces existing writing entries to avoid duplicates)
-function sendAllWritingData() {
-  const sectionType = getSectionType(currentPartKey);
-  if (sectionType !== "textarea") return;
-  if (!currentSection) return;
-  const sectionParts = SECTION_PARTS[currentSection];
+// Queue ALL responses for the current section before preview (generic, replaces sendAllWritingData)
+// Handles textarea (Writing) and audio (Speaking) sections dynamically using sectionResponses per partKey/itemNum
+function queueSectionResponses() {
+  const section = currentSection;
+  if (!section) return;
+  const sectionParts = SECTION_PARTS[section];
   if (!sectionParts) return;
 
-  // Remove existing writing entries for this section to avoid duplicates
+  const firstItem = sectionParts[0];
+  const inputType = firstItem?.inputType;
+  // MC is queued individually in checkCurrentGroup(), skip here
+  if (!inputType) return;
+
+  // Remove existing entries for this section to avoid duplicates
   let queue = JSON.parse(localStorage.getItem("metQuizPendingSends") || "[]");
   queue = queue.filter(function (entry) {
-    return !(entry.section === currentSection && entry.type === "writing");
+    return entry.section !== section;
   });
 
   sectionParts.forEach(function (item) {
-    const response = sectionResponses[item.partKey]?.[item.itemNum];
-    if (!response || response.length === 0) return;
-    const partData = quizData[currentSection]?.parts?.find(
+    let response = null;
+    let qText = "";
+    let type = "";
+
+    const partData = quizData[section]?.parts?.find(
       (p) => p.id === item.partId,
     );
     let abanico = null;
     if (partData?.abanicos && currentAbanicoId) {
       abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
     }
-    let qText = "";
-    if (item.isEssay) {
-      qText = abanico?.topic || "";
-    } else if (abanico?.questions) {
-      const task = abanico.questions.find((t) => t.number === item.itemNum);
-      qText = task?.text || "";
+
+    if (inputType === "textarea") {
+      response = sectionResponses[item.partKey]?.[item.itemNum];
+      if (!response || response.length === 0) return;
+      type = "writing";
+      if (item.isEssay) {
+        qText = abanico?.topic || "";
+      } else if (abanico?.questions) {
+        const task = abanico.questions.find((t) => t.number === item.itemNum);
+        qText = task?.text || "";
+      }
+    } else if (inputType === "audio") {
+      const globalIdx = sectionParts.indexOf(item);
+      const sr = speakingResponses[globalIdx];
+      if (!sr) return;
+      type = "speaking";
+      const task = abanico?.questions?.[globalIdx];
+      qText = task?.prompt || "";
+    } else {
+      return;
     }
+
     queue.push(
       buildAnswerPayload({
-        section: currentSection,
+        section: section,
         partNum: item.partId,
         question: qText,
-        type: "writing",
-        userText: response,
+        type: type,
+        userText: response || "",
         score: 1,
       }),
     );
@@ -2412,34 +2398,8 @@ function sendAllWritingData() {
   localStorage.setItem("metQuizPendingSends", JSON.stringify(queue));
 }
 
-// Envía datos de audio de Speaking a Sheets
-async function sendCurrentSpeakingData(taskIndex) {
-  const sectionType = getSectionType(currentPartKey);
-  if (sectionType !== "audio") return;
-  const sectionParts = SECTION_PARTS[currentSection];
-  const item = sectionParts?.[currentItemIndex];
-  if (!item) return;
-  const partData = quizData[currentSection]?.parts?.find(
-    (p) => p.id === item.partId,
-  );
-  let abanico = null;
-  if (partData?.abanicos && currentAbanicoId) {
-    abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
-  }
-  const task = abanico?.questions?.[taskIndex];
-  const promptText = task?.prompt || "";
-  queueAnswerToSheet({
-    section: currentSection,
-    partNum: item.partId,
-    question: promptText,
-    type: "speaking",
-    score: 1,
-  });
-}
-
 // Unified: navega a un step específico por itemIndex (Writing/Speaking)
 function navigateToStep(itemIndex, newPartKey) {
-  sendCurrentWritingData();
   pauseTimer();
   saveProgress();
   if (newPartKey) currentPartKey = newPartKey;
@@ -2460,8 +2420,6 @@ function navigateToStep(itemIndex, newPartKey) {
 function navigateToNextStep() {
   const next = getNextStep();
   if (!next) {
-    // Send current writing data before going to preview
-    sendCurrentWritingData();
     goToPreview();
     return;
   }
@@ -2938,8 +2896,8 @@ function beginSpeaking(partKey, saved = null) {
 
 // Navigate to preview using universal renderPreview
 function goToPreview() {
-  // Queue all unsent writing responses before preview
-  sendAllWritingData();
+  // Queue all responses before preview (no duplicates)
+  queueSectionResponses();
   sectionPreviewMode = true;
   currentPreviewIndex = 0;
   const sectionParts = SECTION_PARTS[currentSection];
@@ -3497,8 +3455,6 @@ function getPrevPartKey() {
 
 // Navigate to a specific part
 function navigateToPart(partKey) {
-  // Send current writing data before switching parts
-  sendCurrentWritingData();
   pauseTimer();
   saveProgress();
 
