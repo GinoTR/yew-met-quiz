@@ -783,7 +783,7 @@ const letters = ["A", "B", "C", "D"];
 
 // URL para enviar datos a Google Sheets (En caso de actualizar, está en: línea 523, 709 y 740 y en SETUP.md)
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyEU0JtzDuEKLj322Zkiot1M9ELR6-xuSeSU5LlHelUlJeYBqHhC2tTHMGouktyr0_V/exec";
+  "https://metquiz-proxy.yourenglishworld-dianagranados.workers.dev/";
 
 // Construye payload de 14 columnas universales para Google Sheets
 function buildAnswerPayload(data) {
