@@ -767,8 +767,8 @@ let pendingSection = null;
 
 // Grupo actual
 let currentGroup = null;
-// Respuestas de la sección
-let sectionResponses = [];
+// Respuestas de la sección (per-partKey: { WRITING_P1: {1: "...", 2: "..."}, WRITING_P2: {1: "..."} })
+let sectionResponses = {};
 // Respuestas seleccionadas en el grupo
 let groupSelectedAnswers = {};
 // Si el grupo ya fue revisado
@@ -963,7 +963,7 @@ function resetAllProgress() {
     clearSpeakingDB().catch(console.error);
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
     answeredQuestions = new Set();
-    sectionResponses = [];
+    sectionResponses = {};
     speakingResponses = [];
     currentItemIndex = 0;
     currentQuestionIndex = 0;
@@ -992,7 +992,7 @@ function resetSectionProgress() {
     clearProgress();
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
     answeredQuestions = new Set();
-    sectionResponses = [];
+    sectionResponses = {};
     currentItemIndex = 0;
     currentQuestionIndex = 0;
     beginQuiz(currentSection);
@@ -1362,8 +1362,15 @@ function getPartProgress(partKey, saved) {
     }
 
     const answered = itemsInPart.filter((item) => {
-      const globalIdx = sectionParts.indexOf(item);
-      const response = responses[globalIdx];
+      let response;
+      if (sectionType === "textarea") {
+        // New per-partKey storage format
+        response = responses?.[item.partKey]?.[item.itemNum];
+      } else {
+        // Speaking: flat array (global index)
+        const globalIdx = sectionParts.indexOf(item);
+        response = responses?.[globalIdx];
+      }
       if (!response) return false;
 
       if (item.inputType === "textarea") {
@@ -1503,20 +1510,18 @@ function beginWriting(partKey, saved = null) {
   }
 
   currentPartKey = partKey;
-  const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
   // Find the item index in SECTION_PARTS that matches the partKey
   const sectionParts = SECTION_PARTS[currentSection];
   const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
   currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
 
-  // Load saved responses if available
-  if (hasSavedProgress) {
-    sectionResponses = saved.writingResponses || [];
-    currentAbanicoId = saved.writingAbanicoId || null;
-  } else {
-    sectionResponses = [];
-    // Select random abanico for each part
+  // Load existing writing responses to preserve data across parts
+  sectionResponses = saved?.writingResponses || sectionResponses || {};
+  currentAbanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
+
+  // Select new abanico only if none set
+  if (!currentAbanicoId) {
     const partId = SECTION_CONFIG[partKey]?.partId;
     const partData = sectionData.parts?.find((p) => p.id === partId);
     const abanico = selectAbanico(partData);
@@ -1643,7 +1648,7 @@ function renderWritingStep(item, sectionData) {
     }
   }
 
-  const savedResponse = sectionResponses[currentItemIndex] || "";
+  const savedResponse = sectionResponses[item.partKey]?.[item.itemNum] || "";
   html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
   html += `<div class="char-counter" id="char-count-container">`;
   html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
@@ -2335,7 +2340,7 @@ function sendCurrentWritingData() {
   const sectionParts = SECTION_PARTS[currentSection];
   const item = sectionParts?.[currentItemIndex];
   if (!item) return;
-  const response = sectionResponses[currentItemIndex];
+  const response = sectionResponses[item.partKey]?.[item.itemNum];
   if (!response || response.length === 0) return;
   const partData = quizData[currentSection]?.parts?.find(
     (p) => p.id === item.partId,
@@ -2359,6 +2364,52 @@ function sendCurrentWritingData() {
     userText: response,
     score: 1,
   });
+}
+
+// Queue ALL writing responses before preview (replaces existing writing entries to avoid duplicates)
+function sendAllWritingData() {
+  const sectionType = getSectionType(currentPartKey);
+  if (sectionType !== "textarea") return;
+  if (!currentSection) return;
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return;
+
+  // Remove existing writing entries for this section to avoid duplicates
+  let queue = JSON.parse(localStorage.getItem("metQuizPendingSends") || "[]");
+  queue = queue.filter(function (entry) {
+    return !(entry.section === currentSection && entry.type === "writing");
+  });
+
+  sectionParts.forEach(function (item) {
+    const response = sectionResponses[item.partKey]?.[item.itemNum];
+    if (!response || response.length === 0) return;
+    const partData = quizData[currentSection]?.parts?.find(
+      (p) => p.id === item.partId,
+    );
+    let abanico = null;
+    if (partData?.abanicos && currentAbanicoId) {
+      abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+    }
+    let qText = "";
+    if (item.isEssay) {
+      qText = abanico?.topic || "";
+    } else if (abanico?.questions) {
+      const task = abanico.questions.find((t) => t.number === item.itemNum);
+      qText = task?.text || "";
+    }
+    queue.push(
+      buildAnswerPayload({
+        section: currentSection,
+        partNum: item.partId,
+        question: qText,
+        type: "writing",
+        userText: response,
+        score: 1,
+      }),
+    );
+  });
+
+  localStorage.setItem("metQuizPendingSends", JSON.stringify(queue));
 }
 
 // Envía datos de audio de Speaking a Sheets
@@ -2409,6 +2460,8 @@ function navigateToStep(itemIndex, newPartKey) {
 function navigateToNextStep() {
   const next = getNextStep();
   if (!next) {
+    // Send current writing data before going to preview
+    sendCurrentWritingData();
     goToPreview();
     return;
   }
@@ -2505,9 +2558,12 @@ function setupTextareaEvents() {
     if (counterContainer)
       counterContainer.classList.toggle("visible", count > limit * 0.9);
 
-    // Save textarea response to sectionResponses and localStorage
+    // Save textarea response to sectionResponses and localStorage (per-partKey)
     if (currentItem) {
-      sectionResponses[currentItemIndex] = this.value;
+      const pk = currentItem.partKey;
+      const num = currentItem.itemNum;
+      if (!sectionResponses[pk]) sectionResponses[pk] = {};
+      sectionResponses[pk][num] = this.value;
     }
     saveProgress();
   });
@@ -2807,16 +2863,15 @@ function beginSpeaking(partKey, saved = null) {
   const sectionData = quizData[currentSection];
   if (!sectionData || !sectionData.parts) return false;
 
-  const hasSavedProgress = saved && saved.currentPartKey === partKey;
-  speakingTaskIndex = hasSavedProgress ? saved.speakingTaskIndex || 0 : 0;
-  speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
-
   currentPartKey = partKey;
 
-  // Select random abanico if not saved
-  if (hasSavedProgress) {
-    currentAbanicoId = saved.speakingAbanicoId || null;
-  } else {
+  // Load existing speaking responses to preserve data across parts
+  speakingTaskIndex = saved?.speakingTaskIndex || 0;
+  speakingResponses = saved?.speakingResponses || speakingResponses || [];
+  currentAbanicoId = saved?.speakingAbanicoId || currentAbanicoId || null;
+
+  // Select random abanico only if none set
+  if (!currentAbanicoId) {
     const partId = config.partId;
     const partData = sectionData.parts?.find((p) => p.id === partId);
     const abanico = selectAbanico(partData);
@@ -2883,6 +2938,8 @@ function beginSpeaking(partKey, saved = null) {
 
 // Navigate to preview using universal renderPreview
 function goToPreview() {
+  // Queue all unsent writing responses before preview
+  sendAllWritingData();
   sectionPreviewMode = true;
   currentPreviewIndex = 0;
   const sectionParts = SECTION_PARTS[currentSection];
@@ -2961,7 +3018,7 @@ function buildPreviewSlides(section, items, inputType) {
 
     const responses =
       inputType === "textarea"
-        ? saved?.writingResponses || sectionResponses || []
+        ? saved?.writingResponses || sectionResponses || {}
         : saved?.speakingResponses || speakingResponses || [];
 
     const sectionData = quizData[section];
@@ -2984,13 +3041,19 @@ function buildPreviewSlides(section, items, inputType) {
       }
 
       part.items.forEach((item) => {
-        const globalIdx = items.indexOf(item);
-        const response = responses[globalIdx];
-        const hasResponse =
-          inputType === "textarea"
-            ? typeof response === "string" && response.length > 0
-            : response && (response.blob || response.duration);
-
+        let response;
+        let hasResponse;
+        let globalIdx;
+        if (inputType === "textarea") {
+          // Per-partKey storage
+          response = responses?.[item.partKey]?.[item.itemNum];
+          hasResponse = typeof response === "string" && response.length > 0;
+        } else {
+          // Speaking: flat array (global index)
+          globalIdx = items.indexOf(item);
+          response = responses?.[globalIdx];
+          hasResponse = response && (response.blob || response.duration);
+        }
         if (inputType === "textarea") {
           // Writing
           if (item.isEssay) {
@@ -3259,16 +3322,21 @@ function showResults() {
         );
         const total = itemsInPart.length;
 
-        let responses = [];
+        let responses;
         if (sectionType === "textarea") {
-          responses = saved?.writingResponses || sectionResponses || [];
+          responses = saved?.writingResponses || sectionResponses || {};
         } else {
           responses = saved?.speakingResponses || speakingResponses || [];
         }
 
         const answered = itemsInPart.filter((item) => {
-          const globalIdx = sectionParts.indexOf(item);
-          const response = responses[globalIdx];
+          let response;
+          if (sectionType === "textarea") {
+            response = responses?.[item.partKey]?.[item.itemNum];
+          } else {
+            const globalIdx = sectionParts.indexOf(item);
+            response = responses?.[globalIdx];
+          }
           if (!response) return false;
           if (item.inputType === "textarea") {
             return typeof response === "string" && response.length > 0;
@@ -3429,6 +3497,8 @@ function getPrevPartKey() {
 
 // Navigate to a specific part
 function navigateToPart(partKey) {
+  // Send current writing data before switching parts
+  sendCurrentWritingData();
   pauseTimer();
   saveProgress();
 
