@@ -174,6 +174,15 @@ const SECTION_TIMES = {
   SPEAKING: 20 * 60, // 20 minutos
 };
 
+// Mapa de claves de sección a nombres de hoja en Google Sheets
+const SECTION_SHEET_MAP = {
+  WRITING: "Writing",
+  LISTENING: "Listening",
+  READING_AND_GRAMMAR: "ReadingGrammar",
+  SPEAKING: "Speaking",
+  Help: "Help",
+};
+
 // Tiempo de advertencia (5 minutos antes de acabar)
 const WARNING_TIME = 5 * 60;
 
@@ -776,12 +785,12 @@ const letters = ["A", "B", "C", "D"];
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbyEU0JtzDuEKLj322Zkiot1M9ELR6-xuSeSU5LlHelUlJeYBqHhC2tTHMGouktyr0_V/exec";
 
-// Envía datos de respuesta a Google Sheets (14 columnas universales)
-function sendAnswerToSheet(data) {
-  if (!APPS_SCRIPT_URL) return;
-
-  const payload = {
-    section: data.section || currentSection || "",
+// Construye payload de 14 columnas universales para Google Sheets
+function buildAnswerPayload(data) {
+  const rawSection = data.section || currentSection || "";
+  const section = SECTION_SHEET_MAP[rawSection] || rawSection;
+  return {
+    section: section,
     time: new Date().toISOString(),
     user: currentUser?.name || "",
     email: currentUser?.email || "",
@@ -792,14 +801,17 @@ function sendAnswerToSheet(data) {
     type: data.type || "",
     userChoice: data.userChoice || "",
     userText: data.userText || "",
-    userVoice: data.userVoice || "",
-    userVoiceData: data.userVoiceData || "",
-    userVoiceName: data.userVoiceName || "",
+    userVoiceUrl: data.userVoiceUrl || "",
     correctAnswer: data.correctAnswer || "",
     score: data.score !== undefined ? data.score : "",
     notes: data.notes || "",
   };
+}
 
+// Envía datos directamente a Google Sheets (solo para modal de ayuda)
+function sendAnswerToSheet(data) {
+  if (!APPS_SCRIPT_URL) return;
+  const payload = buildAnswerPayload(data);
   fetch(APPS_SCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -815,16 +827,34 @@ function sendAnswerToSheet(data) {
     });
 }
 
-// Convierte un Blob a base64 para enviarlo al servidor
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result.split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+// Acumula datos en cola local para enviar solo al confirmar en preview
+function queueAnswerToSheet(data) {
+  if (!APPS_SCRIPT_URL) return;
+  const payload = buildAnswerPayload(data);
+  let queue = JSON.parse(localStorage.getItem("metQuizPendingSends") || "[]");
+  queue.push(payload);
+  localStorage.setItem("metQuizPendingSends", JSON.stringify(queue));
+}
+
+// Envía toda la cola acumulada al Apps Script
+function flushPendingSends() {
+  if (!APPS_SCRIPT_URL) return;
+  const queue = JSON.parse(localStorage.getItem("metQuizPendingSends") || "[]");
+  if (queue.length === 0) return;
+  localStorage.removeItem("metQuizPendingSends");
+  queue.forEach((payload) => {
+    fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        console.log("Respuesta Apps Script:", result);
+      })
+      .catch((err) => {
+        console.error("Error al enviar:", err);
+      });
   });
 }
 
@@ -912,6 +942,7 @@ function loadProgress() {
 // Borra todo el progreso guardado
 function clearProgress() {
   localStorage.removeItem("metQuizProgress");
+  localStorage.removeItem("metQuizPendingSends");
 }
 
 // Reinicia todo el progreso del quiz
@@ -1037,7 +1068,7 @@ async function logActivity(accion, detalle = "") {
         type: "activity",
         userChoice: "",
         userText: detalle,
-        userVoice: "",
+        userVoiceUrl: "",
         correctAnswer: "",
         score: "",
         notes: accion + (currentSection ? " [" + currentSection + "]" : ""),
@@ -1745,7 +1776,7 @@ async function startSpeakingrecording(taskIndex, timeLimit) {
       updatePrevButtonVisibility();
 
       // Send speaking audio to Google Sheets
-      sendCurrentSpeakingData(taskIndex, blob).catch(console.error);
+      sendCurrentSpeakingData(taskIndex);
     };
 
     speakingMediaRecorder.start();
@@ -2234,7 +2265,7 @@ function checkCurrentGroup() {
     answeredQuestions.add(questionIdx);
     saveAnswerToHash(letters[optIdx], q.globalNumber);
 
-    // Send MC answer to Google Sheets
+    // Queue MC answer for later batch send
     const grpForSend = questionGroups[currentGroupIndex];
     let sendReadingText = "";
     if (grpForSend.passage) sendReadingText = grpForSend.passage;
@@ -2247,7 +2278,7 @@ function checkCurrentGroup() {
         .join("\n\n");
     }
     const sendFile = q.audio || grpForSend.mainAudio || q.extraAudio || "";
-    sendAnswerToSheet({
+    queueAnswerToSheet({
       section: currentSection,
       partNum: SECTION_CONFIG[currentPartKey]?.partId || 1,
       file: sendFile,
@@ -2320,7 +2351,7 @@ function sendCurrentWritingData() {
     const task = abanico.questions.find((t) => t.number === item.itemNum);
     qText = task?.text || "";
   }
-  sendAnswerToSheet({
+  queueAnswerToSheet({
     section: currentSection,
     partNum: item.partId,
     question: qText,
@@ -2331,7 +2362,7 @@ function sendCurrentWritingData() {
 }
 
 // Envía datos de audio de Speaking a Sheets
-async function sendCurrentSpeakingData(taskIndex, blob) {
+async function sendCurrentSpeakingData(taskIndex) {
   const sectionType = getSectionType(currentPartKey);
   if (sectionType !== "audio") return;
   const sectionParts = SECTION_PARTS[currentSection];
@@ -2346,17 +2377,11 @@ async function sendCurrentSpeakingData(taskIndex, blob) {
   }
   const task = abanico?.questions?.[taskIndex];
   const promptText = task?.prompt || "";
-  const base64 = await blobToBase64(blob);
-  const fileName =
-    (currentUser?.name || "user").replace(/\s+/g, "_") +
-    `_speaking_p${item.partId}_q${item.itemNum}.webm`;
-  sendAnswerToSheet({
+  queueAnswerToSheet({
     section: currentSection,
     partNum: item.partId,
     question: promptText,
     type: "speaking",
-    userVoiceData: base64,
-    userVoiceName: fileName,
     score: 1,
   });
 }
@@ -3278,24 +3303,6 @@ function showResults() {
 
   logActivity("RESULTS", `Final score: ${percentage}%`);
 
-  // Send final results to Google Sheets
-  const scoreText = `${percentage}% (${totalCorrect}/${totalQuestions})`;
-  if (APPS_SCRIPT_URL) {
-    ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"].forEach(
-      (sec) => {
-        sendAnswerToSheet({
-          section: sec,
-          partNum: "",
-          question: "",
-          type: "result",
-          userText: scoreText,
-          score: "",
-          notes: `FINAL_RESULT - Total: ${totalCorrect}/${totalQuestions} = ${percentage}%`,
-        });
-      },
-    );
-  }
-
   stopTimer();
 }
 
@@ -3494,10 +3501,11 @@ function setupEventListeners() {
   });
 
   // Preview carousel navigation is handled by updateCarouselNav() (onclick)
-  // Preview confirm button
+  // Preview confirm button: flush queued data then show results
   document
     .getElementById("preview-confirm-btn")
     ?.addEventListener("click", () => {
+      flushPendingSends();
       window.location.hash = "#/results";
     });
 
@@ -3553,7 +3561,7 @@ function setupEventListeners() {
             type: "registration",
             userChoice: "",
             userText: "New user registered",
-            userVoice: "",
+            userVoiceUrl: "",
             correctAnswer: "",
             score: "",
             notes: "REGISTER_USER",
@@ -3662,26 +3670,6 @@ function setupEventListeners() {
   document.getElementById("email-btn")?.addEventListener("click", () => {
     const scoreDisplay =
       document.getElementById("score-display")?.textContent || "";
-    // Send final results to Google Sheets
-    if (APPS_SCRIPT_URL) {
-      const sections = [
-        "WRITING",
-        "LISTENING",
-        "READING_AND_GRAMMAR",
-        "SPEAKING",
-      ];
-      sections.forEach((sec) => {
-        sendAnswerToSheet({
-          section: sec,
-          partNum: "",
-          question: "",
-          type: "result",
-          userText: scoreDisplay,
-          score: "",
-          notes: "FINAL_RESULT",
-        });
-      });
-    }
     const subject = "MET Quiz Results";
     const body = "Results: " + scoreDisplay;
     window.location.href =
