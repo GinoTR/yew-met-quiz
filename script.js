@@ -909,7 +909,7 @@ function saveProgress() {
       questionIndex: q.questionIndex,
     })),
     itemIndex: currentItemIndex,
-    writingResponses: sectionResponses,
+    sectionResponses: sectionResponses,
     writingGroupId: currentGroup?.id || null,
     writingAbanicoId: currentAbanicoId,
     answers: existing.answers || {},
@@ -1339,7 +1339,7 @@ function getPartProgress(partKey, saved) {
   // If section type is textarea or audio (Writing/Speaking), use unified sectionResponses by partKey/itemNum
   if (sectionType === "textarea" || sectionType === "audio") {
     const total = itemsInPart.length;
-    const responses = saved.writingResponses || sectionResponses || {};
+    const responses = saved.sectionResponses || sectionResponses || {};
 
     const answered = itemsInPart.filter((item) => {
       const response = responses?.[item.partKey]?.[item.itemNum];
@@ -1486,7 +1486,7 @@ function beginWriting(partKey, saved = null) {
   currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
 
   // Load existing writing responses to preserve data across parts
-  sectionResponses = saved?.writingResponses || sectionResponses || {};
+  sectionResponses = saved?.sectionResponses || sectionResponses || {};
   currentAbanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
 
   // Select new abanico only if none set
@@ -2806,7 +2806,7 @@ function beginSpeaking(partKey, saved = null) {
   currentPartKey = partKey;
 
   // Load existing sectionResponses to preserve data across parts (unified with Writing)
-  sectionResponses = saved?.writingResponses || sectionResponses || {};
+  sectionResponses = saved?.sectionResponses || sectionResponses || {};
   currentAbanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
 
   // Select random abanico only if none set
@@ -2954,7 +2954,7 @@ function buildPreviewSlides(section, items, inputType) {
     const responses =
       sectionResponses && Object.keys(sectionResponses).length > 0
         ? sectionResponses
-        : saved?.writingResponses || {};
+        : saved?.sectionResponses || {};
 
     const sectionData = quizData[section];
     const abanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
@@ -3244,7 +3244,7 @@ function showResults() {
         const responses =
           sectionResponses && Object.keys(sectionResponses).length > 0
             ? sectionResponses
-            : saved?.writingResponses || {};
+            : saved?.sectionResponses || {};
 
         const answered = itemsInPart.filter((item) => {
           const response = responses?.[item.partKey]?.[item.itemNum];
