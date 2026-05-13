@@ -1704,6 +1704,33 @@ h1 {
   /* Inherits from .feedback base class */
 }
 
+/* Feedback-box: reserves space to prevent CLS when feedback appears */
+.feedback-box {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-height: 24px;
+  background-color: var(--bg-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.feedback-box.correct {
+  background-color: var(--color-correct-bg);
+  color: var(--color-primary-dark);
+}
+
+.feedback-box.incorrect {
+  background-color: var(--color-incorrect-bg);
+  color: var(--color-incorrect);
+}
+
+[data-theme="dark"] .feedback-box.incorrect {
+  background-color: #3a2a10;
+  color: #fbbf24;
+}
+
 .group-q-feedback.correct {
   /* Inherits from .feedback.correct */
   display: block !important;
