@@ -502,6 +502,13 @@ function loadFromHash() {
   const sectionKey = parentSection;
   const targetPartKey = section; // section is the partKey
   const sectionType = getSectionType(targetPartKey);
+  const needsNavigationInsidePart = qStart !== null && qStart !== undefined;
+
+  // When we need to navigate to a specific question/item inside a part,
+  // prevent beginXxx() from rendering — the timeout will handle it
+  if (needsNavigationInsidePart) {
+    _pendingHashNavigation = true;
+  }
 
   // Check if we need to navigate to a different section
   if (currentSection !== sectionKey) {
@@ -520,39 +527,43 @@ function loadFromHash() {
   }
 
   // Navigate to the specific question within the current part
-  setTimeout(() => {
-    if (sectionType === "textarea" || sectionType === "audio") {
-      // Writing or Speaking
-      const sectionParts = SECTION_PARTS[sectionKey];
-      const targetItemIndex = sectionParts.findIndex(
-        (item) => item.partKey === targetPartKey && item.itemNum === qStart,
-      );
-      if (targetItemIndex >= 0 && targetItemIndex !== currentItemIndex) {
-        currentItemIndex = targetItemIndex;
-        renderStep(
-          sectionKey,
-          currentItemIndex,
-          quizData[sectionKey],
-          sectionType,
+  if (needsNavigationInsidePart) {
+    setTimeout(() => {
+      _pendingHashNavigation = false;
+
+      if (sectionType === "textarea" || sectionType === "audio") {
+        // Writing or Speaking
+        const sectionParts = SECTION_PARTS[sectionKey];
+        const targetItemIndex = sectionParts.findIndex(
+          (item) => item.partKey === targetPartKey && item.itemNum === qStart,
         );
-        hashNavigationLocked = true;
-        updateHash(targetPartKey, targetItemIndex);
-        hashNavigationLocked = false;
-      }
-    } else {
-      // MC section
-      if (questionGroups.length > 0) {
-        const targetGroupIndex = questionGroups.findIndex(
-          (g) =>
-            qStart >= g.questionRange.start && qStart <= g.questionRange.end,
-        );
-        if (targetGroupIndex >= 0 && targetGroupIndex !== currentGroupIndex) {
-          currentGroupIndex = targetGroupIndex;
-          loadGroup();
+        if (targetItemIndex >= 0) {
+          currentItemIndex = targetItemIndex;
+          renderStep(
+            sectionKey,
+            currentItemIndex,
+            quizData[sectionKey],
+            sectionType,
+          );
+          hashNavigationLocked = true;
+          updateHash(targetPartKey, targetItemIndex);
+          hashNavigationLocked = false;
+        }
+      } else {
+        // MC section
+        if (questionGroups.length > 0) {
+          const targetGroupIndex = questionGroups.findIndex(
+            (g) =>
+              qStart >= g.questionRange.start && qStart <= g.questionRange.end,
+          );
+          if (targetGroupIndex >= 0) {
+            currentGroupIndex = targetGroupIndex;
+            loadGroup();
+          }
         }
       }
-    }
-  }, 200);
+    }, 0);
+  }
 }
 
 window.addEventListener("hashchange", loadFromHash);
@@ -777,6 +788,10 @@ let groupChecked = false;
 let currentItemIndex = 0;
 // Índice de vista previa
 let currentPreviewIndex = 0;
+// Flag para evitar render inicial en beginXxx() desde loadFromHash()
+let _pendingHashNavigation = false;
+// Guard para evitar renderStep() redundante
+let _lastRenderKey = "";
 
 // Letras para las opciones
 const letters = ["A", "B", "C", "D"];
@@ -1505,7 +1520,9 @@ function beginWriting(partKey, saved = null) {
   setupInstructionsPanel();
   logActivity("START", `${currentSection} - ${partKey}`);
 
-  renderStep(currentSection, currentItemIndex, sectionData, "textarea");
+  if (!_pendingHashNavigation) {
+    renderStep(currentSection, currentItemIndex, sectionData, "textarea");
+  }
   updatePrevButtonVisibility();
 
   // Update hash using universal format
@@ -1518,16 +1535,10 @@ function beginWriting(partKey, saved = null) {
 
 // Universal step renderer for Writing (textarea) and Speaking (audio)
 function renderStep(section, itemIndex, partData, inputType) {
-  const container = getElement("quiz-container");
-  container.classList.remove("fade-out");
-  void container.offsetWidth;
-  container.classList.add("fade-out");
-  setTimeout(() => {
-    container.classList.remove("fade-out");
-    container.style.animation = "none";
-    void container.offsetWidth;
-    container.style.animation = "fadeIn 0.5s ease";
-  }, 300);
+  // Guard: skip if already rendering this exact step (prevents blink)
+  const renderKey = `${section}:${itemIndex}:${inputType}`;
+  if (renderKey === _lastRenderKey) return;
+  _lastRenderKey = renderKey;
 
   // Clean up audio from previous step
   if (currentAudioElement) {
@@ -1621,7 +1632,8 @@ function renderWritingStep(item, sectionData) {
   html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
   html += `<div class="char-counter" id="char-count-container">`;
   html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
-  html += `</div></div>`;
+  html += `</div>`;
+  html += `<div class="feedback-area"></div></div>`;
 
   getElement("question-text").classList.add("hidden");
   container.innerHTML = html;
@@ -1665,7 +1677,7 @@ function renderSpeakingStep(item, sectionData) {
   html += `</div>`;
   html += `<div id="recording-status" class="hidden"></div>`;
   html += `<audio id="playback-audio" controls class="hidden"></audio>`;
-  html += `</div>`;
+  html += `<div class="feedback-area"></div></div>`;
 
   getElement("question-text").classList.add("hidden");
   container.innerHTML = html;
@@ -1849,7 +1861,9 @@ function beginMcPart(partKey, saved = null) {
 
   setupInstructionsPanel();
   logActivity("START", `${section} Part ${config.partId}`);
-  loadGroup();
+  if (!_pendingHashNavigation) {
+    loadGroup();
+  }
   updatePrevButtonVisibility();
   startTimer(section);
   return true;
@@ -1998,17 +2012,6 @@ function loadGroup() {
 
   groupSelectedAnswers = {};
   groupChecked = false;
-
-  const container = getElement("quiz-container");
-  container.classList.remove("fade-out");
-  void container.offsetWidth;
-  container.classList.add("fade-out");
-  setTimeout(() => {
-    container.classList.remove("fade-out");
-    container.style.animation = "none";
-    void container.offsetWidth;
-    container.style.animation = "fadeIn 0.5s ease";
-  }, 300);
 
   updateSectionProgress();
 
@@ -2835,7 +2838,9 @@ function beginSpeaking(partKey, saved = null) {
         (item) => item.partKey === currentPartKey,
       );
       currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
-      renderStep(currentSection, currentItemIndex, sectionData, "audio");
+      if (!_pendingHashNavigation) {
+        renderStep(currentSection, currentItemIndex, sectionData, "audio");
+      }
       hashNavigationLocked = true;
       updateHash(partKey, currentItemIndex);
       hashNavigationLocked = false;
@@ -2846,7 +2851,9 @@ function beginSpeaking(partKey, saved = null) {
         (item) => item.partKey === currentPartKey,
       );
       currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
-      renderStep(currentSection, currentItemIndex, sectionData, "audio");
+      if (!_pendingHashNavigation) {
+        renderStep(currentSection, currentItemIndex, sectionData, "audio");
+      }
       hashNavigationLocked = true;
       updateHash(partKey, currentItemIndex);
       hashNavigationLocked = false;
